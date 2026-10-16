@@ -1,16 +1,19 @@
 import {
-  applyFields, cellAt, emptyGrid, levelFrom, levelOption, levelSpeed, pick, pickFields, setCell,
+  applyFields, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell,
   type Game, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { KINDS, TETROMINOES, type Shape, type TetrominoKind } from './tetrominoes.js';
 
-const WIDTH = 12;
-const HEIGHT = 20;
-const BASE_SPEED = 1000;
+// Game Boy values (tetris.wiki/Tetris_(Game_Boy)): its well, gravity and scoring.
+const WIDTH = 10;
+const HEIGHT = 18;
+const FRAME_MS = 1000 / 59.73;
+// Frames per row, from the Game Boy's level 0 (our level 1) up to its level 20.
+const GRAVITY_FRAMES = [53, 49, 45, 41, 37, 33, 28, 22, 17, 11, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 3];
 const LINE_POINTS = [40, 100, 300, 1200];
 const PREVIEW_SIZE = 4;
-// How long completed lines flash before they vanish.
-export const FLASH_MS = 300;
+// How long completed lines flash before they vanish: the Game Boy's 93-frame pause.
+export const FLASH_MS = Math.round(93 * FRAME_MS);
 // On game over the well fills up from the bottom, one row per tick.
 export const CURTAIN_MS = 40;
 
@@ -88,7 +91,8 @@ export class Tetris implements Game {
   speed(): number {
     if (this.phase === 'clearing') return FLASH_MS;
     if (this.phase === 'curtain') return CURTAIN_MS;
-    return levelSpeed(BASE_SPEED, this.level);
+    const frames = GRAVITY_FRAMES[Math.min(this.level, GRAVITY_FRAMES.length) - 1]!;
+    return frames * FRAME_MS;
   }
 
   snapshot(): Snapshot {

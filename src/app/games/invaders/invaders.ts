@@ -1,5 +1,5 @@
 import {
-  applyFields, isFireKey, FIRE_KEYS, levelFrom, levelOption, levelSpeed, onOff, overlaps, pick, pickFields,
+  applyFields, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
   type Game, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawInvaders } from './invaders.draw.js';
@@ -20,13 +20,24 @@ const POINTS: Record<InvaderType, number> = { squid: 30, crab: 20, octopus: 10 }
 const SPACING = 16;
 const CELL_WIDTH = 12;
 const FLEET_X = 24;
+const FLEET_Y = 48;
+// How much lower each wave starts than the first, from the arcade's table; after wave 9
+// it cycles back to wave 2's.
+const WAVE_DROPS = [0, 24, 40, 48, 48, 48, 56, 56, 56];
+const waveDrop = (level: number) => WAVE_DROPS[level <= WAVE_DROPS.length ? level - 1 : 1 + ((level - 2) % (WAVE_DROPS.length - 1))]!;
+// [score below, ms between bombs]: the arcade's 48, 16, 11, 8 and 7 frames.
+const BOMB_RELOAD: [number, number][] = [[200, 800], [1000, 267], [2000, 183], [3000, 133], [Infinity, 117]];
 const WALL_MARGIN = 8;
 const MARCH_STEP = 2;
 const DROP = 8;
 // Units per second.
-const CANNON_SPEED = 90;
+// Arcade values (computerarcheology.com/Arcade/SpaceInvaders): 1 px per frame.
+const CANNON_SPEED = 60;
 const SHOT_SPEED = 240;
 const BOMB_SPEED = 80;
+// Bombs fall faster once 8 invaders or fewer are left.
+const FAST_BOMB_SPEED = 100;
+const FAST_BOMBS_AT = 8;
 const UFO_SPEED = 40;
 // Projectiles move at most this far before collisions are checked: nothing gets skipped.
 const SUBSTEP = 2;
@@ -94,12 +105,14 @@ export class Invaders implements Game {
   }
 
   // ms between march steps: the fewer invaders, the faster (one per frame at the end).
+  // As in the arcade, later waves don't march faster: they start lower.
   get stepMs(): number {
-    return Math.max(16, levelSpeed(this.invaders.length * 16, this.level));
+    return Math.max(16, this.invaders.length * 16);
   }
 
+  // The arcade reloads bombs faster as the score grows.
   get bombEveryMs(): number {
-    return Math.max(300, 1000 - 50 * this.level);
+    return (BOMB_RELOAD.find(([below]) => this.score < below) ?? BOMB_RELOAD[BOMB_RELOAD.length - 1]!)[1];
   }
 
   get cannonRect(): Rect {
@@ -192,7 +205,7 @@ export class Invaders implements Game {
   private startWave(): void {
     this.invaders = ROW_TYPES.flatMap((type, row) =>
       Array.from({ length: COLUMNS }, (_, col) => ({ type, col, row })));
-    this.fleet = { x: FLEET_X, y: 48 + 8 * ((this.level - 1) % 8), direction: 1, frame: 0 };
+    this.fleet = { x: FLEET_X, y: FLEET_Y + waveDrop(this.level), direction: 1, frame: 0 };
     this.cannonX = Math.floor((WIDTH - spriteWidth(CANNON)) / 2);
     this.shot = null;
     this.bombs = [];
@@ -257,7 +270,8 @@ export class Invaders implements Game {
   }
 
   private moveBombs(seconds: number): void {
-    const distance = BOMB_SPEED * seconds;
+    const speed = this.invaders.length <= FAST_BOMBS_AT ? FAST_BOMB_SPEED : BOMB_SPEED;
+    const distance = speed * seconds;
     const steps = Math.max(1, Math.ceil(distance / SUBSTEP));
     for (let i = 0; i < steps && !this.isOver; i++) {
       this.bombs.forEach((bomb) => bomb.y += distance / steps);

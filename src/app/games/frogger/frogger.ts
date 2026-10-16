@@ -1,5 +1,5 @@
 import {
-  applyFields, ARROW_DIRECTIONS, emptyGrid, levelFrom, levelOption, levelSpeed, onOff, pickFields, setCell,
+  applyFields, ARROW_DIRECTIONS, emptyGrid, levelFrom, levelOption, onOff, pickFields, setCell,
   type Game, type GameDefinition, type Grid, type Point, type Snapshot, type TouchLayout,
 } from '../game.js';
 import {
@@ -7,12 +7,13 @@ import {
   isRiver, type Lane,
 } from './lanes.js';
 
-const BASE_SPEED = 100;
+const BASE_SPEED = 50;
 const LIVES = 3;
 const STEP_POINTS = 10;
 const HOME_POINTS = 50;
 const LEVEL_POINTS = 1000;
-const TIME_LIMIT = 30_000;
+// The arcade's 60 seconds per frog.
+const TIME_LIMIT = 60_000;
 
 export interface FroggerOptions {
   firstLevel?: number;
@@ -81,7 +82,8 @@ export class Frogger implements Game {
   }
 
   speed(): number {
-    return levelSpeed(BASE_SPEED, this.level);
+    // Each level is 10% faster.
+    return BASE_SPEED / (1 + (this.level - 1) / 10);
   }
 
   snapshot(): Snapshot {

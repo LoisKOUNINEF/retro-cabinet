@@ -1,4 +1,4 @@
-import { ARCADE, COMPACT, GHOST_NAMES, isWalkable, parseMaze, stepFrom } from '#root/dist/src/app/games/pacman/mazes.js';
+import { ARCADE, COMPACT, GHOST_NAMES, isTunnel, isWalkable, parseMaze, stepFrom } from '#root/dist/src/app/games/pacman/mazes.js';
 
 const DIRECTIONS = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
 const key = ({ x, y }) => `${x},${y}`;
@@ -56,5 +56,18 @@ describe('Pacman mazes', () => {
 
     const arcade = parseMaze(ARCADE);
     expect(isWalkable(arcade, { x: 0, y: 10 })).toBeFalsy();
+  });
+
+  it('marks the tunnels: wraparound floor from each edge to the first pellet', () => {
+    const maze = parseMaze(COMPACT);
+    expect([0, 3, 15, 18].every((x) => isTunnel(maze, { x, y: 9 }))).toBeTruthy();
+    expect(isTunnel(maze, { x: 4, y: 9 })).toBeFalsy();
+    expect(isTunnel(maze, { x: 6, y: 9 })).toBeFalsy();
+    expect(isTunnel(maze, { x: 0, y: 1 })).toBeFalsy();
+
+    const arcade = parseMaze(ARCADE);
+    expect(isTunnel(arcade, { x: 5, y: 14 })).toBeTruthy();
+    expect(isTunnel(arcade, { x: 22, y: 14 })).toBeTruthy();
+    expect(isTunnel(arcade, { x: 6, y: 14 })).toBeFalsy();
   });
 });

@@ -43,6 +43,18 @@
   }
 }
 
+// A frightened ghost's face, as in the arcade: two square eyes and a zigzag mouth.
+@function ghost-face($colour) {
+  $svg: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='#{$colour}'>"
+    + "<rect x='4' y='5' width='2' height='2'/><rect x='8' y='5' width='2' height='2'/>"
+    + "<polyline points='2,11 3.5,9.5 5,11 7,9.5 9,11 10.5,9.5 12,11' fill='none' stroke='#{$colour}'/></svg>";
+  @return url("data:image/svg+xml,#{$svg}") center / 100% 100% no-repeat;
+}
+
+// Blue with a peach face; white with a red face while flashing.
+$frightened: (ghost-face("rgb(255,184,174)"), rgb(33, 33, 255));
+$frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
+
 .game-board__cell {
   box-sizing: border-box;
   border-right: 1px solid var(--grid-line);
@@ -110,9 +122,9 @@
   &--ghost-pinky { @include shape(rgb(255, 184, 255), $ghost-radius); }
   &--ghost-inky { @include shape(rgb(0, 255, 255), $ghost-radius); }
   &--ghost-clyde { @include shape(rgb(255, 184, 82), $ghost-radius); }
-  &--ghost-frightened { @include shape(rgb(33, 33, 222), $ghost-radius); }
+  &--ghost-frightened { @include shape($frightened, $ghost-radius); }
   &--ghost-frightened-ending {
-    @include shape(rgb(33, 33, 222), $ghost-radius);
+    @include shape($frightened, $ghost-radius);
 
     &::after { animation: ghost-flash 0.3s steps(1) infinite; }
   }
@@ -122,7 +134,7 @@
 }
 
 @keyframes ghost-flash {
-  50% { background: rgb(255, 255, 255); }
+  50% { background: $frightened-flash; }
 }
 
 // Columns: diamond-shaped jewels on the black cell; matched ones flash before vanishing.

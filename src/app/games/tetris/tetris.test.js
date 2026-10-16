@@ -19,13 +19,16 @@ describe('Tetris', () => {
     const game = new Tetris(alwaysI);
 
     expect(game.piece.kind).toBe('I');
-    expect(game.piece.x).toBe(4);
+    expect(game.piece.x).toBe(3);
     expect(game.piece.y).toBe(0);
     expect(game.next).toBe('I');
     // The I is the shape's second column: x + 1.
-    expect(game.cells()[0][5]).toBe('tetris-I');
-    expect(game.cells()[3][5]).toBe('tetris-I');
-    expect(game.cells()[4][5]).toBe(null);
+    expect(game.cells()[0][4]).toBe('tetris-I');
+    expect(game.cells()[3][4]).toBe('tetris-I');
+    expect(game.cells()[4][4]).toBe(null);
+    // The Game Boy's 10×18 well.
+    expect(game.width).toBe(10);
+    expect(game.height).toBe(18);
   });
 
   it('moves left and right but not through the walls', () => {
@@ -35,7 +38,7 @@ describe('Tetris', () => {
     expect(game.piece.x).toBe(-1);
 
     for (let i = 0; i < 20; i++) game.handleKey('ArrowRight');
-    expect(game.piece.x).toBe(10);
+    expect(game.piece.x).toBe(8);
   });
 
   it('rotates clockwise and counter-clockwise', () => {
@@ -51,32 +54,32 @@ describe('Tetris', () => {
 
     game.handleKey('ArrowUp');
 
-    // Horizontal I spans x..x+3, so it must shift back to x = 8.
-    expect(game.piece.x).toBe(8);
+    // Horizontal I spans x..x+3, so it must shift back to x = 6.
+    expect(game.piece.x).toBe(6);
     expect(game.piece.shape[1]).toEqual([1, 1, 1, 1]);
   });
 
   it('keeps the piece unchanged when no rotation fits', () => {
     const game = new Tetris(alwaysI);
-    [1, 2, 3].forEach((y) => fillRow(game, y, [5]));
+    [1, 2, 3].forEach((y) => fillRow(game, y, [4]));
     const shapeBefore = game.piece.shape;
 
     game.handleKey('KeyE');
     game.handleKey('KeyQ');
 
     expect(game.piece.shape).toBe(shapeBefore);
-    expect(game.piece.x).toBe(4);
+    expect(game.piece.x).toBe(3);
   });
 
   it('locks a piece at the bottom and spawns the next one', () => {
     const game = new Tetris(alwaysO);
 
-    for (let i = 0; i < 18; i++) game.tick();
-    expect(game.piece.y).toBe(18);
+    for (let i = 0; i < 16; i++) game.tick();
+    expect(game.piece.y).toBe(16);
 
     game.tick();
-    expect(game.board[19][4]).toBe('tetris-O');
-    expect(game.board[18][5]).toBe('tetris-O');
+    expect(game.board[17][3]).toBe('tetris-O');
+    expect(game.board[16][4]).toBe('tetris-O');
     expect(game.piece.y).toBe(0);
   });
 
@@ -88,21 +91,21 @@ describe('Tetris', () => {
 
   it('clears a full line and scores 40 × level', () => {
     const game = new Tetris(alwaysO);
-    fillRow(game, 19, [4, 5]);
+    fillRow(game, 17, [3, 4]);
 
     dropToBottom(game);
 
     expect(game.lines).toBe(1);
     expect(game.score).toBe(40);
     // The O's top half fell into the cleared row.
-    expect(game.board[19][4]).toBe('tetris-O');
-    expect(game.board[19][0]).toBe(null);
-    expect(game.board[18][4]).toBe(null);
+    expect(game.board[17][3]).toBe('tetris-O');
+    expect(game.board[17][0]).toBe(null);
+    expect(game.board[16][3]).toBe(null);
   });
 
   it('scores 1200 × level for four lines at once', () => {
     const game = new Tetris(alwaysI);
-    [16, 17, 18, 19].forEach((y) => fillRow(game, y, [5]));
+    [14, 15, 16, 17].forEach((y) => fillRow(game, y, [4]));
     game.level = 2;
 
     dropToBottom(game);
@@ -115,7 +118,7 @@ describe('Tetris', () => {
   it('levels up every 10 lines and gets faster', () => {
     const game = new Tetris(alwaysO);
     game.lines = 9;
-    fillRow(game, 19, [4, 5]);
+    fillRow(game, 17, [3, 4]);
     const slowSpeed = game.speed();
 
     dropToBottom(game);
@@ -123,6 +126,16 @@ describe('Tetris', () => {
     expect(game.lines).toBe(10);
     expect(game.level).toBe(2);
     expect(game.speed()).toBeLessThan(slowSpeed);
+  });
+
+  it('falls at Game Boy speed: 53 frames per row on level 1, down to 3 from level 21', () => {
+    const frame = 1000 / 59.73;
+    expect(new Tetris(alwaysO).speed()).toBe(53 * frame);
+    expect(new Tetris(alwaysO, 10).speed()).toBe(11 * frame);
+    const fastest = new Tetris(alwaysO);
+    fastest.level = 30;
+    expect(fastest.speed()).toBe(3 * frame);
+    expect(FLASH_MS).toBe(1557);
   });
 
   it('fills the well from the bottom when a piece locks at the top, then ends the game', () => {
@@ -134,16 +147,16 @@ describe('Tetris', () => {
     expect(game.isOver).toBeFalsy();
     expect(game.speed()).toBe(CURTAIN_MS);
     game.handleKey('ArrowLeft');
-    expect(game.piece.x).toBe(4);
+    expect(game.piece.x).toBe(3);
 
     game.tick();
     game.tick();
     const cells = game.cells();
-    expect(cells[19].every((cell) => cell === 'tetris-curtain')).toBeTruthy();
-    expect(cells[18].every((cell) => cell === 'tetris-curtain')).toBeTruthy();
-    expect(cells[17].some((cell) => cell === 'tetris-curtain')).toBeFalsy();
+    expect(cells[17].every((cell) => cell === 'tetris-curtain')).toBeTruthy();
+    expect(cells[16].every((cell) => cell === 'tetris-curtain')).toBeTruthy();
+    expect(cells[15].some((cell) => cell === 'tetris-curtain')).toBeFalsy();
 
-    for (let i = 2; i < 19; i++) game.tick();
+    for (let i = 2; i < 17; i++) game.tick();
     expect(game.isOver).toBeFalsy();
     game.tick();
     expect(game.isOver).toBeTruthy();
@@ -159,7 +172,7 @@ describe('Tetris', () => {
     expect(game.isOver).toBeFalsy();
     expect(game.phase).toBe('falling');
     expect(game.curtainRows).toBe(0);
-    expect(game.cells()[19][0]).toBe(null);
+    expect(game.cells()[17][0]).toBe(null);
     expect(game.score).toBe(0);
     expect(game.lines).toBe(0);
     expect(game.board[2][0]).toBe(null);
@@ -179,7 +192,7 @@ describe('Tetris', () => {
     expect(game.level).toBe(3);
     expect(game.speed()).toBeLessThan(new Tetris(alwaysO).speed());
 
-    fillRow(game, 19, [4, 5]);
+    fillRow(game, 17, [3, 4]);
     dropToBottom(game);
     expect(game.score).toBe(120);
 
@@ -218,13 +231,13 @@ describe('Tetris', () => {
 
   it('flashes completed lines before they vanish', () => {
     const game = new Tetris(alwaysO);
-    fillRow(game, 19, [4, 5]);
-    for (let i = 0; i < 19; i++) game.tick();
+    fillRow(game, 17, [3, 4]);
+    for (let i = 0; i < 17; i++) game.tick();
 
     expect(game.phase).toBe('clearing');
-    expect(game.clearingRows).toEqual([19]);
-    expect(game.cells()[19][0]).toBe('tetris-Z-flash');
-    expect(game.cells()[19][4]).toBe('tetris-O-flash');
+    expect(game.clearingRows).toEqual([17]);
+    expect(game.cells()[17][0]).toBe('tetris-Z-flash');
+    expect(game.cells()[17][3]).toBe('tetris-O-flash');
     expect(game.speed()).toBe(FLASH_MS);
     // Scored straight away, so the HUD shows it during the flash.
     expect(game.score).toBe(40);
@@ -232,28 +245,28 @@ describe('Tetris', () => {
 
     // No moves while the line flashes.
     game.handleKey('ArrowLeft');
-    expect(game.clearingRows).toEqual([19]);
+    expect(game.clearingRows).toEqual([17]);
 
     game.tick();
     expect(game.phase).toBe('falling');
-    expect(game.board[19][4]).toBe('tetris-O');
-    expect(game.board[19][0]).toBe(null);
+    expect(game.board[17][3]).toBe('tetris-O');
+    expect(game.board[17][0]).toBe(null);
     expect(game.piece.y).toBe(0);
   });
 
   it('flashes all four lines of a Tetris', () => {
     const game = new Tetris(alwaysI);
-    [16, 17, 18, 19].forEach((y) => fillRow(game, y, [5]));
-    for (let i = 0; i < 17; i++) game.tick();
+    [14, 15, 16, 17].forEach((y) => fillRow(game, y, [4]));
+    for (let i = 0; i < 15; i++) game.tick();
 
-    expect(game.clearingRows).toEqual([16, 17, 18, 19]);
-    expect(game.cells().slice(16).every((row) => row.every((cell) => cell.endsWith('-flash')))).toBeTruthy();
+    expect(game.clearingRows).toEqual([14, 15, 16, 17]);
+    expect(game.cells().slice(14).every((row) => row.every((cell) => cell.endsWith('-flash')))).toBeTruthy();
   });
 
   it('saves and restores a game mid-flash and mid-curtain', () => {
     const flashing = new Tetris(alwaysO);
-    fillRow(flashing, 19, [4, 5]);
-    for (let i = 0; i < 19; i++) flashing.tick();
+    fillRow(flashing, 17, [3, 4]);
+    for (let i = 0; i < 17; i++) flashing.tick();
 
     const ending = new Tetris(alwaysO);
     fillRow(ending, 2);

@@ -185,7 +185,7 @@ describe('GameView', () => {
     select.value = 'on';
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
 
-    expect($('[data-stat="time"]').textContent).toBe('30');
+    expect($('[data-stat="time"]').textContent).toBe('60');
     expect($('select[data-option="time"]').value).toBe('on');
   });
 
@@ -491,7 +491,7 @@ describe('GameView', () => {
 
     // …and only once the well is full does the game end.
     advanceTimersByTime(40 * 20);
-    expect($$('.game__stage .game-board__cell--tetris-curtain').length).toBe(12 * 20);
+    expect($$('.game__stage .game-board__cell--tetris-curtain').length).toBe(10 * 18);
     expect($('.game__status').textContent).toContain('Game over');
     expect($('.score-table__row--new .score-table__score').textContent).toBe('120');
   });

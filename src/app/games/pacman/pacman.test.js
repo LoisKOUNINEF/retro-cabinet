@@ -1,4 +1,4 @@
-import { Pacman, pacmanGame } from '#root/dist/src/app/games/pacman/pacman.js';
+import { Pacman, pacmanGame, TICK_MS } from '#root/dist/src/app/games/pacman/pacman.js';
 import { COMPACT } from '#root/dist/src/app/games/pacman/mazes.js';
 
 const UP = { x: 0, y: -1 };
@@ -11,11 +11,40 @@ const EXIT = { x: 9, y: 7 };
 
 const ghost = (name, position, direction, extra = {}) => ({ name, position, direction, state: 'active', frightened: false, ...extra });
 
+// A game already going (past the wait for the first arrow).
+const playing = (...args) => {
+  const game = new Pacman(...args);
+  game.waiting = false;
+  return game;
+};
+
 // A game with no ghosts around, to test Pacman alone.
 const alone = () => {
-  const game = new Pacman(COMPACT, () => 0);
+  const game = playing(COMPACT, () => 0);
   game.ghosts = [];
   return game;
+};
+
+// One tick in which Pacman takes exactly one step (any speed from 70% to 100%).
+const stepOnce = (game) => {
+  game.pacman.budget = 30;
+  game.tick();
+};
+
+// How many of the next n ticks the ghost moves on.
+const ghostMoves = (game, ghostIndex, n) => {
+  let moves = 0;
+  for (let i = 0; i < n; i++) {
+    const before = game.ghosts[ghostIndex].position;
+    game.tick();
+    if (game.ghosts[ghostIndex].position !== before) moves += 1;
+  }
+  return moves;
+};
+
+// Pacman stuck facing a wall, so he neither moves nor eats.
+const stuck = (game) => {
+  game.pacman = { position: { x: 1, y: 1 }, direction: LEFT };
 };
 
 describe('Pacman', () => {
@@ -34,13 +63,99 @@ describe('Pacman', () => {
     expect(game.cells()[2][1]).toBe('power');
   });
 
+  it('holds still until the first arrow, which picks the starting direction', () => {
+    const game = new Pacman(COMPACT, () => 0);
+    expect(game.prompt(false)).toBe('Press an arrow to go');
+    expect(game.prompt(true)).toBe('Move the stick to go');
+
+    for (let i = 0; i < 50; i++) game.tick();
+    expect(game.pacman.position).toEqual(START);
+    expect(game.ghosts[0].position).toEqual(EXIT);
+    expect(game.ghosts[1].state).toBe('house');
+
+    game.handleKey('ArrowRight');
+    expect(game.waiting).toBeFalsy();
+    expect(game.prompt(false)).toBe(null);
+    expect(game.pacman.direction).toEqual(RIGHT);
+
+    stepOnce(game);
+    expect(game.pacman.position).toEqual({ x: 10, y: 15 });
+  });
+
+  it('takes a first arrow into a wall at the first open turn', () => {
+    const game = new Pacman(COMPACT, () => 0);
+    game.ghosts = [];
+    // Up is a wall at the start: Pacman sets off left, as in the arcade.
+    game.handleKey('ArrowUp');
+    expect(game.pacman.direction).toEqual(LEFT);
+    expect(game.wanted).toEqual(UP);
+
+    stepOnce(game);
+    stepOnce(game);
+    expect(game.pacman.position).toEqual({ x: 8, y: 14 });
+  });
+
   it('moves and eats pellets', () => {
     const game = alone();
-    game.tick();
+    stepOnce(game);
 
     expect(game.pacman.position).toEqual({ x: 8, y: 15 });
     expect(game.score).toBe(10);
     expect(game.pelletsLeft).toBe(149);
+  });
+
+  it('moves at 80% on level 1: 4 tiles every 5 ticks', () => {
+    const game = alone();
+    // An empty corridor (one pellet kept elsewhere, so the level goes on).
+    game.pellets = game.pellets.map((row) => row.map(() => null));
+    game.pellets[1][1] = 'pellet';
+    game.pacman = { position: { x: 17, y: 19 }, direction: LEFT };
+
+    for (let i = 0; i < 20; i++) game.tick();
+
+    expect(game.pacman.position).toEqual({ x: 1, y: 19 });
+  });
+
+  it('slows Pacman down for a frame on each pellet', () => {
+    const game = alone();
+    game.pacman = { position: { x: 17, y: 19 }, direction: LEFT };
+
+    for (let i = 0; i < 20; i++) game.tick();
+
+    // 16 tiles on an empty corridor, fewer through pellets.
+    expect(game.pacman.position.x).toBeGreaterThan(1);
+  });
+
+  it('moves ghosts at 75% and frightened ghosts at 50%', () => {
+    const game = playing(COMPACT, () => 0);
+    stuck(game);
+    game.ghosts = [ghost('blinky', EXIT, LEFT)];
+    expect(ghostMoves(game, 0, 20)).toBe(15);
+
+    game.frightenedMs = 60_000;
+    game.ghosts[0].frightened = true;
+    game.ghosts[0].budget = 0;
+    expect(ghostMoves(game, 0, 20)).toBe(10);
+  });
+
+  it('turns Blinky into Elroy as the maze empties', () => {
+    const game = playing(COMPACT, () => 0);
+    // Out of the maze: Elroy chases even in scatter time, and must not catch him.
+    game.pacman = { position: { x: 100, y: 100 }, direction: LEFT };
+    game.ghosts = [ghost('blinky', EXIT, LEFT)];
+    const keep = (count) => {
+      let kept = 0;
+      game.pellets = game.pellets.map((row) => row.map((pellet) => (pellet && kept++ < count ? pellet : null)));
+    };
+
+    keep(20);
+    expect(game.elroy).toBe(1);
+    expect(ghostMoves(game, 0, 20)).toBe(16);
+
+    keep(10);
+    game.ghosts[0].budget = 0;
+    expect(game.elroy).toBe(2);
+    expect(ghostMoves(game, 0, 20)).toBe(17);
   });
 
   it('keeps a pressed direction until the turn is open', () => {
@@ -48,20 +163,20 @@ describe('Pacman', () => {
     // Up is a wall at the start.
     game.handleKey('ArrowUp');
 
-    game.tick();
+    stepOnce(game);
     expect(game.pacman.position).toEqual({ x: 8, y: 15 });
     expect(game.pacman.direction).toEqual(LEFT);
 
-    game.tick();
+    stepOnce(game);
     expect(game.pacman.position).toEqual({ x: 8, y: 14 });
     expect(game.pacman.direction).toEqual(UP);
   });
 
   it('stops at walls', () => {
     const game = alone();
-    game.pacman = { position: { x: 1, y: 1 }, direction: LEFT };
+    stuck(game);
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.pacman.position).toEqual({ x: 1, y: 1 });
   });
@@ -70,19 +185,19 @@ describe('Pacman', () => {
     const game = alone();
     game.pacman = { position: { x: 0, y: 9 }, direction: LEFT };
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.pacman.position).toEqual({ x: 18, y: 9 });
   });
 
-  it('frightens the active ghosts on a power pellet', () => {
-    const game = new Pacman(COMPACT, () => 0);
+  it('frightens the active ghosts on a power pellet, for 6 s on level 1', () => {
+    const game = playing(COMPACT, () => 0);
     game.pacman = { position: { x: 1, y: 3 }, direction: UP };
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.score).toBe(50);
-    expect(game.frightenedTicks).toBe(48);
+    expect(game.frightenedMs).toBe(6000);
     expect(game.ghosts[0].frightened).toBeTruthy();
     expect(game.ghosts[2].frightened).toBeFalsy();
     expect(game.cells().flat()).toContain('ghost-frightened');
@@ -92,106 +207,136 @@ describe('Pacman', () => {
     const game = alone();
     game.pellets[1][1] = null;
     game.pellets[1][2] = null;
-    game.frightenedTicks = 40;
+    game.frightenedMs = 4000;
     game.pacman = { position: { x: 1, y: 2 }, direction: UP };
-    // Frightened ghosts stay still on odd ticks.
+    // Frightened ghosts move at 50%: from an empty budget, they wait a tick.
     game.ghosts = [ghost('blinky', { x: 1, y: 1 }, UP, { frightened: true })];
 
-    game.tick();
+    stepOnce(game);
     expect(game.score).toBe(200);
     expect(game.ghosts[0].state).toBe('eyes');
 
     game.ghosts.push(ghost('pinky', { x: 2, y: 1 }, LEFT, { frightened: true }));
-    game.ticks = 2;
     game.handleKey('ArrowRight');
-    game.tick();
+    stepOnce(game);
     expect(game.score).toBe(600);
   });
 
   it('catches a ghost that swaps tiles with Pacman', () => {
     // random 0.99 sends the frightened ghost right, into Pacman's old tile.
-    const game = new Pacman(COMPACT, () => 0.99);
-    game.frightenedTicks = 40;
-    game.ticks = 1;
-    game.ghosts = [ghost('blinky', { x: 8, y: 15 }, RIGHT, { frightened: true })];
+    const game = playing(COMPACT, () => 0.99);
+    game.frightenedMs = 4000;
+    game.ghosts = [ghost('blinky', { x: 8, y: 15 }, RIGHT, { frightened: true, budget: 50 })];
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.pacman.position).toEqual({ x: 8, y: 15 });
     expect(game.ghosts[0].state).toBe('eyes');
     expect(game.score).toBe(210);
   });
 
-  it('loses a life when caught, then resets positions', () => {
+  it('loses a life when caught, then resets positions and waits for an arrow', () => {
     const game = alone();
-    // Normal ghosts skip every 5th tick: this one waits for Pacman.
-    game.ticks = 4;
     game.ghosts = [ghost('blinky', { x: 8, y: 15 }, RIGHT)];
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.lives).toBe(2);
     expect(game.pacman.position).toEqual(START);
     expect(game.ghosts[0].position).toEqual(EXIT);
     expect(game.ghosts[1].state).toBe('house');
+    expect(game.waiting).toBeTruthy();
   });
 
   it('ends the game when the last life is lost', () => {
     const game = alone();
     game.lives = 1;
-    game.ticks = 4;
     game.ghosts = [ghost('blinky', { x: 8, y: 15 }, RIGHT)];
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.isOver).toBeTruthy();
+  });
+
+  it('gives one extra life at 10,000 points', () => {
+    const game = alone();
+    game.score = 9990;
+
+    stepOnce(game);
+    expect(game.lives).toBe(4);
+
+    game.score = 19_990;
+    stepOnce(game);
+    expect(game.lives).toBe(4);
   });
 
   it('starts the next level once every pellet is eaten', () => {
     const game = alone();
     game.pellets = game.pellets.map((row) => row.map(() => null));
     game.pellets[15][8] = 'pellet';
-    const slowSpeed = game.speed();
 
-    game.tick();
+    stepOnce(game);
 
     expect(game.level).toBe(2);
     expect(game.pelletsLeft).toBe(150);
     expect(game.pacman.position).toEqual(START);
-    expect(game.speed()).toBeLessThan(slowSpeed);
+    expect(game.waiting).toBeTruthy();
   });
 
-  it('releases ghosts from the house one by one', () => {
-    const game = new Pacman(COMPACT, () => 0);
+  it('releases a ghost once enough pellets are eaten', () => {
+    const game = playing(COMPACT, () => 0);
+    stuck(game);
     const states = () => game.ghosts.map((g) => g.state);
 
+    // Pinky comes out at once, Inky after 30 pellets on level 1.
     game.tick();
     expect(states()).toEqual(['active', 'active', 'house', 'house']);
 
-    for (let i = 1; i < 40; i++) game.tick();
+    game.tick();
+    expect(states()[2]).toBe('house');
+
+    game._pelletsEaten = 30;
+    game.tick();
+    expect(states()).toEqual(['active', 'active', 'active', 'house']);
+  });
+
+  it('releases the next ghost when Pacman stops eating for 4 s', () => {
+    const game = playing(COMPACT, () => 0);
+    stuck(game);
+    const states = () => game.ghosts.map((g) => g.state);
+
+    game.tick();
+    game.tick(3900);
+    expect(states()[2]).toBe('house');
+
+    game.tick(200);
     expect(states()[2]).toBe('active');
     expect(states()[3]).toBe('house');
   });
 
-  it('switches from scatter to chase on schedule', () => {
+  it('switches from scatter to chase after 7 s on level 1', () => {
     const game = alone();
-    for (let i = 0; i < 55; i++) game.tick();
+    for (let i = 0; i < 6; i++) game.tick(1000);
     expect(game.mode).toBe('scatter');
 
-    game.tick();
+    game.tick(1000);
     expect(game.mode).toBe('chase');
   });
 
   it('flashes frightened ghosts near the end, then turns them back', () => {
     const game = alone();
     game.ghosts = [ghost('blinky', { x: 1, y: 1 }, RIGHT, { frightened: true })];
-    game.frightenedTicks = 17;
+    // Level 1: 5 flashes in the last 2 s.
+    game.frightenedMs = 2200;
     game.pacman = { position: { x: 1, y: 19 }, direction: LEFT };
 
     game.tick();
+    expect(game.cells().flat()).toContain('ghost-frightened');
+
+    game.tick(200);
     expect(game.cells().flat()).toContain('ghost-frightened-ending');
 
-    for (let i = 0; i < 16; i++) game.tick();
+    game.tick(2000);
     expect(game.ghosts[0].frightened).toBeFalsy();
   });
 
@@ -202,16 +347,21 @@ describe('Pacman', () => {
   });
 
   it('starts at the chosen level, with shorter fright time', () => {
-    const game = new Pacman(COMPACT, () => 0, 4);
+    const game = playing(COMPACT, () => 0, 4);
     game.ghosts = [];
     expect(game.level).toBe(4);
 
     game.pacman = { position: { x: 1, y: 3 }, direction: UP };
-    game.tick();
-    expect(game.frightenedTicks).toBe(36);
+    stepOnce(game);
+    expect(game.frightenedMs).toBe(3000);
 
     game.reset();
     expect(game.level).toBe(4);
+  });
+
+  it('ticks at the arcade 100% speed: one tile per tick', () => {
+    expect(new Pacman().speed()).toBe(TICK_MS);
+    expect(TICK_MS).toBe(106);
   });
 
   it('combines the maze and level options', () => {
@@ -222,7 +372,7 @@ describe('Pacman', () => {
   });
 
   it('saves and restores its exact state, ghosts and modes included', () => {
-    const game = new Pacman(COMPACT, () => 0);
+    const game = playing(COMPACT, () => 0);
     for (let i = 0; i < 45; i++) game.tick();
     game.handleKey('ArrowUp');
 

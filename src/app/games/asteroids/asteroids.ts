@@ -265,7 +265,8 @@ export class Asteroids implements Game {
   // Rocks and waves.
 
   private startWave(): void {
-    const count = Math.min(3 + this.level, MAX_ROCKS);
+    // As in the arcade: 4 large rocks, then 2 more each wave, up to 11.
+    const count = Math.min(2 + 2 * this.level, MAX_ROCKS);
     this.rocks = Array.from({ length: count }, () => {
       let position = { x: this.random() * WIDTH, y: this.random() * HEIGHT, vx: 0, vy: 0 };
       // Too close to the ship: across the field instead.

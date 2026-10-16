@@ -281,7 +281,7 @@ export class GameView extends View {
       const highScore = this._rank === null ? '' : ` — new high score! (#${this._rank + 1})`;
       return `Game over${highScore} — ${action} to play again`;
     }
-    if (this._loop.isRunning) return '';
+    if (this._loop.isRunning) return this.game.prompt?.(touch) ?? '';
     if (this._restored) return `Saved game — ${action} to resume`;
     if (this._started) return `Paused — ${action} to resume`;
     return touch ? 'Tap to start' : 'Press Space to start';

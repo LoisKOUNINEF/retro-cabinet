@@ -3,10 +3,10 @@ import { LANES, WIDTH } from '#root/dist/src/app/games/frogger/lanes.js';
 
 const START = { x: 7, y: 12 };
 
-// Runs 28 ticks (frog safe on the start row), then puts the frog on a '~' turtle
+// Runs 56 ticks (frog safe on the start row), then puts the frog on a '~' turtle
 // of row 4 that won't be carried off the board on the next shift.
 const rideDivingTurtle = (game) => {
-  for (let i = 0; i < 28; i++) game.tick(0);
+  for (let i = 0; i < 56; i++) game.tick(0);
   const lane = LANES.findIndex((l) => l.row === 4);
   const pattern = LANES[lane].pattern;
   const x = [...Array(WIDTH).keys()].find((col) =>
@@ -33,10 +33,10 @@ describe('Frogger', () => {
 
   it('shifts each lane every `period` ticks and wraps around', () => {
     const game = new Frogger();
-    // Row 8: '=.....=.....=..', moving right every 2 ticks.
+    // Row 8: '=.....=.....=..', the race car, moving right every 8 ticks.
     expect(game.cells()[8][0]).toBe('car');
 
-    game.tick();
+    for (let i = 0; i < 7; i++) game.tick();
     expect(game.cells()[8][0]).toBe('car');
 
     game.tick();
@@ -44,7 +44,7 @@ describe('Frogger', () => {
     expect(game.cells()[8][1]).toBe('car');
 
     // A full lap brings the pattern back.
-    for (let i = 0; i < 2 * (WIDTH - 1); i++) game.tick();
+    for (let i = 0; i < 8 * (WIDTH - 1); i++) game.tick();
     expect(game.cells()[8][0]).toBe('car');
   });
 
@@ -95,12 +95,12 @@ describe('Frogger', () => {
 
   it('rides a log', () => {
     const game = new Frogger();
-    // Row 5 has a log at x = 0, moving right every 4 ticks.
+    // Row 5 has a log at x = 0, moving right every 14 ticks.
     game.frog = { x: 0, y: 6 };
     game.handleKey('ArrowUp');
     expect(game.lives).toBe(3);
 
-    for (let i = 0; i < 4; i++) game.tick();
+    for (let i = 0; i < 14; i++) game.tick();
 
     expect(game.frog).toEqual({ x: 1, y: 5 });
     expect(game.lives).toBe(3);
@@ -108,15 +108,13 @@ describe('Frogger', () => {
 
   it('loses a life when a log carries the frog off the board', () => {
     const game = new Frogger();
-    // Row 3 has a log at x = 13, moving right every 2 ticks.
+    // Row 3 has a log at x = 13, moving right every 8 ticks.
     game.frog = { x: 13, y: 3 };
 
-    game.tick();
-    game.tick();
+    for (let i = 0; i < 8; i++) game.tick();
     expect(game.frog).toEqual({ x: 14, y: 3 });
 
-    game.tick();
-    game.tick();
+    for (let i = 0; i < 8; i++) game.tick();
     expect(game.lives).toBe(2);
     expect(game.frog).toEqual(START);
   });
@@ -179,6 +177,16 @@ describe('Frogger', () => {
     expect(froggerGame.create({})).toBeInstanceOf(Frogger);
   });
 
+  it('is 10% faster each level', () => {
+    expect(new Frogger({ firstLevel: 2 }).speed()).toBe(new Frogger().speed() / 1.1);
+  });
+
+  it('runs every lane at 1 to 2.5 cells per second on level 1', () => {
+    const cellsPerSecond = LANES.map((lane) => 1000 / (new Frogger().speed() * lane.period));
+    expect(Math.min(...cellsPerSecond)).toBe(1);
+    expect(Math.max(...cellsPerSecond)).toBe(2.5);
+  });
+
   it('starts at the chosen level', () => {
     const game = new Frogger({ firstLevel: 4 });
     expect(game.level).toBe(4);
@@ -189,19 +197,19 @@ describe('Frogger', () => {
     expect(froggerGame.options.map((o) => o.key)).toEqual(['level', 'time', 'turtles']);
     const game = froggerGame.create({ level: '2', time: 'on', turtles: 'off' });
     expect(game.level).toBe(2);
-    expect(game.stats().time).toBe(30);
+    expect(game.stats().time).toBe(60);
   });
 
   it('loses a life when the time runs out, then restarts the timer', () => {
     const game = new Frogger({ timeLimit: true });
 
-    game.tick(29_999);
+    game.tick(59_999);
     expect(game.lives).toBe(3);
     expect(game.stats()).toEqual({ lives: 3, time: 1 });
 
     game.tick(1);
     expect(game.lives).toBe(2);
-    expect(game.timeLeft).toBe(30_000);
+    expect(game.timeLeft).toBe(60_000);
   });
 
   it('restarts the timer for each frog that reaches a home', () => {
@@ -211,7 +219,7 @@ describe('Frogger', () => {
 
     game.handleKey('ArrowUp');
 
-    expect(game.timeLeft).toBe(30_000);
+    expect(game.timeLeft).toBe(60_000);
   });
 
   it('ignores time and shows no time stat without the time limit', () => {
@@ -223,7 +231,7 @@ describe('Frogger', () => {
 
   it('flashes diving turtles before they dive', () => {
     const game = new Frogger({ divingTurtles: true });
-    for (let i = 0; i < 23; i++) game.tick(0);
+    for (let i = 0; i < 47; i++) game.tick(0);
     expect(game.cells()[4]).not.toContain('turtle-diving');
 
     game.tick(0);
@@ -236,10 +244,10 @@ describe('Frogger', () => {
   it('drowns a frog riding a diving turtle once it goes under', () => {
     const game = rideDivingTurtle(new Frogger({ divingTurtles: true }));
 
-    game.tick(0);
+    for (let i = 0; i < 3; i++) game.tick(0);
     expect(game.lives).toBe(3);
 
-    // Tick 30: the turtles go under (and the lane shifts the frog along).
+    // Tick 60: the turtles go under.
     game.tick(0);
     expect(game.lives).toBe(2);
   });

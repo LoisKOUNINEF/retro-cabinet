@@ -25,9 +25,13 @@ describe('Space Invaders', () => {
     expect(game.shieldChunks.length).toBeGreaterThan(0);
   });
 
-  it('starts each wave lower, wrapping every 8 waves', () => {
-    expect(newGame({ firstLevel: 3 }).fleet.y).toBe(64);
-    expect(newGame({ firstLevel: 9 }).fleet.y).toBe(48);
+  it('starts each wave lower, as in the arcade, then cycles from wave 2', () => {
+    expect([1, 2, 3, 4, 7, 9].map((firstLevel) => newGame({ firstLevel }).fleet.y)).toEqual([48, 72, 88, 96, 104, 104]);
+    expect(newGame({ firstLevel: 10 }).fleet.y).toBe(72);
+  });
+
+  it('marches at the same pace on every wave', () => {
+    expect(newGame({ firstLevel: 5 }).stepMs).toBe(newGame().stepMs);
   });
 
   it('marches one step per stepMs, swapping animation frames', () => {
@@ -69,11 +73,11 @@ describe('Space Invaders', () => {
     const game = newGame();
     game.handleKey('ArrowRight');
     game.tick(100);
-    expect(game.cannonX).toBe(114);
+    expect(game.cannonX).toBe(111);
 
     game.handleKeyUp('ArrowRight');
     game.tick(100);
-    expect(game.cannonX).toBe(114);
+    expect(game.cannonX).toBe(111);
 
     game.handleKey('ArrowRight');
     game.tick(5000);
@@ -135,6 +139,29 @@ describe('Space Invaders', () => {
 
     expect(game.shot).toBe(null);
     expect(game.bombs.length).toBe(0);
+  });
+
+  it('reloads bombs faster as the score grows', () => {
+    const game = newGame();
+    expect(game.bombEveryMs).toBe(800);
+    game.score = 200;
+    expect(game.bombEveryMs).toBe(267);
+    game.score = 2500;
+    expect(game.bombEveryMs).toBe(133);
+    game.score = 9000;
+    expect(game.bombEveryMs).toBe(117);
+  });
+
+  it('drops bombs faster once 8 invaders or fewer are left', () => {
+    const game = newGame({ shields: false });
+    game.bombs = [{ x: 10, y: 100, width: 3, height: 7 }];
+    game.tick(100);
+    expect(game.bombs[0].y).toBe(108);
+
+    game.invaders = game.invaders.slice(0, 8);
+    game.bombs = [{ x: 10, y: 100, width: 3, height: 7 }];
+    game.tick(100);
+    expect(game.bombs[0].y).toBe(110);
   });
 
   it('drops bombs from the lowest invader of a column, at most 3', () => {
@@ -266,7 +293,7 @@ describe('Space Invaders', () => {
 
     expect(game.level).toBe(2);
     expect(game.invaders.length).toBe(55);
-    expect(game.fleet.y).toBe(56);
+    expect(game.fleet.y).toBe(72);
     expect(game.shieldChunks.length).toBeGreaterThan(0);
   });
 

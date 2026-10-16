@@ -175,11 +175,11 @@ describe('Asteroids', () => {
     expect(game.level).toBe(1);
     game.tick(1);
     expect(game.level).toBe(2);
-    expect(game.rocks.length).toBe(5);
+    expect(game.rocks.length).toBe(6);
   });
 
   it('starts at the chosen wave, with at most 11 rocks', () => {
-    expect(newGame({ firstLevel: 5 }).rocks.length).toBe(8);
+    expect([3, 4, 5].map((firstLevel) => newGame({ firstLevel }).rocks.length)).toEqual([8, 10, 11]);
     expect(newGame({ firstLevel: 10 }).rocks.length).toBe(11);
   });
 
