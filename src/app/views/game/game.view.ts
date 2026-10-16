@@ -131,6 +131,10 @@ export class GameView extends View {
   private readonly _onKeydown = (event: KeyboardEvent): void => {
     // Let a focused option select handle its own keys.
     if (event.target instanceof HTMLSelectElement) return;
+    // Space/Enter on a focused button is the button's own click (e.g. the play/pause
+    // toggle): handling it here too would toggle twice.
+    const activates = event.code === 'Space' || event.code === 'Enter';
+    if (activates && event.target instanceof HTMLButtonElement) return;
     if (PREVENTED_KEYS.includes(event.code)) event.preventDefault();
     if (event.code === 'Space') return this.togglePlay();
     this.press(event.code);
@@ -205,6 +209,11 @@ export class GameView extends View {
     this.render();
   }
 
+  // The panel's play/pause button: the same as Space.
+  private _togglePlay(): void {
+    this.togglePlay();
+  }
+
   private togglePlay(): void {
     if (this.game.isOver) {
       this.game.reset();
@@ -245,14 +254,24 @@ export class GameView extends View {
       if (element) element.textContent = String(value);
     });
 
-    // Options only change between games: locked while playing.
+    // Options only change between games: the whole box is locked while playing.
     this.element.querySelectorAll<HTMLSelectElement>('select[data-option]').forEach((select) => {
       select.value = this._settings[select.dataset.option ?? ''] ?? '';
-      select.disabled = this._loop.isRunning;
     });
+    const options = this.element.querySelector<HTMLFieldSetElement>('.game__options');
+    if (options) options.disabled = this._loop.isRunning;
+
+    const toggle = this.element.querySelector('.game__toggle');
+    if (toggle) toggle.textContent = this.toggleLabel();
 
     const status = this.element.querySelector('.game__status');
     if (status) status.textContent = this.statusText();
+  }
+
+  private toggleLabel(): string {
+    if (this.game.isOver) return '↻ Play again';
+    if (this._loop.isRunning) return '⏸ Pause';
+    return this._started ? '▶ Resume' : '▶ Start';
   }
 
   private statusText(): string {

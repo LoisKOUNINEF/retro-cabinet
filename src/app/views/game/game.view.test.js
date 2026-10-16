@@ -5,7 +5,7 @@ import { pacmanGame } from '#root/dist/src/app/games/pacman/pacman.js';
 import { froggerGame } from '#root/dist/src/app/games/frogger/frogger.js';
 import { Arkanoid, arkanoidGame } from '#root/dist/src/app/games/arkanoid/arkanoid.js';
 import { Invaders } from '#root/dist/src/app/games/invaders/invaders.js';
-import { registerPipes } from '#root/dist/src/core/index.js';
+import { Navigation, registerPipes } from '#root/dist/src/core/index.js';
 import { resetKeyLabels } from '#root/dist/src/app/components/key-labels.js';
 
 // A definition that always hands back the given game instance.
@@ -143,15 +143,20 @@ describe('GameView', () => {
     view.render();
     view.onEnter();
     const select = $('select[data-option="maze"]');
+    const box = $('fieldset.game__options');
 
     expect(select.value).toBe('compact');
-    expect(select.disabled).toBeFalsy();
+    expect(box.querySelector('legend').textContent).toBe('Options');
+    expect(box.disabled).toBeFalsy();
     expect($('[data-stat="lives"]').textContent).toBe('3');
 
+    // The whole box locks while playing, which disables every select in it.
     press('Space');
-    expect(select.disabled).toBeTruthy();
+    expect(box.disabled).toBeTruthy();
+    expect(select.matches(':disabled')).toBeTruthy();
+    expect(box.querySelector('.game__options-note').textContent).toBe('Pause to change options');
     press('Space');
-    expect(select.disabled).toBeFalsy();
+    expect(box.disabled).toBeFalsy();
   });
 
   it('builds a new game and board when an option changes', () => {
@@ -408,10 +413,10 @@ describe('GameView', () => {
     view.render();
     view.onEnter();
 
-    $('.game__board').click();
+    $('.game__stage').click();
     expect($('.game__status').textContent).toBe('');
 
-    $('.game__board').click();
+    $('.game__stage').click();
     expect($('.game__status').textContent).toBe('');
   });
 
@@ -480,14 +485,73 @@ describe('GameView', () => {
     // The O piece can't fall: the curtain starts…
     advanceTimersByTime(1000);
     advanceTimersByTime(40 * 5);
-    const curtain = $$('.game__board .game-board__cell--tetris-curtain').length;
+    const curtain = $$('.game__stage .game-board__cell--tetris-curtain').length;
     expect(curtain).toBeGreaterThan(0);
     expect($('.game__status').textContent).toBe('');
 
     // …and only once the well is full does the game end.
     advanceTimersByTime(40 * 20);
-    expect($$('.game__board .game-board__cell--tetris-curtain').length).toBe(12 * 20);
+    expect($$('.game__stage .game-board__cell--tetris-curtain').length).toBe(12 * 20);
     expect($('.game__status').textContent).toContain('Game over');
     expect($('.score-table__row--new .score-table__score').textContent).toBe('120');
+  });
+
+  it('has a play/pause button that follows the game, like Space', () => {
+    const game = new Snake(() => 0);
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    const toggle = $('.game__toggle');
+    expect(toggle.textContent).toBe('▶ Start');
+
+    toggle.click();
+    expect(toggle.textContent).toBe('⏸ Pause');
+    expect($('.game__status').textContent).toBe('');
+
+    toggle.click();
+    expect(toggle.textContent).toBe('▶ Resume');
+    expect($('.game__status').textContent).toContain('Paused');
+
+    toggle.click();
+    game.body = [{ x: 20, y: 10 }];
+    advanceTimersByTime(250);
+    expect(toggle.textContent).toBe('↻ Play again');
+
+    toggle.click();
+    expect(game.isOver).toBeFalsy();
+    expect(toggle.textContent).toBe('⏸ Pause');
+  });
+
+  it('leaves Space on a focused button to the button, so it toggles once', () => {
+    view = new GameView(definitionOf(new Snake(() => 0)));
+    view.render();
+    view.onEnter();
+    const toggle = $('.game__toggle');
+    toggle.focus();
+
+    toggle.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true }));
+    // The browser turns it into a click on the button; the view itself didn't toggle.
+    expect(toggle.textContent).toBe('▶ Start');
+    toggle.click();
+    expect(toggle.textContent).toBe('⏸ Pause');
+  });
+
+  it('shows no Options box for games without options', () => {
+    const game = new Snake(() => 0);
+    view = new GameView({ id: 'snake', create: () => game });
+    view.render();
+    expect($('.game__options')).toBeFalsy();
+  });
+
+  it('goes back to the games from the header', () => {
+    view = new GameView(definitionOf(new Snake(() => 0)));
+    view.render();
+    const paths = [];
+    const stop = Navigation.onNavigate(({ path }) => paths.push(path));
+
+    $('.game__header .game__back').click();
+
+    expect(paths).toEqual(['/']);
+    stop();
   });
 });

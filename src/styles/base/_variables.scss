@@ -1,1 +1,16 @@
 // variables
+
+// RGB triplets: use them as rgb(var(--text)), or rgb(var(--text) / 50%) for transparency.
+$light-theme: (
+  background: (170, 170, 170),
+  app-background: (106, 106, 106),
+  stage-background: (17, 17, 17),
+  text: (0, 0, 0),
+);
+
+$dark-theme: (
+  background: (0, 0, 0),
+  app-background: (20, 20, 20),
+  stage-background: (17, 17, 17),
+  text: (170, 170, 170),
+);

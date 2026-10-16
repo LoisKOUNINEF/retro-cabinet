@@ -1,28 +1,147 @@
+@use "mixins";
+
+// Board on the left, filling the height; the panel on its right (under it on mobile).
+// --stage-width/--stage-height tell every grid and canvas how much room it has.
 .game {
-  padding: 1rem;
+  --panel-width: 17rem;
+  --gap: 1rem;
+  --header-height: 3.5rem;
+  --stage-padding: 0.5rem;
+  --stage-width: calc(100vw - var(--panel-width) - 3 * var(--gap) - 2 * var(--stage-padding));
+  --stage-height: calc(100dvh - var(--header-height) - 2 * var(--gap) - 2 * var(--stage-padding));
+  min-height: 100dvh;
+  padding: 0 var(--gap) var(--gap);
+  background: rgb(var(--background));
+  color: rgb(var(--text));
   font-family: monospace;
+
+  @include mixins.respond-to(medium) {
+    --stage-width: calc(100vw - 2 * var(--gap) - 2 * var(--stage-padding));
+    --stage-height: 65dvh;
+  }
+}
+
+.game__header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: var(--header-height);
+}
+
+.game__back {
+  color: inherit;
+  font-weight: bold;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+  }
 }
 
 .game__title {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  font-weight: bold;
 }
 
 .game__layout {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: var(--gap);
   align-items: flex-start;
+
+  @include mixins.respond-to(medium) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
-.game__hud {
+// The board, centred in its area.
+.game__stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--stage-padding);
+  background: rgb(var(--stage-background));
+  min-height: calc(var(--stage-height) + 2 * var(--stage-padding));
+
+  // On a phone the width usually limits the board: hug it instead of keeping a tall band.
+  @include mixins.respond-to(medium) {
+    min-height: 0;
+  }
+}
+
+.game__panel {
   display: flex;
   flex-direction: column;
+  gap: var(--gap);
+  flex: 0 0 var(--panel-width);
+
+  @include mixins.respond-to(medium) {
+    flex-basis: auto;
+  }
+}
+
+.game__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 2px solid rgb(var(--text));
+  background: rgb(var(--app-background));
+}
+
+// Shared by every panel section, including the score table's title.
+.game__section-title,
+.game__section .score-table__title {
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.game__status {
+  min-height: 2.6em;
+}
+
+.game__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.game__button {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid rgb(var(--text));
+  background: rgb(var(--app-background));
+  color: rgb(var(--text));
+  font: bold 0.9rem monospace;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: 2px solid rgb(var(--text));
+    outline-offset: 2px;
+  }
+}
+
+// The main action: colours inverted.
+.game__toggle {
+  background: rgb(var(--text));
+  color: rgb(var(--app-background));
+}
+
+.game__keys {
+  font-size: 0.8rem;
+}
+
+.game__stats-row {
+  display: flex;
+  justify-content: space-between;
   gap: 1rem;
-  min-width: 12rem;
 }
 
 .game__stats {
+  flex: 1;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.25rem 1rem;
@@ -31,25 +150,53 @@
   dd { font-weight: bold; text-align: right; }
 }
 
-.game__preview .game-board {
-  --cell-size: 1.25rem;
-  margin-top: 0.5rem;
+.game__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+
+  .game-board {
+    --cell-size: 1rem;
+  }
 }
 
-.game__status {
-  min-height: 3em;
+.game__options {
+  // A fieldset's legend sits on its border by default: keep it inside, like the other titles.
+  legend {
+    float: left;
+    width: 100%;
+    margin-bottom: 0.6rem;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
 }
 
 .game__option {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
 
-  select { font: inherit; }
+  select {
+    font: inherit;
+    padding: 0.1rem 0.25rem;
+    border: 2px solid rgb(var(--text));
+    background: rgb(var(--background));
+    color: rgb(var(--text));
+  }
 }
 
-.game__new {
-  align-self: flex-start;
-  font: inherit;
-  padding: 0.25rem 0.75rem;
+// Shown only while the options are locked.
+.game__options-note {
+  display: none;
+  font-size: 0.75rem;
+  font-style: italic;
+
+  .game__options:disabled & {
+    display: block;
+  }
 }

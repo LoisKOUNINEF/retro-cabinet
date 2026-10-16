@@ -1,15 +1,52 @@
+// The 1px grid lines are borders, not gaps: browsers paint a border at least one device
+// pixel wide wherever it lands, while a 1px gap can snap to nothing. Safari snaps each
+// cell on its own, so on a board at a fractional position (it's centred) some gaps
+// vanished, always the same ones. Each cell draws its right and bottom line; the board
+// draws the outer top and left edges.
 .game-board {
-  --cell-size: min(calc(70vh / var(--rows)), calc((100vw - 2rem) / var(--cols)));
+  --grid-line: #222;
+  // Fits the room the game view gives the board (--stage-*), with standalone fallbacks.
+  // A cell's size includes its line; only the board's outer edge (1px) comes off first.
+  --cell-size: min(
+    calc((var(--stage-height, 70vh) - 1px) / var(--rows)),
+    calc((var(--stage-width, calc(100vw - 2rem)) - 1px) / var(--cols))
+  );
+
+  // Whole-pixel cells keep every line on the pixel grid. Behind @supports: an unsupported
+  // value in a custom property doesn't fall back, it would break the grid.
+  @supports (width: round(down, 1.5px, 1px)) {
+    --cell-size: round(down, min(
+      calc((var(--stage-height, 70vh) - 1px) / var(--rows)),
+      calc((var(--stage-width, calc(100vw - 2rem)) - 1px) / var(--cols))
+    ), 1px);
+  }
+
   display: grid;
   grid-template-columns: repeat(var(--cols), var(--cell-size));
   grid-template-rows: repeat(var(--rows), var(--cell-size));
-  gap: 1px;
-  padding: 1px;
-  background: #222;
+  border-top: 1px solid var(--grid-line);
+  border-left: 1px solid var(--grid-line);
   width: max-content;
 }
 
+// A shaped cell (rounded, clipped…) draws its shape inside its lines, on ::after: shaping
+// the cell itself would curve or cut its border, i.e. the grid line.
+@mixin shape($fill, $radius: null, $clip: null) {
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: $fill;
+    border-radius: $radius;
+    clip-path: $clip;
+  }
+}
+
 .game-board__cell {
+  box-sizing: border-box;
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
   background: #000;
 
   // Tetris: each piece's colour, also while its completed line flashes.
@@ -33,17 +70,14 @@
     box-shadow: inset 0 0 0 2px rgb(90, 90, 90);
   }
 
-  // Snake
-  &--snake,
-  &--snake-head-up,
-  &--snake-head-down,
-  &--snake-head-left,
-  &--snake-head-right { background: rgb(78, 211, 56); }
-  &--snake-head-up { border-radius: 50% 50% 0 0; }
-  &--snake-head-down { border-radius: 0 0 50% 50%; }
-  &--snake-head-left { border-radius: 50% 0 0 50%; }
-  &--snake-head-right { border-radius: 0 50% 50% 0; }
-  &--food { background: rgb(227, 78, 78); border-radius: 50%; }
+  // Snake: the body fills its cell, the head is rounded towards where it's going.
+  $snake: rgb(78, 211, 56);
+  &--snake { background: $snake; }
+  &--snake-head-up { @include shape($snake, 50% 50% 0 0); }
+  &--snake-head-down { @include shape($snake, 0 0 50% 50%); }
+  &--snake-head-left { @include shape($snake, 50% 0 0 50%); }
+  &--snake-head-right { @include shape($snake, 0 50% 50% 0); }
+  &--food { @include shape(rgb(227, 78, 78), 50%); }
 
   // Frogger
   &--water { background: rgb(20, 40, 120); }
@@ -55,37 +89,36 @@
   &--log { background: rgb(140, 90, 40); }
   &--turtle { background: radial-gradient(circle, rgb(60, 160, 60) 55%, rgb(20, 40, 120) 60%); }
   &--turtle-diving { background: radial-gradient(circle, rgb(30, 80, 60) 40%, rgb(20, 40, 120) 45%); }
-  &--car { background: rgb(223, 217, 36); border-radius: 20%; }
+  &--car { @include shape(rgb(223, 217, 36), 20%); }
   &--truck { background: rgb(230, 230, 230); }
-  &--frog { background: rgb(78, 211, 56); border-radius: 40%; }
+  &--frog { @include shape(rgb(78, 211, 56), 40%); }
 
   // Pacman
   &--wall { background: rgb(33, 33, 222); }
   &--door { background: linear-gradient(transparent 40%, rgb(255, 184, 222) 40% 60%, transparent 60%), #000; }
   &--pellet { background: radial-gradient(circle, rgb(255, 184, 151) 15%, #000 18%); }
   &--power { background: radial-gradient(circle, rgb(255, 184, 151) 40%, #000 45%); }
-  &--pacman-right,
-  &--pacman-left,
-  &--pacman-up,
-  &--pacman-down { background: rgb(255, 255, 0); border-radius: 50%; }
-  &--pacman-right { clip-path: polygon(0 0, 100% 0, 100% 30%, 50% 50%, 100% 70%, 100% 100%, 0 100%); }
-  &--pacman-left { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 70%, 50% 50%, 0 30%); }
-  &--pacman-up { clip-path: polygon(0 0, 30% 0, 50% 50%, 70% 0, 100% 0, 100% 100%, 0 100%); }
-  &--pacman-down { clip-path: polygon(0 0, 100% 0, 100% 100%, 70% 100%, 50% 50%, 30% 100%, 0 100%); }
-  &--ghost-blinky,
-  &--ghost-pinky,
-  &--ghost-inky,
-  &--ghost-clyde,
-  &--ghost-frightened,
-  &--ghost-frightened-ending,
-  &--ghost-eyes { border-radius: 50% 50% 10% 10%; }
-  &--ghost-blinky { background: rgb(255, 0, 0); }
-  &--ghost-pinky { background: rgb(255, 184, 255); }
-  &--ghost-inky { background: rgb(0, 255, 255); }
-  &--ghost-clyde { background: rgb(255, 184, 82); }
-  &--ghost-frightened { background: rgb(33, 33, 222); }
-  &--ghost-frightened-ending { background: rgb(33, 33, 222); animation: ghost-flash 0.3s steps(1) infinite; }
-  &--ghost-eyes { background: radial-gradient(circle at 30% 40%, #fff 15%, transparent 18%), radial-gradient(circle at 70% 40%, #fff 15%, transparent 18%), #000; }
+
+  $pacman: rgb(255, 255, 0);
+  &--pacman-right { @include shape($pacman, 50%, polygon(0 0, 100% 0, 100% 30%, 50% 50%, 100% 70%, 100% 100%, 0 100%)); }
+  &--pacman-left { @include shape($pacman, 50%, polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 70%, 50% 50%, 0 30%)); }
+  &--pacman-up { @include shape($pacman, 50%, polygon(0 0, 30% 0, 50% 50%, 70% 0, 100% 0, 100% 100%, 0 100%)); }
+  &--pacman-down { @include shape($pacman, 50%, polygon(0 0, 100% 0, 100% 100%, 70% 100%, 50% 50%, 30% 100%, 0 100%)); }
+
+  $ghost-radius: 50% 50% 10% 10%;
+  &--ghost-blinky { @include shape(rgb(255, 0, 0), $ghost-radius); }
+  &--ghost-pinky { @include shape(rgb(255, 184, 255), $ghost-radius); }
+  &--ghost-inky { @include shape(rgb(0, 255, 255), $ghost-radius); }
+  &--ghost-clyde { @include shape(rgb(255, 184, 82), $ghost-radius); }
+  &--ghost-frightened { @include shape(rgb(33, 33, 222), $ghost-radius); }
+  &--ghost-frightened-ending {
+    @include shape(rgb(33, 33, 222), $ghost-radius);
+
+    &::after { animation: ghost-flash 0.3s steps(1) infinite; }
+  }
+  &--ghost-eyes {
+    @include shape((radial-gradient(circle at 30% 40%, #fff 15%, transparent 18%), radial-gradient(circle at 70% 40%, #fff 15%, transparent 18%), #000), $ghost-radius);
+  }
 }
 
 @keyframes ghost-flash {
@@ -142,7 +175,8 @@
 @media (prefers-reduced-motion: reduce) {
   .game-board__cell[class*='-flash'],
   .game-board__cell[class*='-flash']::after,
-  .game-board__cell--jewel-magic::after {
+  .game-board__cell--jewel-magic::after,
+  .game-board__cell--ghost-frightened-ending::after {
     animation: none;
   }
 
