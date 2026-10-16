@@ -1,0 +1,36 @@
+.score-table__title {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.score-table__list {
+  list-style: none;
+}
+
+.score-table__row {
+  display: grid;
+  grid-template-columns: 1.5rem 5rem 3.5rem 1fr;
+
+  &::before {
+    content: counter(list-item) ".";
+  }
+
+  &--new {
+    font-weight: bold;
+    color: rgb(200, 120, 0);
+  }
+}
+
+.score-table__score {
+  text-align: right;
+}
+
+.score-table__level,
+.score-table__date {
+  padding-left: 0.75rem;
+}
+
+.score-table__empty {
+  font-style: italic;
+}

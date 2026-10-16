@@ -1,0 +1,32 @@
+.ttt-board {
+  --cell: min(22vw, 6rem);
+  display: grid;
+  grid-template-columns: repeat(3, var(--cell));
+  grid-template-rows: repeat(3, var(--cell));
+  gap: 4px;
+  background: #222;
+  padding: 4px;
+  width: max-content;
+}
+
+.ttt-board__cell {
+  background: #000;
+  color: #fff;
+  border: none;
+  font: bold calc(var(--cell) * 0.6) monospace;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    color: #fff;
+  }
+
+  &--cursor {
+    outline: 3px solid rgb(223, 217, 36);
+    outline-offset: -3px;
+  }
+
+  &--win {
+    color: rgb(78, 211, 56);
+  }
+}

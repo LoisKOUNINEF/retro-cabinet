@@ -1,0 +1,26 @@
+// The way into the secret game: a small dopefish swimming in the corner.
+.not-found__dopefish {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  animation: dopefish-swim 6s ease-in-out infinite alternate;
+
+  img {
+    display: block;
+  }
+}
+
+@keyframes dopefish-swim {
+  from { transform: translate(0, 0) rotate(-3deg); }
+  to { transform: translate(-1.5rem, -0.5rem) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .not-found__dopefish {
+    animation: none;
+  }
+}

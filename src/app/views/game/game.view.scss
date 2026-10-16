@@ -1,0 +1,55 @@
+.game {
+  padding: 1rem;
+  font-family: monospace;
+}
+
+.game__title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.game__layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.game__hud {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 12rem;
+}
+
+.game__stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+
+  dt { text-transform: capitalize; }
+  dd { font-weight: bold; text-align: right; }
+}
+
+.game__preview .game-board {
+  --cell-size: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.game__status {
+  min-height: 3em;
+}
+
+.game__option {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+
+  select { font: inherit; }
+}
+
+.game__new {
+  align-self: flex-start;
+  font: inherit;
+  padding: 0.25rem 0.75rem;
+}

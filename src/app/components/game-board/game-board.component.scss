@@ -1,0 +1,153 @@
+.game-board {
+  --cell-size: min(calc(70vh / var(--rows)), calc((100vw - 2rem) / var(--cols)));
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  grid-template-rows: repeat(var(--rows), var(--cell-size));
+  gap: 1px;
+  padding: 1px;
+  background: #222;
+  width: max-content;
+}
+
+.game-board__cell {
+  background: #000;
+
+  // Tetris: each piece's colour, also while its completed line flashes.
+  $tetrominoes: ('I': rgb(80, 227, 230), 'J': rgb(36, 95, 223), 'L': rgb(223, 173, 36), 'O': rgb(223, 217, 36),
+                 'T': rgb(132, 61, 198), 'S': rgb(78, 211, 56), 'Z': rgb(227, 78, 78));
+
+  @each $kind, $colour in $tetrominoes {
+    &--tetris-#{$kind},
+    &--tetris-#{$kind}-flash {
+      background: $colour;
+    }
+  }
+
+  &[class*='--tetris-'][class*='-flash'] {
+    animation: cell-flash 0.1s steps(1) infinite alternate;
+  }
+
+  // Game over: the well fills up with grey blocks, as on the Game Boy.
+  &--tetris-curtain {
+    background: rgb(150, 150, 150);
+    box-shadow: inset 0 0 0 2px rgb(90, 90, 90);
+  }
+
+  // Snake
+  &--snake,
+  &--snake-head-up,
+  &--snake-head-down,
+  &--snake-head-left,
+  &--snake-head-right { background: rgb(78, 211, 56); }
+  &--snake-head-up { border-radius: 50% 50% 0 0; }
+  &--snake-head-down { border-radius: 0 0 50% 50%; }
+  &--snake-head-left { border-radius: 50% 0 0 50%; }
+  &--snake-head-right { border-radius: 0 50% 50% 0; }
+  &--food { background: rgb(227, 78, 78); border-radius: 50%; }
+
+  // Frogger
+  &--water { background: rgb(20, 40, 120); }
+  &--road { background: rgb(40, 40, 40); }
+  &--grass { background: rgb(90, 40, 140); }
+  &--hedge { background: rgb(30, 110, 40); }
+  &--home { background: rgb(20, 40, 120); }
+  &--home-filled { background: radial-gradient(circle, rgb(78, 211, 56) 45%, rgb(20, 40, 120) 50%); }
+  &--log { background: rgb(140, 90, 40); }
+  &--turtle { background: radial-gradient(circle, rgb(60, 160, 60) 55%, rgb(20, 40, 120) 60%); }
+  &--turtle-diving { background: radial-gradient(circle, rgb(30, 80, 60) 40%, rgb(20, 40, 120) 45%); }
+  &--car { background: rgb(223, 217, 36); border-radius: 20%; }
+  &--truck { background: rgb(230, 230, 230); }
+  &--frog { background: rgb(78, 211, 56); border-radius: 40%; }
+
+  // Pacman
+  &--wall { background: rgb(33, 33, 222); }
+  &--door { background: linear-gradient(transparent 40%, rgb(255, 184, 222) 40% 60%, transparent 60%), #000; }
+  &--pellet { background: radial-gradient(circle, rgb(255, 184, 151) 15%, #000 18%); }
+  &--power { background: radial-gradient(circle, rgb(255, 184, 151) 40%, #000 45%); }
+  &--pacman-right,
+  &--pacman-left,
+  &--pacman-up,
+  &--pacman-down { background: rgb(255, 255, 0); border-radius: 50%; }
+  &--pacman-right { clip-path: polygon(0 0, 100% 0, 100% 30%, 50% 50%, 100% 70%, 100% 100%, 0 100%); }
+  &--pacman-left { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 70%, 50% 50%, 0 30%); }
+  &--pacman-up { clip-path: polygon(0 0, 30% 0, 50% 50%, 70% 0, 100% 0, 100% 100%, 0 100%); }
+  &--pacman-down { clip-path: polygon(0 0, 100% 0, 100% 100%, 70% 100%, 50% 50%, 30% 100%, 0 100%); }
+  &--ghost-blinky,
+  &--ghost-pinky,
+  &--ghost-inky,
+  &--ghost-clyde,
+  &--ghost-frightened,
+  &--ghost-frightened-ending,
+  &--ghost-eyes { border-radius: 50% 50% 10% 10%; }
+  &--ghost-blinky { background: rgb(255, 0, 0); }
+  &--ghost-pinky { background: rgb(255, 184, 255); }
+  &--ghost-inky { background: rgb(0, 255, 255); }
+  &--ghost-clyde { background: rgb(255, 184, 82); }
+  &--ghost-frightened { background: rgb(33, 33, 222); }
+  &--ghost-frightened-ending { background: rgb(33, 33, 222); animation: ghost-flash 0.3s steps(1) infinite; }
+  &--ghost-eyes { background: radial-gradient(circle at 30% 40%, #fff 15%, transparent 18%), radial-gradient(circle at 70% 40%, #fff 15%, transparent 18%), #000; }
+}
+
+@keyframes ghost-flash {
+  50% { background: rgb(255, 255, 255); }
+}
+
+// Columns: diamond-shaped jewels on the black cell; matched ones flash before vanishing.
+// The diamond is drawn by ::after, so the cell's own corners stay black.
+.game-board__cell {
+  // Quoted keys: bare names like red would be read as colour values.
+  $jewels: ('red': rgb(227, 78, 78), 'orange': rgb(255, 140, 26), 'yellow': rgb(240, 224, 60),
+            'green': rgb(60, 210, 60), 'blue': rgb(60, 100, 255), 'purple': rgb(170, 80, 220));
+
+  &[class*='--jewel-']::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--jewel);
+    clip-path: polygon(50% 4%, 96% 50%, 50% 96%, 4% 50%);
+  }
+
+  @each $name, $colour in $jewels {
+    &--jewel-#{$name},
+    &--jewel-#{$name}-flash {
+      --jewel: #{$colour};
+    }
+  }
+
+  &--jewel-magic,
+  &--jewel-magic-flash {
+    --jewel: linear-gradient(135deg, rgb(227, 78, 78), rgb(240, 224, 60), rgb(60, 210, 60), rgb(60, 100, 255), rgb(170, 80, 220));
+
+    &::after {
+      background-size: 300% 300%;
+      animation: jewel-magic 1s linear infinite alternate;
+    }
+  }
+
+  &[class*='-flash']::after {
+    animation: cell-flash 0.1s steps(1) infinite alternate;
+  }
+}
+
+// Shared by Tetris lines and Columns jewels about to vanish.
+@keyframes cell-flash {
+  50% { background: #fff; }
+}
+
+@keyframes jewel-magic {
+  to { background-position: 100% 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-board__cell[class*='-flash'],
+  .game-board__cell[class*='-flash']::after,
+  .game-board__cell--jewel-magic::after {
+    animation: none;
+  }
+
+  .game-board__cell[class*='-flash'] {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+}

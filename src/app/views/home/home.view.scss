@@ -1,0 +1,39 @@
+@use "mixins";
+
+// Centred on the page: title, then the game cards, 3 per row.
+.home {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1rem;
+  font-family: monospace;
+}
+
+.home__title {
+  font-size: 2.5rem;
+}
+
+.home__games {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  @include mixins.respond-to(medium) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  // A last card alone on a row of three (Random) sits in the middle; on mobile, a regular cell.
+  > li:last-child:nth-child(3n + 1) {
+    grid-column: 2;
+
+    @include mixins.respond-to(medium) {
+      grid-column: auto;
+    }
+  }
+}

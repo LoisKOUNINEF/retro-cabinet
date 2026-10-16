@@ -10,4 +10,9 @@ export class NotFoundView extends View {
   private _handleHome(): void {
     Navigation.navigateTo('/');
   }
+
+  // Dopefish lives!
+  private _openSecret(): void {
+    Navigation.navigateTo('/secret');
+  }
 }

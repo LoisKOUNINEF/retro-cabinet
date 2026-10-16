@@ -1,0 +1,26 @@
+<div class="game">
+  <h1 class="game__title">${game.title}</h1>
+  <div class="game__layout">
+    <div class="game__board" data-event="click:_onBoardTap"><div data-component="board"></div></div>
+    <aside class="game__hud">
+      <dl class="game__stats">
+        <dt>Score</dt><dd data-stat="score">0</dd>
+        <dt>Level</dt><dd data-stat="level">1</dd>
+        ${Object.keys(game.stats?.() ?? {}).map((key) => html`<dt>${key}</dt><dd data-stat="${key}">0</dd>`)}
+      </dl>
+      ${game.preview ? html`<div class="game__preview"><span>Next</span><div data-component="preview"></div></div>` : ''}
+      ${options.map((option) => html`
+        <label class="game__option">${option.label}
+          <select data-option="${option.key}" data-event="change:_setOption:@dataset:option,@target">
+            ${option.choices.map((choice) => html`<option value="${choice.value}">${choice.label}</option>`)}
+          </select>
+        </label>`)}
+      <p class="game__status" role="status"></p>
+      ${game.keyHints ? html`<p class="game__keys"></p>` : ''}
+      <button type="button" class="game__new" data-event="click:_newGame">New game</button>
+      <div data-component="scores"></div>
+      <a class="game__back" href="/" data-event="click:_goHome">Back to games</a>
+    </aside>
+  </div>
+  <div data-component="touch"></div>
+</div>

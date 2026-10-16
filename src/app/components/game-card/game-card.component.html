@@ -1,0 +1,3 @@
+${card.path
+  ? html`<a class="game-card" href="${card.path}" data-event="click:_open:@attr:href">${cardContent(card)}</a>`
+  : html`<button type="button" class="game-card" data-event="click:_select">${cardContent(card)}</button>`}

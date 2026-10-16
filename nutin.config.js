@@ -4,6 +4,9 @@ export default {
   i18n: false,             // Enable i18n; configure languages in config/languages.json
   generateSEOFiles: false, // Generate per-route HTML, robots.txt and sitemap.xml; configure SEO data in config/seo.json
 
+  // Nutin features
+  dockerPorts: [9090],     // Ports the Docker container exposes/listens on — edit as needed
+
   // Build pipeline
   builder: {
     sass: {
@@ -26,7 +29,7 @@ export default {
   testinNutin: {
     includeFramework: true,  // Test Nutin source - src/core
     includeTools: false,     // Test tools/ (builder, testin-nutin, etc.)
-    includeApp: false,       // Include application tests
+    includeApp: true,        // Include application tests
 
     coverage: {
       enabled: false,        // Include coverage in the normal test command

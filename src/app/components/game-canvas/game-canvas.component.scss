@@ -1,0 +1,8 @@
+.game-canvas {
+  display: block;
+  aspect-ratio: var(--aspect);
+  height: min(70vh, calc((100vw - 2rem) / (var(--aspect))));
+  max-width: calc(100vw - 2rem);
+  background: #000;
+  image-rendering: pixelated;
+}
