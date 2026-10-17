@@ -1,6 +1,6 @@
 # Retro Cabinet - a classic games platform
 
-## Classic games 
+## Classic games clones
 
 - Tetris
 - Pacman

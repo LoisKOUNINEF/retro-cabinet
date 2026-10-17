@@ -4,9 +4,9 @@
   "routes": [
     {
       "path": "/",
-      "title": "pixels-mansion",
-      "description": "pixels-mansion",
-      "ogImage": "/assets/images/og-cover.jpg"
+      "title": "Retro Cabinet",
+      "description": "A classic games platform with clones of famous good old games.",
+      "ogImage": "/assets/images/og-images/og-cover.jpg"
     }
   ]
 }
