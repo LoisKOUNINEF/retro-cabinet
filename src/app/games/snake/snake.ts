@@ -12,7 +12,7 @@ const FOOD_POINTS = 10;
 const levelThreshold = (level: number) => 100 * level * (level + 1) / 2;
 
 // What a save keeps (held keys and the random source never are).
-const SAVED_FIELDS = ['body', 'direction', 'food', 'score', 'level', 'isOver', '_turned'];
+const SAVED_FIELDS = ['body', 'direction', 'heading', 'food', 'score', 'level', 'isOver', '_turned'];
 
 export class Snake implements Game {
   readonly id = 'snake';
@@ -25,7 +25,11 @@ export class Snake implements Game {
   isOver = false;
   // body[0] is the head.
   body: Point[] = [];
+  // Where the next move goes (changed by the arrows)…
   direction: Point = RIGHT;
+  // …and where the last one went: the head is drawn facing it, so it only turns
+  // when the snake actually does, not as soon as an arrow is pressed.
+  heading: Point = RIGHT;
   food: Point | null = null;
   // Only one turn per tick, so two quick keys can't reverse the snake onto itself.
   private _turned = false;
@@ -41,6 +45,7 @@ export class Snake implements Game {
     this.isOver = false;
     this.body = [{ x: middle, y: middle }];
     this.direction = RIGHT;
+    this.heading = RIGHT;
     this._turned = false;
     this.spawnFood();
   }
@@ -60,6 +65,7 @@ export class Snake implements Game {
     }
 
     this.body = [head, ...obstacles];
+    this.heading = this.direction;
     if (eats) this.eat();
   }
 
@@ -89,7 +95,7 @@ export class Snake implements Game {
     const grid = emptyGrid(SIZE, SIZE);
     if (this.food) setCell(grid, this.food.x, this.food.y, 'food');
     this.body.forEach(({ x, y }, i) => {
-      setCell(grid, x, y, i === 0 ? `snake-head-${directionName(this.direction)}` : 'snake');
+      setCell(grid, x, y, i === 0 ? `snake-head-${directionName(this.heading)}` : 'snake');
     });
     return grid;
   }

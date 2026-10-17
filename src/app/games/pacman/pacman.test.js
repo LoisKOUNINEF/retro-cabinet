@@ -65,8 +65,7 @@ describe('Pacman', () => {
 
   it('holds still until the first arrow, which picks the starting direction', () => {
     const game = new Pacman(COMPACT, () => 0);
-    expect(game.prompt(false)).toBe('Press an arrow to go');
-    expect(game.prompt(true)).toBe('Move the stick to go');
+    expect(game.waiting).toBeTruthy();
 
     for (let i = 0; i < 50; i++) game.tick();
     expect(game.pacman.position).toEqual(START);
@@ -75,7 +74,6 @@ describe('Pacman', () => {
 
     game.handleKey('ArrowRight');
     expect(game.waiting).toBeFalsy();
-    expect(game.prompt(false)).toBe(null);
     expect(game.pacman.direction).toEqual(RIGHT);
 
     stepOnce(game);

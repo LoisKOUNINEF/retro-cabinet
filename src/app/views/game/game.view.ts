@@ -2,7 +2,7 @@ import { Navigation, View, html } from '../../../core/index.js';
 import { GameBoardComponent } from '../../components/game-board/game-board.component.js';
 import { GameCanvasComponent } from '../../components/game-canvas/game-canvas.component.js';
 import { ScoreTableComponent } from '../../components/score-table/score-table.component.js';
-import { describeKeys } from '../../components/key-labels.js';
+import { PlayControlsComponent, type PlayState } from '../../components/play-controls/play-controls.component.js';
 import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
 import { GameLoop } from '../../games/game-loop.js';
@@ -25,6 +25,7 @@ export class GameView extends View {
   private _canvas: GameCanvasComponent | null = null;
   private _preview: GameBoardComponent | null = null;
   private _scores: ScoreTableComponent | null = null;
+  private _play: PlayControlsComponent | null = null;
   private _touch: TouchControlsComponent | null = null;
   private _started = false;
   // Restored from a save and not resumed yet.
@@ -49,6 +50,13 @@ export class GameView extends View {
       factory: (el) => this.game.draw
         ? this._canvas = new GameCanvasComponent(el, { width, height })
         : this._board = new GameBoardComponent(el, { width, height }),
+    }, {
+      selector: 'play',
+      keep: 'play',
+      factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
+        togglePlay: () => this.togglePlay(),
+        newGame: () => this.startNewGame(),
+      }, this.game.keyHints),
     }, {
       selector: 'scores',
       keep: 'scores',
@@ -95,15 +103,6 @@ export class GameView extends View {
 
   protected override onAfterRender(): void {
     this.update();
-    this.showKeyHints();
-  }
-
-  // Labels can depend on the keyboard layout, which the browser reports asynchronously.
-  private showKeyHints(): void {
-    const hints = this.game.keyHints;
-    const element = this.element.querySelector('.game__keys');
-    if (!hints || !element) return;
-    describeKeys(hints).then((text) => element.textContent = text);
   }
 
   // The saved game if there is a usable one, else a new game with the remembered options.
@@ -155,11 +154,6 @@ export class GameView extends View {
     this.game.handleKeyUp?.(code);
   }
 
-  // Tapping the board starts or resumes, but never pauses: a stray tap can't stop a game.
-  private _onBoardTap(): void {
-    if (!this._loop.isRunning) this.togglePlay();
-  }
-
   // Window blur, hidden tab (which doesn't always blur the window) or closed page.
   private readonly _onBlur = (): void => {
     this.pause();
@@ -191,10 +185,6 @@ export class GameView extends View {
     this.startNewGame();
   }
 
-  private _newGame(): void {
-    this.startNewGame();
-  }
-
   // Drops the saved game and builds a fresh one with the current options.
   private startNewGame(): void {
     this._loop.pause();
@@ -207,11 +197,6 @@ export class GameView extends View {
     this._finished = false;
     this._rank = null;
     this.render();
-  }
-
-  // The panel's play/pause button: the same as Space.
-  private _togglePlay(): void {
-    this.togglePlay();
   }
 
   private togglePlay(): void {
@@ -261,11 +246,17 @@ export class GameView extends View {
     const options = this.element.querySelector<HTMLFieldSetElement>('.game__options');
     if (options) options.disabled = this._loop.isRunning;
 
-    const toggle = this.element.querySelector('.game__toggle');
-    if (toggle) toggle.textContent = this.toggleLabel();
+    this._play?.update(this.playState());
+  }
 
-    const status = this.element.querySelector('.game__status');
-    if (status) status.textContent = this.statusText();
+  private playState(): PlayState {
+    return {
+      label: this.toggleLabel(),
+      status: this.statusText(),
+      over: this.game.isOver,
+      // Only when there is a game to drop: Play again already covers a finished one.
+      canStartOver: this._started && !this.game.isOver,
+    };
   }
 
   private toggleLabel(): string {
@@ -278,12 +269,12 @@ export class GameView extends View {
     const touch = isTouchDevice();
     const action = touch ? 'tap' : 'press Space';
     if (this.game.isOver) {
-      const highScore = this._rank === null ? '' : ` — new high score! (#${this._rank + 1})`;
-      return `Game over${highScore} — ${action} to play again`;
+      const highScore = this._rank === null ? '' : ` - New high score!`;
+      return `Game over${highScore}`;
     }
-    if (this._loop.isRunning) return this.game.prompt?.(touch) ?? '';
-    if (this._restored) return `Saved game — ${action} to resume`;
-    if (this._started) return `Paused — ${action} to resume`;
+    if (this._loop.isRunning) return `Playing - ${action} to pause`;
+    if (this._restored) return `${action} to resume`;
+    if (this._started) return `Paused - ${action} to resume`;
     return touch ? 'Tap to start' : 'Press Space to start';
   }
 

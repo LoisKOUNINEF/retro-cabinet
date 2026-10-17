@@ -168,9 +168,10 @@ export class SecretView extends View {
     const status = this.element.querySelector('.secret__status');
     if (status) status.textContent = this.statusText();
 
-    const { wins, draws, losses } = this._storage.tally(GAME_ID, this.difficulty);
-    const tally = this.element.querySelector('.secret__tally');
-    if (tally) tally.textContent = `Wins ${wins} · Draws ${draws} · Losses ${losses}`;
+    const tally = this._storage.tally(GAME_ID, this.difficulty);
+    this.element.querySelectorAll<HTMLElement>('[data-tally]').forEach((value) => {
+      value.textContent = String(tally[value.dataset.tally as keyof typeof tally] ?? 0);
+    });
   }
 
   private statusText(): string {

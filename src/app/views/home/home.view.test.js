@@ -16,8 +16,8 @@ describe('HomeView', () => {
     const cards = $$('.home__games > li a.game-card');
     expect(cards.length).toBe(9);
     expect(cards.map((card) => card.getAttribute('href'))).toEqual([
-      '/games/tetris', '/games/snake', '/games/frogger', '/games/pacman', '/games/arkanoid', '/games/invaders',
-      '/games/asteroids', '/games/columns', '/games/pong',
+      '/games/tetris', '/games/pacman', '/games/invaders', '/games/snake', '/games/arkanoid', '/games/asteroids',
+      '/games/columns', '/games/frogger', '/games/pong',
     ]);
   });
 

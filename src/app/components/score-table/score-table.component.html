@@ -4,6 +4,7 @@
     ? html`<ol class="score-table__list">
         ${entries.map((entry, i) => html`
           <li class="score-table__row${i === highlight ? ' score-table__row--new' : ''}">
+            <span class="score-table__rank">${i + 1}.</span>
             <span class="score-table__score">${entry.score}</span>
             <span class="score-table__level">Lv ${entry.level}</span>
             <span class="score-table__date" data-pipe="date:en-GB,short">${entry.date}</span>

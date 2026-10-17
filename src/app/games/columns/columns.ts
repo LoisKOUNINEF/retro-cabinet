@@ -9,6 +9,8 @@ const SPAWN_X = 2;
 const BASE_SPEED = 800;
 // How long matched jewels flash before they vanish.
 export const FLASH_MS = 300;
+// Game over: the pile shatters, one row per tick from the bottom (about 1.5 s in all).
+export const SHATTER_MS = 115;
 const JEWEL_POINTS = 10;
 const JEWELS_PER_LEVEL = 35;
 const MAGIC_CHANCE = 1 / 50;
@@ -35,7 +37,9 @@ export interface ColumnsOptions {
 }
 
 // What a save keeps (the random source never is).
-const SAVED_FIELDS = ['board', 'piece', 'next', 'phase', 'matched', 'chain', 'jewels', 'score', 'level', 'isOver'];
+const SAVED_FIELDS = [
+  'board', 'piece', 'next', 'phase', 'matched', 'chain', 'shatterRow', 'jewels', 'score', 'level', 'isOver',
+];
 
 export class Columns implements Game {
   readonly id = 'columns';
@@ -49,8 +53,7 @@ export class Columns implements Game {
     action: { label: '⟳', code: 'ArrowUp' },
   };
   readonly keyHints: KeyHint[] = [
-    { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
-    { action: 'Drop', codes: ['ArrowDown'] },
+    { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
     { action: 'Cycle', codes: ['ArrowUp', ...FIRE_KEYS] },
   ];
 
@@ -62,8 +65,10 @@ export class Columns implements Game {
   board: (Jewel | null)[][] = [];
   piece: Piece = { jewels: [], x: SPAWN_X, y: 0 };
   next: Jewel[] = [];
-  // Falling, or flashing matched jewels before they vanish.
-  phase: 'falling' | 'clearing' = 'falling';
+  // Falling; flashing matched jewels before they vanish; or shattering the pile (game over).
+  phase: 'falling' | 'clearing' | 'shattering' = 'falling';
+  // While shattering: the row bursting now.
+  shatterRow = 0;
   // Cells being cleared, as y * WIDTH + x.
   matched: number[] = [];
   // Steps in the current cascade: each one multiplies the score.
@@ -88,6 +93,7 @@ export class Columns implements Game {
     this.phase = 'falling';
     this.matched = [];
     this.chain = 0;
+    this.shatterRow = 0;
     this.next = this.newJewels();
     this.spawn();
   }
@@ -95,13 +101,16 @@ export class Columns implements Game {
   tick(): void {
     if (this.isOver) return;
     if (this.phase === 'clearing') return this.clearMatched();
+    if (this.phase === 'shattering') return this.shatter();
     if (this.fits(this.piece.x, this.piece.y + 1)) this.piece.y += 1;
     else this.lock();
   }
 
-  // The flash gets its own, shorter tick.
+  // The flash and the shatter get their own, shorter ticks.
   speed(): number {
-    return this.phase === 'clearing' ? FLASH_MS : levelSpeed(BASE_SPEED, this.level);
+    if (this.phase === 'clearing') return FLASH_MS;
+    if (this.phase === 'shattering') return SHATTER_MS;
+    return levelSpeed(BASE_SPEED, this.level);
   }
 
   snapshot(): Snapshot {
@@ -113,7 +122,7 @@ export class Columns implements Game {
   }
 
   handleKey(code: string): void {
-    if (this.isOver || this.phase === 'clearing') return;
+    if (this.isOver || this.phase !== 'falling') return;
     if (code === 'ArrowLeft') this.move(-1);
     if (code === 'ArrowRight') this.move(1);
     if (code === 'ArrowDown') this.tick();
@@ -123,6 +132,7 @@ export class Columns implements Game {
   cells(): Grid {
     const grid: Grid = this.board.map((row, y) => row.map((jewel, x) => {
       if (!jewel) return null;
+      if (this.phase === 'shattering' && y === this.shatterRow) return `jewel-${jewel}-burst`;
       return this.matched.includes(y * WIDTH + x) ? `jewel-${jewel}-flash` : `jewel-${jewel}`;
     }));
     if (this.phase === 'falling' && !this.isOver) {
@@ -164,15 +174,15 @@ export class Columns implements Game {
 
   private lock(): void {
     const { jewels, x, y } = this.piece;
-    // Stuck before fully entering the well: the stack has reached the top.
-    if (y < 0) {
-      this.isOver = true;
-      return;
-    }
     jewels.forEach((jewel, i) => {
       const row = this.board[y + i];
       if (row) row[x] = jewel;
     });
+    // Stuck before fully entering the well: the stack has reached the top.
+    if (y < 0) {
+      this.startShatter();
+      return;
+    }
     if (jewels[0] === 'magic') this.matchMagic(x, y + jewels.length);
     else this.resolve();
   }
@@ -252,7 +262,27 @@ export class Columns implements Game {
   private spawn(): void {
     this.piece = { jewels: this.next, x: SPAWN_X, y: 1 - this.next.length };
     this.next = this.newJewels();
-    if (!this.fits(this.piece.x, this.piece.y)) this.isOver = true;
+    if (!this.fits(this.piece.x, this.piece.y)) this.startShatter();
+  }
+
+  // Game over: the pile shatters from the bottom row up, then the game ends.
+  private startShatter(): void {
+    this.phase = 'shattering';
+    this.shatterRow = this.nextFullRow(HEIGHT - 1);
+    if (this.shatterRow < 0) this.isOver = true;
+  }
+
+  private shatter(): void {
+    this.board[this.shatterRow]?.fill(null);
+    this.shatterRow = this.nextFullRow(this.shatterRow - 1);
+    if (this.shatterRow < 0) this.isOver = true;
+  }
+
+  // The first row from `from` upwards with a jewel in it, or -1.
+  private nextFullRow(from: number): number {
+    let y = from;
+    while (y >= 0 && this.board[y]?.every((jewel) => jewel === null)) y -= 1;
+    return y;
   }
 
   private newJewels(): Jewel[] {

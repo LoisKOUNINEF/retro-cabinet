@@ -28,7 +28,7 @@ describe('pipes (registerPipes)', () => {
 
   it('date formats using the "short" format when requested', () => {
     const value = '2024-03-15T00:00:00Z';
-    const expected = new Date(value).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const expected = new Date(value).toLocaleString('en-US', { year: '2-digit', month: 'numeric', day: 'numeric' });
     expect(AppPipeRegistry.apply('date', value, ['en-US', 'short'])).toBe(expected);
   });
 

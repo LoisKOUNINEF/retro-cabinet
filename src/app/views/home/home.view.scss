@@ -10,7 +10,10 @@
   justify-content: center;
   gap: 2rem;
   padding: 1rem;
-  font-family: monospace;
+  h1 {
+    font-size: 2.5rem;
+    text-transform: uppercase;
+  }
 }
 
 .home__title {
@@ -20,7 +23,7 @@
 .home__games {
   display: grid;
   grid-template-columns: repeat(3, auto);
-  gap: 1.5rem;
+  gap: .5rem;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -31,7 +34,6 @@
   // A last card alone on a row of three (Random) sits in the middle; on mobile, a regular cell.
   > li:last-child:nth-child(3n + 1) {
     grid-column: 2;
-
     @include mixins.respond-to(medium) {
       grid-column: auto;
     }

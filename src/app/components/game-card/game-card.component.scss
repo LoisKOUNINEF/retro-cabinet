@@ -1,35 +1,43 @@
-// Colours inherit from the page (currentColor) until the palette lands.
 .game-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  width: 10rem;
-  height: 10rem;
-  border: 2px solid currentColor;
-  color: inherit;
+  width: 5rem;
+  height: 5rem;
+  border: 5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
   text-decoration: none;
+  text-align: center;
   // Button cards look exactly like link cards.
   box-sizing: content-box;
   padding: 0;
-  background: none;
-  font: inherit;
+  background: var(--surface);
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    outline: 3px solid currentColor;
+    outline: 3px solid var(--text-secondary);
     outline-offset: 3px;
+    .game-card__icon {
+      fill: var(--primary);
+    }
+
+    .game-card__title {
+      color: var(--primary);
+      font-weight: bold;
+    }
   }
 }
 
 .game-card__icon {
-  height: 3.5rem;
-  max-width: 7rem;
-  fill: currentColor;
+  height: 2rem;
+  max-width: 4rem;
+  fill: var(--text);
 }
 
 .game-card__title {
-  font: bold 1rem monospace;
+  font: .9rem monospace;
 }

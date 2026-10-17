@@ -4,38 +4,34 @@
     <h1 class="game__title">${game.title}</h1>
   </header>
   <div class="game__layout">
-    <div class="game__stage" data-event="click:_onBoardTap"><div data-component="board"></div></div>
+    <div class="game__stage"><div data-component="board"></div></div>
     <aside class="game__panel">
+      ${game.preview ? html`
+        <section class="game__section game__next" aria-labelledby="game-next-title">
+          <h2 class="game__section-title" id="game-next-title">Next</h2>
+          <div class="game__preview"><div data-component="preview"></div></div>
+        </section>` : ''}
       <section class="game__section" aria-labelledby="game-play-title">
         <h2 class="game__section-title" id="game-play-title">Play</h2>
-        <p class="game__status" role="status"></p>
-        <div class="game__actions">
-          <button type="button" class="game__button game__toggle" data-event="click:_togglePlay">▶ Start</button>
-          <button type="button" class="game__button game__new" data-event="click:_newGame">New game</button>
-        </div>
-        ${game.keyHints ? html`<p class="game__keys"></p>` : ''}
+        <div data-component="play"></div>
       </section>
       <section class="game__section" aria-labelledby="game-stats-title">
         <h2 class="game__section-title" id="game-stats-title">Stats</h2>
-        <div class="game__stats-row">
-          <dl class="game__stats">
-            <dt>Score</dt><dd data-stat="score">0</dd>
-            <dt>Level</dt><dd data-stat="level">1</dd>
-            ${Object.keys(game.stats?.() ?? {}).map((key) => html`<dt>${key}</dt><dd data-stat="${key}">0</dd>`)}
-          </dl>
-          ${game.preview ? html`<div class="game__preview"><span>Next</span><div data-component="preview"></div></div>` : ''}
-        </div>
+        <dl class="game__stats">
+          <dt>Score</dt><dd data-stat="score">0</dd>
+          <dt>Level</dt><dd data-stat="level">1</dd>
+          ${Object.keys(game.stats?.() ?? {}).map((key) => html`<dt>${key}</dt><dd data-stat="${key}">0</dd>`)}
+        </dl>
       </section>
       ${options.length ? html`
-        <fieldset class="game__section game__options">
-          <legend class="game__section-title">Options</legend>
+        <fieldset class="game__section game__options" aria-labelledby="game-options-title">
+          <h2 class="game__section-title" id="game-options-title">⚙ Options</h2>
           ${options.map((option) => html`
             <label class="game__option">${option.label}
               <select data-option="${option.key}" data-event="change:_setOption:@dataset:option,@target">
                 ${option.choices.map((choice) => html`<option value="${choice.value}">${choice.label}</option>`)}
               </select>
             </label>`)}
-          <p class="game__options-note">Pause to change options</p>
         </fieldset>` : ''}
       <section class="game__section"><div data-component="scores"></div></section>
     </aside>

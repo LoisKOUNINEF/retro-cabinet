@@ -118,8 +118,6 @@ export interface Game {
   preview?(): Grid;
   // Extra HUD values, e.g. { lines: 12 }.
   stats?(): Record<string, number>;
-  // A hint shown while the game runs, e.g. Pacman waiting for the first arrow.
-  prompt?(touch: boolean): string | null;
 }
 
 // A user-selectable setting shown in the HUD, e.g. Pacman's maze. The default is
@@ -172,7 +170,7 @@ export function onOff(key: string, label: string, defaultOn = false): GameOption
 // A game's saved state. Bump SAVE_VERSION whenever a game's saved fields change:
 // older saves are then dropped instead of restored into the wrong shape.
 export type Snapshot = Record<string, unknown>;
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 7;
 
 // Deep copies of the listed fields (private ones included: they are plain properties at runtime).
 export function pickFields(game: object, fields: readonly string[]): Snapshot {

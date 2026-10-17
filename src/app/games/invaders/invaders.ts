@@ -2,10 +2,10 @@ import {
   applyFields, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
   type Game, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
+import { spriteHeight, spriteWidth } from '../sprites.js';
 import { drawInvaders } from './invaders.draw.js';
 import {
-  CANNON, CANNON_Y, GROUND_Y, HEIGHT, INVADER_SPRITES, SHIELD, SHIELD_Y, UFO, UFO_Y, WIDTH,
-  spriteHeight, spriteWidth, type InvaderType,
+  CANNON, CANNON_Y, GROUND_Y, HEIGHT, INVADER_SPRITES, SHIELD, SHIELD_Y, UFO, UFO_Y, WIDTH, type InvaderType,
 } from './sprites.js';
 
 export const SHIELD_XS = [32, 77, 122, 167];

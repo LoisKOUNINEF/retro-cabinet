@@ -75,7 +75,7 @@ describe('SecretView', () => {
     });
 
     expect(status()).toContain('You win!');
-    expect($('.secret__tally').textContent).toBe('Wins 1 · Draws 0 · Losses 0');
+    expect($$('.secret__tally dd').map((value) => value.textContent)).toEqual(['1', '0', '0']);
     expect(PersistenceService.getInstance().tally('secret', 'easy')).toEqual({ wins: 1, draws: 0, losses: 0 });
     expect(PersistenceService.getInstance().tally('secret', 'hard')).toEqual({ wins: 0, draws: 0, losses: 0 });
 

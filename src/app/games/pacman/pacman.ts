@@ -215,11 +215,6 @@ export class Pacman implements Game {
     this.wanted = direction;
   }
 
-  prompt(touch: boolean): string | null {
-    if (!this.waiting || this.isOver) return null;
-    return touch ? 'Move the stick to go' : 'Press an arrow to go';
-  }
-
   cells(): Grid {
     const grid: Grid = this.maze.tiles.map((row, y) => row.map((tile, x) => {
       if (tile === 'wall' || tile === 'door') return tile;

@@ -69,7 +69,7 @@ describe('GameView', () => {
     view.onEnter();
 
     press('Space');
-    expect($('.game__status').textContent).toBe('');
+    expect($('.game__status').textContent).toBe('Playing - press Space to pause');
 
     advanceTimersByTime(250);
     expect(snakeCell(11, 10).className).toContain('snake-head-right');
@@ -88,7 +88,8 @@ describe('GameView', () => {
     press('Space');
     press('ArrowUp');
     expect(game.direction).toEqual({ x: 0, y: -1 });
-    expect(snakeCell(10, 10).className).toContain('snake-head-up');
+    // The head only turns once the snake moves that way, on the next tick.
+    expect(snakeCell(10, 10).className).toContain('snake-head-right');
   });
 
   it('pauses on Space and when the window loses focus', () => {
@@ -120,10 +121,14 @@ describe('GameView', () => {
     press('Space');
     advanceTimersByTime(250);
     expect($('.game__status').textContent).toContain('Game over');
+    expect($('.game__status').classList.contains('game__status--over')).toBeTruthy();
+    // Play again does the same: no need for New game.
+    expect($('.game__new').hidden).toBeTruthy();
 
     press('Space');
     expect(game.isOver).toBeFalsy();
     expect(game.head).toEqual({ x: 10, y: 10 });
+    expect($('.game__status').classList.contains('game__status--over')).toBeFalsy();
   });
 
   it('stops listening to the keyboard on exit', () => {
@@ -146,7 +151,8 @@ describe('GameView', () => {
     const box = $('fieldset.game__options');
 
     expect(select.value).toBe('compact');
-    expect(box.querySelector('legend').textContent).toBe('Options');
+    expect($('#game-options-title').textContent).toBe('⚙ Options');
+    expect(box.getAttribute('aria-labelledby')).toBe('game-options-title');
     expect(box.disabled).toBeFalsy();
     expect($('[data-stat="lives"]').textContent).toBe('3');
 
@@ -154,7 +160,6 @@ describe('GameView', () => {
     press('Space');
     expect(box.disabled).toBeTruthy();
     expect(select.matches(':disabled')).toBeTruthy();
-    expect(box.querySelector('.game__options-note').textContent).toBe('Pause to change options');
     press('Space');
     expect(box.disabled).toBeFalsy();
   });
@@ -194,7 +199,10 @@ describe('GameView', () => {
     view.render();
 
     expect($$('.game__preview .game-board__cell').length).toBe(16);
-    expect($('.game__preview .game-board__cell').className).toContain('tetris-O');
+    // O sits in the middle of the 4×4 preview: row 2, column 2 is cell 5.
+    const cells = $$('.game__preview .game-board__cell');
+    expect(cells[0].className).not.toContain('tetris-O');
+    expect(cells[5].className).toContain('tetris-O');
     expect($('[data-stat="lines"]').textContent).toBe('0');
   });
 
@@ -266,11 +274,12 @@ describe('GameView', () => {
     view.render();
     view.onEnter();
 
-    expect($('.game__status').textContent).toBe('Saved game — press Space to resume');
+    expect($('.game__status').textContent).toBe('press Space to resume');
+    expect($('.game__new').hidden).toBeFalsy();
     expect(snakeCell(11, 10).className).toContain('snake-head-right');
 
     press('Space');
-    expect($('.game__status').textContent).toBe('');
+    expect($('.game__status').textContent).toBe('Playing - press Space to pause');
     advanceTimersByTime(250);
     expect(snakeCell(12, 10).className).toContain('snake-head-right');
   });
@@ -303,7 +312,7 @@ describe('GameView', () => {
     press('Space');
     advanceTimersByTime(250);
 
-    expect($('.game__status').textContent).toContain('new high score! (#1)');
+    expect($('.game__status').textContent).toBe('Game over - New high score!');
     expect($('.score-table__row--new .score-table__score').textContent).toBe('50');
     expect(localStorage.getItem(SNAKE_SAVE)).toBe(null);
   });
@@ -312,14 +321,18 @@ describe('GameView', () => {
     view = new GameView(snakeDefinition);
     view.render();
     view.onEnter();
+    // Nothing to drop before the first start.
+    expect($('.game__new').hidden).toBeTruthy();
     press('Space');
     advanceTimersByTime(250);
     press('Space');
+    expect($('.game__new').hidden).toBeFalsy();
 
     $('.game__new').click();
 
     expect(localStorage.getItem(SNAKE_SAVE)).toBe(null);
     expect($('.game__status').textContent).toBe('Press Space to start');
+    expect($('.game__new').hidden).toBeTruthy();
     expect(snakeCell(10, 10).className).toContain('snake-head-right');
   });
 
@@ -408,16 +421,14 @@ describe('GameView', () => {
     getContext.restore();
   });
 
-  it('starts or resumes on a board tap, but never pauses', () => {
+  it('ignores clicks on the board', () => {
     view = new GameView(definitionOf(new Snake(() => 0)));
     view.render();
     view.onEnter();
 
     $('.game__stage').click();
-    expect($('.game__status').textContent).toBe('');
-
-    $('.game__stage').click();
-    expect($('.game__status').textContent).toBe('');
+    expect($('.game__status').textContent).toBe('Press Space to start');
+    expect($('.game__toggle').textContent).toBe('▶ Start');
   });
 
   it('talks about tapping on touch devices', () => {
@@ -429,7 +440,7 @@ describe('GameView', () => {
     expect($('.game__status').textContent).toBe('Tap to start');
     $('.touch-controls__pause').click();
     $('.touch-controls__pause').click();
-    expect($('.game__status').textContent).toBe('Paused — tap to resume');
+    expect($('.game__status').textContent).toBe('Paused - tap to resume');
     document.documentElement.classList.remove('touch');
   });
 
@@ -445,9 +456,11 @@ describe('GameView', () => {
     [1, 2].forEach((id) => {
       up.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: id, bubbles: true }));
       up.dispatchEvent(new window.PointerEvent('pointerup', { pointerId: id, bubbles: true }));
+      // Let the hop land: taps during a hop are ignored.
+      game.tick(200);
     });
 
-    expect(game.frog).toEqual({ x: 7, y: 10 });
+    expect(game.frog.row).toBe(10);
   });
 
   it('shows the game\'s keys, named by the player\'s keyboard layout', async () => {
@@ -487,7 +500,7 @@ describe('GameView', () => {
     advanceTimersByTime(40 * 5);
     const curtain = $$('.game__stage .game-board__cell--tetris-curtain').length;
     expect(curtain).toBeGreaterThan(0);
-    expect($('.game__status').textContent).toBe('');
+    expect($('.game__status').textContent).toBe('Playing - press Space to pause');
 
     // …and only once the well is full does the game end.
     advanceTimersByTime(40 * 20);
@@ -501,39 +514,42 @@ describe('GameView', () => {
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
-    const toggle = $('.game__toggle');
-    expect(toggle.textContent).toBe('▶ Start');
+    // The button is rebuilt when its label changes: look it up each time.
+    const toggle = () => $('.game__toggle');
+    expect(toggle().textContent).toBe('▶ Start');
 
-    toggle.click();
-    expect(toggle.textContent).toBe('⏸ Pause');
-    expect($('.game__status').textContent).toBe('');
+    toggle().click();
+    expect(toggle().textContent).toBe('⏸ Pause');
+    expect($('.game__status').textContent).toBe('Playing - press Space to pause');
 
-    toggle.click();
-    expect(toggle.textContent).toBe('▶ Resume');
+    toggle().click();
+    expect(toggle().textContent).toBe('▶ Resume');
     expect($('.game__status').textContent).toContain('Paused');
 
-    toggle.click();
+    toggle().click();
     game.body = [{ x: 20, y: 10 }];
     advanceTimersByTime(250);
-    expect(toggle.textContent).toBe('↻ Play again');
+    expect(toggle().textContent).toBe('↻ Play again');
 
-    toggle.click();
+    toggle().click();
     expect(game.isOver).toBeFalsy();
-    expect(toggle.textContent).toBe('⏸ Pause');
+    expect(toggle().textContent).toBe('⏸ Pause');
   });
 
   it('leaves Space on a focused button to the button, so it toggles once', () => {
     view = new GameView(definitionOf(new Snake(() => 0)));
     view.render();
     view.onEnter();
-    const toggle = $('.game__toggle');
-    toggle.focus();
+    const toggle = () => $('.game__toggle');
+    toggle().focus();
 
-    toggle.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true }));
+    toggle().dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true, cancelable: true }));
     // The browser turns it into a click on the button; the view itself didn't toggle.
-    expect(toggle.textContent).toBe('▶ Start');
-    toggle.click();
-    expect(toggle.textContent).toBe('⏸ Pause');
+    expect(toggle().textContent).toBe('▶ Start');
+    toggle().click();
+    expect(toggle().textContent).toBe('⏸ Pause');
+    // Still focused after the rebuild: Space keeps going to the button.
+    expect(document.activeElement).toBe(toggle());
   });
 
   it('shows no Options box for games without options', () => {

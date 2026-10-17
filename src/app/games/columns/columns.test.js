@@ -1,4 +1,4 @@
-import { Columns, columnsGame, FLASH_MS } from '#root/dist/src/app/games/columns/columns.js';
+import { Columns, columnsGame, FLASH_MS, SHATTER_MS } from '#root/dist/src/app/games/columns/columns.js';
 import { defaultSettings } from '#root/dist/src/app/games/game.js';
 
 const COLOUR_OF = { r: 'red', o: 'orange', y: 'yellow', g: 'green', b: 'blue', p: 'purple', m: 'magic' };
@@ -73,20 +73,71 @@ describe('Columns', () => {
     expect(game.piece).toEqual({ jewels: ['green', 'blue', 'purple'], x: 2, y: -2 });
   });
 
-  it('ends the game when a column can\'t fully enter the well', () => {
+  it('shatters the pile, then ends the game, when a column can\'t fully enter the well', () => {
     const game = newGame();
     game.board[1][2] = 'blue';
+
+    game.tick();
+    // The stuck column's jewel inside the well shatters too.
+    expect(game.board[0][2]).toBe('yellow');
+    expect(game.phase).toBe('shattering');
+    expect(game.speed()).toBe(SHATTER_MS);
+    expect(game.isOver).toBeFalsy();
+    expect(game.cells()[1][2]).toBe('jewel-blue-burst');
+
+    game.tick();
+    expect(game.board[1][2]).toBe(null);
+    expect(game.cells()[0][2]).toBe('jewel-yellow-burst');
+
     game.tick();
     expect(game.isOver).toBeTruthy();
+    expect(game.board.flat().every((jewel) => jewel === null)).toBeTruthy();
   });
 
-  it('ends the game when the next column has no room to appear', () => {
+  it('shatters the pile when the next column has no room to appear, skipping empty rows', () => {
     const game = newGame();
     game.board = boardOf('......');
     game.board[0][2] = 'blue';
     game.piece = { jewels: ['red', 'orange', 'yellow'], x: 0, y: 10 };
+
+    game.tick();
+    const bursting = () => game.cells().findIndex((row) => row.some((c) => c?.endsWith('-burst')));
+    expect(bursting()).toBe(12);
+
+    [11, 10, 0].forEach((row) => {
+      game.tick();
+      expect(bursting()).toBe(row);
+    });
+    expect(game.isOver).toBeFalsy();
+
     game.tick();
     expect(game.isOver).toBeTruthy();
+  });
+
+  it('ignores keys while the pile shatters', () => {
+    const game = newGame();
+    game.board[1][2] = 'blue';
+    game.tick();
+    const board = JSON.stringify(game.board);
+
+    ['ArrowLeft', 'ArrowDown', 'ArrowUp'].forEach((code) => game.handleKey(code));
+
+    expect(JSON.stringify(game.board)).toBe(board);
+    expect(game.shatterRow).toBe(1);
+  });
+
+  it('saves and restores a game mid-shatter', () => {
+    const game = newGame();
+    game.board = boardOf('rgbrgb', 'gbrgbr');
+    game.board[1][2] = 'blue';
+    game.tick();
+    game.tick();
+
+    const copy = newGame();
+    copy.restore(JSON.parse(JSON.stringify(game.snapshot())));
+    expect(copy.cells()).toEqual(game.cells());
+    for (let i = 0; i < 3; i++) { game.tick(); copy.tick(); }
+    expect(copy.snapshot()).toEqual(game.snapshot());
   });
 
   it('matches runs of 3 in every direction', () => {
@@ -212,7 +263,7 @@ describe('Columns', () => {
 
     const game = newGame();
     expect(game.touch).toEqual({ directions: ['left', 'right', 'down'], repeatMs: 120, action: { label: '⟳', code: 'ArrowUp' } });
-    expect(game.keyHints.map((hint) => hint.action)).toEqual(['Move', 'Drop', 'Cycle']);
+    expect(game.keyHints.map((hint) => hint.action)).toEqual(['Move', 'Cycle']);
   });
 
   it('saves and restores its exact state, mid-flash included', () => {

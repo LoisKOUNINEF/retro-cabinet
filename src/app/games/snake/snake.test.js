@@ -37,7 +37,20 @@ describe('Snake', () => {
     game.tick();
     game.handleKey('ArrowLeft');
     expect(game.direction).toEqual({ x: -1, y: 0 });
-    expect(game.cells()[9][10]).toBe('snake-head-left');
+    expect(game.cells()[9][10]).toBe('snake-head-up');
+  });
+
+  it('turns the drawn head only when the snake actually turns', () => {
+    const game = newSnake();
+    game.handleKey('ArrowUp');
+
+    // Pressed, but the snake hasn't moved yet: the head still faces right.
+    expect(game.heading).toEqual({ x: 1, y: 0 });
+    expect(game.cells()[10][10]).toBe('snake-head-right');
+
+    game.tick();
+    expect(game.heading).toEqual({ x: 0, y: -1 });
+    expect(game.cells()[9][10]).toBe('snake-head-up');
   });
 
   it('grows and scores when eating, then respawns the food off the snake', () => {
@@ -140,5 +153,6 @@ describe('Snake', () => {
     for (let i = 0; i < 5; i++) { game.tick(); copy.tick(); }
     expect(copy.snapshot()).toEqual(game.snapshot());
     expect(copy.body.length).toBe(2);
+    expect(copy.heading).toEqual(game.heading);
   });
 });

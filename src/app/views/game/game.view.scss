@@ -3,7 +3,8 @@
 // Board on the left, filling the height; the panel on its right (under it on mobile).
 // --stage-width/--stage-height tell every grid and canvas how much room it has.
 .game {
-  --panel-width: 17rem;
+  // The panel grows with the screen, so it stays readable on large ones.
+  --panel-width: clamp(18rem, 24vw, 28rem);
   --gap: 1rem;
   --header-height: 3.5rem;
   --stage-padding: 0.5rem;
@@ -11,9 +12,8 @@
   --stage-height: calc(100dvh - var(--header-height) - 2 * var(--gap) - 2 * var(--stage-padding));
   min-height: 100dvh;
   padding: 0 var(--gap) var(--gap);
-  background: rgb(var(--background));
-  color: rgb(var(--text));
-  font-family: monospace;
+  background: var(--bg-app);
+  color: var(--text);
 
   @include mixins.respond-to(medium) {
     --stage-width: calc(100vw - 2 * var(--gap) - 2 * var(--stage-padding));
@@ -29,11 +29,12 @@
 }
 
 .game__back {
-  color: inherit;
+  color: var(--text-secondary);
   font-weight: bold;
 
   &:hover,
   &:focus-visible {
+    color: var(--text);
     text-decoration: none;
   }
 }
@@ -54,14 +55,22 @@
   }
 }
 
-// The board, centred in its area.
+// The board, centred in its area: an old screen's texture (faint scanlines over a dot
+// grid), darker towards the edges, set into the page like a cabinet's bezel.
+// Only around the board: the board covers it, so cells and canvases stay crisp.
 .game__stage {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--stage-padding);
-  background: rgb(var(--stage-background));
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55)),
+    repeating-linear-gradient(to bottom, transparent 0 2px, rgba(255, 255, 255, 0.03) 2px 3px),
+    radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1.5px) 0 0 / 12px 12px,
+    var(--bg-stage);
+  box-shadow: inset 0 0 0 1px var(--border), inset 0 0 2rem rgba(0, 0, 0, 0.8);
   min-height: calc(var(--stage-height) + 2 * var(--stage-padding));
 
   // On a phone the width usually limits the board: hug it instead of keeping a tall band.
@@ -75,9 +84,12 @@
   flex-direction: column;
   gap: var(--gap);
   flex: 0 0 var(--panel-width);
+  // Scales the whole panel with the screen; mobile keeps the base size.
+  font-size: clamp(1rem, 0.55rem + 0.6vw, 1.4rem);
 
   @include mixins.respond-to(medium) {
     flex-basis: auto;
+    font-size: 1rem;
   }
 }
 
@@ -85,9 +97,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.75rem;
-  border: 2px solid rgb(var(--text));
-  background: rgb(var(--app-background));
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-elevated);
 }
 
 // Shared by every panel section, including the score table's title.
@@ -96,11 +109,30 @@
   font-size: 0.75rem;
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.15rem;
+  color: var(--secondary);
+}
+
+// "Next" (Tetris, Columns): first in the panel, so first under the stage on mobile.
+.game__next {
+  align-items: center;
+}
+
+.game__preview .game-board {
+  --cell-size: clamp(1.5rem, 2.2vw, 2.25rem);
+
+  @include mixins.respond-to(medium) {
+    --cell-size: 1.75rem;
+  }
 }
 
 .game__status {
-  min-height: 2.6em;
+  min-height: 2.6rem;
+
+  &--over {
+    color: var(--error);
+    font-weight: bold;
+  }
 }
 
 .game__actions {
@@ -110,65 +142,59 @@
 
 .game__button {
   flex: 1;
-  padding: 0.4rem 0.6rem;
-  border: 2px solid rgb(var(--text));
-  background: rgb(var(--app-background));
-  color: rgb(var(--text));
-  font: bold 0.9rem monospace;
+  padding: 0.75rem 0.6rem;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary);
+  font-weight: bold;
   cursor: pointer;
 
   &:hover,
   &:focus-visible {
-    outline: 2px solid rgb(var(--text));
+    filter: brightness(1.1);
+    outline: 2px solid currentColor;
     outline-offset: 2px;
   }
 }
 
-// The main action: colours inverted.
+// The main action (Start/Pause/Resume/Play again): filled with the primary colour.
 .game__toggle {
-  background: rgb(var(--text));
-  color: rgb(var(--app-background));
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--bg-app);
+
+  &:hover,
+  &:focus-visible {
+    outline-color: var(--primary);
+  }
 }
 
 .game__keys {
-  font-size: 0.8rem;
-}
-
-.game__stats-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  color: var(--text);
 }
 
 .game__stats {
-  flex: 1;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
+  align-items: baseline;
+  gap: 0.3rem 1rem;
 
-  dt { text-transform: capitalize; }
-  dd { font-weight: bold; text-align: right; }
-}
+  dt {
+    text-transform: capitalize;
+    color: var(--text-secondary);
+  }
 
-.game__preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-
-  .game-board {
-    --cell-size: 1rem;
+  dd {
+    font-size: 1.4rem;
+    font-weight: bold;
+    text-align: right;
   }
 }
 
+// Settings: framed in the secondary colour, so they read as such at a glance.
 .game__options {
-  // A fieldset's legend sits on its border by default: keep it inside, like the other titles.
-  legend {
-    float: left;
-    width: 100%;
-    margin-bottom: 0.6rem;
-  }
+  border: 3px solid var(--secondary);
 
   &:disabled {
     opacity: 0.5;
@@ -181,22 +207,40 @@
   align-items: center;
   gap: 1rem;
 
+  // The closed box only: the open list stays the system popup (keyboard, accessibility).
+  // The ▼ is two gradient half-squares, as Manaspace has no glyph for it.
   select {
+    appearance: none;
+    min-width: 8rem;
+    padding: 0.45rem 2.25rem 0.45rem 0.75rem;
+    border: 2px solid var(--secondary);
+    border-radius: 8px;
+    background:
+      linear-gradient(45deg, transparent 50%, var(--secondary) 50%) right 1.15rem center / 0.4rem 0.4rem no-repeat,
+      linear-gradient(135deg, var(--secondary) 50%, transparent 50%) right 0.75rem center / 0.4rem 0.4rem no-repeat,
+      var(--bg-stage);
+    color: var(--text);
     font: inherit;
-    padding: 0.1rem 0.25rem;
-    border: 2px solid rgb(var(--text));
-    background: rgb(var(--background));
-    color: rgb(var(--text));
+    font-weight: bold;
+    // A fixed line height: "normal" follows the font's metrics, and Chrome keeps the fallback
+    // font's height until something relays the select out after Manaspace loads.
+    line-height: 1.1;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      outline: 2px solid var(--secondary);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
-}
 
-// Shown only while the options are locked.
-.game__options-note {
-  display: none;
-  font-size: 0.75rem;
-  font-style: italic;
-
-  .game__options:disabled & {
-    display: block;
+  // Honoured by Chrome and Firefox; Safari keeps its own popup colours.
+  option {
+    background: var(--surface-elevated);
+    color: var(--text);
   }
 }

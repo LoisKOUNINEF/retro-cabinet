@@ -1,3 +1,5 @@
+import type { Sprite } from '../sprites.js';
+
 // Screen layout, in logical units (the arcade's resolution): the canvas scales them.
 export const WIDTH = 224;
 export const HEIGHT = 256;
@@ -5,9 +7,6 @@ export const UFO_Y = 32;
 export const SHIELD_Y = 192;
 export const CANNON_Y = 216;
 export const GROUND_Y = 234;
-
-// Pixel art: one string per row, '#' is a lit pixel.
-export type Sprite = string[];
 
 export type InvaderType = 'squid' | 'crab' | 'octopus';
 
@@ -121,6 +120,3 @@ export const SHIELD: Sprite = [
   '#####............#####',
   '#####............#####',
 ];
-
-export const spriteWidth = (sprite: Sprite) => sprite[0]?.length ?? 0;
-export const spriteHeight = (sprite: Sprite) => sprite.length;

@@ -1,7 +1,7 @@
 .score-table__title {
   font-size: 1rem;
   font-weight: bold;
-  margin-bottom: 0.25rem;
+  margin-bottom: 1rem;
 }
 
 .score-table__list {
@@ -12,23 +12,29 @@
   display: grid;
   grid-template-columns: 1.5rem 5rem 3.5rem 1fr;
 
-  &::before {
-    content: counter(list-item) ".";
-  }
-
   &--new {
     font-weight: bold;
-    color: rgb(200, 120, 0);
+    color: var(--primary);
   }
+}
+
+.score-table__rank {
+  color: var(--text-secondary);
 }
 
 .score-table__score {
   text-align: right;
 }
 
+.score-table__level {
+  text-wrap: nowrap;
+  color: var(--text-secondary);
+}
+
 .score-table__level,
 .score-table__date {
-  padding-left: 0.75rem;
+  padding-left: 0.75em;
+  font-size: 1rem;
 }
 
 .score-table__empty {

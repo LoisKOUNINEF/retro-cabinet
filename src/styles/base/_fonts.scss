@@ -9,3 +9,8 @@ Example:
   font-display: swap;
 }
 */
+
+@font-face {
+  font-family: 'Manaspace';
+  src: url('/assets/fonts/mana_space.ttf') format('truetype');
+}

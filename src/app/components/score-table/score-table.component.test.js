@@ -34,9 +34,11 @@ describe('ScoreTableComponent', () => {
 
     const rows = $$('.score-table__row');
     expect(rows.length).toBe(2);
+    expect(rows[0].querySelector('.score-table__rank').textContent).toBe('1.');
+    expect(rows[1].querySelector('.score-table__rank').textContent).toBe('2.');
     expect(rows[0].querySelector('.score-table__score').textContent).toBe('300');
     expect(rows[0].querySelector('.score-table__level').textContent).toBe('Lv 4');
-    expect(rows[0].querySelector('.score-table__date').textContent).toBe('16 Oct 2026');
+    expect(rows[0].querySelector('.score-table__date').textContent).toBe('16/10/26');
     expect($('.score-table__row--new')).toBeFalsy();
   });
 

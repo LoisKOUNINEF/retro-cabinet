@@ -1,6 +1,6 @@
 import {
-  applyFields, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell,
-  type Game, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout,
+  applyFields, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell, FIRE_KEYS,
+  type Game, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout, type KeyHint,
 } from '../game.js';
 import { KINDS, TETROMINOES, type Shape, type TetrominoKind } from './tetrominoes.js';
 
@@ -45,6 +45,10 @@ export class Tetris implements Game {
     repeatMs: 120,
     action: { label: '⟳', code: 'ArrowUp' },
   };
+  readonly keyHints: KeyHint[] = [
+    { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
+    { action: 'Cycle', codes: ['ArrowUp', ...FIRE_KEYS] },
+  ];
 
   score = 0;
   level = 1;
@@ -128,9 +132,19 @@ export class Tetris implements Game {
     return grid;
   }
 
+  // The next piece's blocks, centred in the preview (rounding up and left): T, S and Z
+  // sit one row down against the left edge, O in the middle, I, J and L as drawn.
   preview(): Grid {
     const grid = emptyGrid(PREVIEW_SIZE, PREVIEW_SIZE);
-    this.eachBlock(TETROMINOES[this.next], 0, 0, (x, y) => setCell(grid, x, y, `tetris-${this.next}`));
+    const shape = TETROMINOES[this.next];
+    const xs: number[] = [];
+    const ys: number[] = [];
+    this.eachBlock(shape, 0, 0, (x, y) => { xs.push(x); ys.push(y); });
+    const left = Math.min(...xs);
+    const top = Math.min(...ys);
+    const dx = Math.floor((PREVIEW_SIZE - (Math.max(...xs) - left + 1)) / 2) - left;
+    const dy = Math.floor((PREVIEW_SIZE - (Math.max(...ys) - top + 1)) / 2) - top;
+    this.eachBlock(shape, dx, dy, (x, y) => setCell(grid, x, y, `tetris-${this.next}`));
     return grid;
   }
 

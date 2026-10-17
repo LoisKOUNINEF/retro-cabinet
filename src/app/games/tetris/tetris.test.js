@@ -183,8 +183,25 @@ describe('Tetris', () => {
     const preview = game.preview();
 
     expect(preview.length).toBe(4);
-    expect(preview[0]).toEqual(['tetris-O', 'tetris-O', null, null]);
+    expect(preview[0]).toEqual([null, null, null, null]);
+    expect(preview[1]).toEqual([null, 'tetris-O', 'tetris-O', null]);
+    expect(preview[2]).toEqual([null, 'tetris-O', 'tetris-O', null]);
     expect(game.stats()).toEqual({ lines: 0 });
+  });
+
+  it('centres 2-high pieces vertically in the preview, against the left edge', () => {
+    const preview = new Tetris(() => 4 / 7).preview();
+
+    expect(preview[0]).toEqual([null, null, null, null]);
+    expect(preview[1]).toEqual(['tetris-T', 'tetris-T', 'tetris-T', null]);
+    expect(preview[2]).toEqual([null, 'tetris-T', null, null]);
+    expect(preview[3]).toEqual([null, null, null, null]);
+  });
+
+  it('keeps the I piece upright in the preview\'s second column', () => {
+    const preview = new Tetris(alwaysI).preview();
+
+    expect(preview.map((row) => row[1])).toEqual(['tetris-I', 'tetris-I', 'tetris-I', 'tetris-I']);
   });
 
   it('starts at the chosen level, with its speed and score multiplier', () => {
