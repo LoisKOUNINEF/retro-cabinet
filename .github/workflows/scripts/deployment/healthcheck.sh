@@ -1,7 +1,7 @@
 #!/bin/bash
 
 healthcheck() {
-  local timeout=90
+  local timeout=150
   local start_time=$(date +%s)
   local healthy=true
   local exclude="migrations"

@@ -5,6 +5,11 @@ replace_placeholders() {
 
   origin="prev-${SERVICE_NAME}-production.yml"
 
+  if [ ! -f "$origin" ]; then
+    echo "No previous stack file, nothing to update"
+    return 0
+  fi
+
   patterns=$(grep ":image-placeholder" "${SERVICE_NAME}-${STACK_NAME}".yml | sed 's/:image-placeholder.*//')
 
   while IFS= read -r pattern; do

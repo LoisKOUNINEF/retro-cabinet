@@ -25,12 +25,18 @@ archive() {
   clean_archive
 }
 
-deploy_previous() {  
+deploy_previous() {
+  if [ ! -f prev-"$SERVICE_NAME"-"$STACK_NAME".yml ]; then
+    echo "No previous version for "$SERVICE_NAME"-"$STACK_NAME", removing the failed stack..." >&2
+    docker stack rm "$SERVICE_NAME"-"$STACK_NAME"
+    return
+  fi
+
   echo "Rolling back to previous version for "$SERVICE_NAME"-"$STACK_NAME"..." >&2
 
   mv prev-"$SERVICE_NAME"-"$STACK_NAME".yml "$SERVICE_NAME"-"$STACK_NAME".yml
 
-  docker stack deploy -c "$SERVICE_NAME"-"$STACK_NAME".yml "$SERVICE_NAME"-"$STACK_NAME"
+  docker stack deploy --with-registry-auth -c "$SERVICE_NAME"-"$STACK_NAME".yml "$SERVICE_NAME"-"$STACK_NAME"
 }
 
 rollback() {
