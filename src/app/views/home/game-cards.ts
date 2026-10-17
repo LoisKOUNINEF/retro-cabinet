@@ -9,15 +9,19 @@ const fromShape = (shape: number[][]) =>
 
 // Pixel-art icons: one string per row, '#' is a lit pixel. Some reuse the games' own sprites.
 const ICONS = {
+  // As in the game: separate body blocks bending towards the food, the head with an eye.
   snake: [
-    '..........',
-    '.######...',
-    '.#....#...',
-    '.#.####...',
-    '.#.#......',
-    '.#.#####..',
-    '.#.....#.#',
-    '.#######..',
+    '........###.###.......',
+    '........###.#.#......#',
+    '........###.###.......',
+    '......................',
+    '###.###.###...........',
+    '###.###.###...........',
+    '###.###.###...........',
+    '......................',
+    '###...................',
+    '###...................',
+    '###...................',
   ],
   // Seen from the front: bulging eyes, wide smile, front feet.
   frog: [

@@ -5,6 +5,7 @@ import { pacmanGame } from '#root/dist/src/app/games/pacman/pacman.js';
 import { froggerGame } from '#root/dist/src/app/games/frogger/frogger.js';
 import { Arkanoid, arkanoidGame } from '#root/dist/src/app/games/arkanoid/arkanoid.js';
 import { Invaders } from '#root/dist/src/app/games/invaders/invaders.js';
+import { pongGame } from '#root/dist/src/app/games/pong/pong.js';
 import { Navigation, registerPipes } from '#root/dist/src/core/index.js';
 import { resetKeyLabels } from '#root/dist/src/app/components/key-labels.js';
 
@@ -217,6 +218,20 @@ describe('GameView', () => {
     expect($('canvas.game-canvas')).toBeTruthy();
     expect($$('.game-board__cell').length).toBe(0);
     expect(ctx.drawn).toBeGreaterThan(0);
+    getContext.restore();
+  });
+
+  it('leaves the level out of the stats and scores for games without levels', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    localStorage.setItem('pixels-mansion:scores:pong', JSON.stringify([{ score: 900, level: 2, date: '2026-10-16T10:00:00.000Z' }]));
+    view = new GameView(pongGame);
+    view.render();
+
+    expect($('[data-stat="score"]')).toBeTruthy();
+    expect($('[data-stat="level"]')).toBeFalsy();
+    expect($('.score-table__row .score-table__score').textContent).toBe('900');
+    expect($('.score-table__level')).toBeFalsy();
+    localStorage.removeItem('pixels-mansion:scores:pong');
     getContext.restore();
   });
 

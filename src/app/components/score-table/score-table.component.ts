@@ -7,10 +7,13 @@ export interface ScoreTableConfig {
   entries: ScoreEntry[];
   // Index of the entry just added, shown highlighted.
   highlight: number | null;
+  // False for games without levels (e.g. Pong); shown by default.
+  showLevel?: boolean;
 }
 
-const templateFn = ({ entries }: ScoreTableConfig) => {
+const templateFn = ({ entries, showLevel = true }: ScoreTableConfig) => {
   const hasEntries = entries.length > 0;
+  const listClass = showLevel ? 'score-table__list' : 'score-table__list score-table__list--no-level';
   return html`__TEMPLATE_PLACEHOLDER__`;
 };
 
@@ -21,9 +24,9 @@ export class ScoreTableComponent extends UpdatableComponent<ScoreTableConfig> {
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    const { entries, highlight } = this.config;
+    const { entries, highlight, showLevel = true } = this.config;
     return this.createCatalogComponents({
-      items: entries.map(({ score, level, date }, i): ScoreRow => ({ rank: i + 1, score, level, date, isNew: i === highlight })),
+      items: entries.map(({ score, level, date }, i): ScoreRow => ({ rank: i + 1, score, level, date, isNew: i === highlight, showLevel })),
       selector: 'rows',
       elementName: 'score-row',
       elementTag: 'li',

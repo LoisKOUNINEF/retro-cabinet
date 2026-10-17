@@ -90,6 +90,8 @@ export interface Game {
   readonly score: number;
   readonly level: number;
   readonly isOver: boolean;
+  // False for games without levels (e.g. Pong): the HUD and score table leave the level out.
+  readonly showsLevel?: boolean;
 
   // Ticks on every animation frame instead of every speed() ms (e.g. Arkanoid's physics).
   readonly realtime?: boolean;

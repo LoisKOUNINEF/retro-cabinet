@@ -15,6 +15,11 @@
   list-style: none;
 }
 
+// Without levels (e.g. Pong): rank, score and date.
+.score-table__list--no-level {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
 // Each catalog row (li > .score-table__row) spans the table and shares its columns.
 .score-table__list > li,
 .score-table__row {

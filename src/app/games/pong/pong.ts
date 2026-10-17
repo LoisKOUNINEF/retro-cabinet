@@ -84,8 +84,9 @@ export class Pong implements Game {
   readonly touch: TouchLayout = { directions: ['up', 'down'] };
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ['ArrowUp', 'ArrowDown'] }];
   readonly difficulty: Difficulty;
-  // The HUD's level is the difficulty: 1 easy, 2 medium, 3 hard.
+  // The difficulty: 1 easy, 2 medium, 3 hard. Pong has no levels, so the HUD hides it.
   readonly level: number;
+  readonly showsLevel = false;
 
   score = 0;
   isOver = false;

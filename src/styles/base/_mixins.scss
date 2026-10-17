@@ -30,3 +30,17 @@ $breakpoints: (
     clip-path: $clip;
   }
 }
+
+// Hover and keyboard focus share a look. Hover only counts where a pointer can hover:
+// on touch screens a tap leaves :hover stuck on the element until the next tap elsewhere.
+@mixin hover-or-focus {
+  &:focus-visible {
+    @content;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      @content;
+    }
+  }
+}

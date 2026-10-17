@@ -8,6 +8,7 @@ export interface ScoreRow {
   date: string;
   // The score just added: highlighted.
   isNew: boolean;
+  showLevel: boolean;
 }
 
 const templateFn = (row: ScoreRow) => html`__TEMPLATE_PLACEHOLDER__`;

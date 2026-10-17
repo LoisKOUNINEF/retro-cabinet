@@ -32,8 +32,7 @@
   color: var(--text-secondary);
   font-weight: bold;
 
-  &:hover,
-  &:focus-visible {
+  @include mixins.hover-or-focus {
     color: var(--text);
     text-decoration: none;
   }
@@ -150,8 +149,7 @@
   font-weight: bold;
   cursor: pointer;
 
-  &:hover,
-  &:focus-visible {
+  @include mixins.hover-or-focus {
     filter: brightness(1.1);
     outline: 2px solid currentColor;
     outline-offset: 2px;
@@ -164,8 +162,7 @@
   background: var(--primary);
   color: var(--bg-app);
 
-  &:hover,
-  &:focus-visible {
+  @include mixins.hover-or-focus {
     outline-color: var(--primary);
   }
 }
@@ -245,8 +242,7 @@
     line-height: 1.1;
     cursor: pointer;
 
-    &:hover,
-    &:focus-visible {
+    @include mixins.hover-or-focus {
       outline: 2px solid var(--secondary);
       outline-offset: 2px;
     }

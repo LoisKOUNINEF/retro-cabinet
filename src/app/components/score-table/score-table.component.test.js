@@ -42,6 +42,15 @@ describe('ScoreTableComponent', () => {
     expect($('.score-table__row--new')).toBeFalsy();
   });
 
+  it('leaves the level out for games without levels', () => {
+    table = new ScoreTableComponent(host, { entries: [entry(300, 4)], highlight: null, showLevel: false });
+    table.render();
+
+    expect($('.score-table__level')).toBeFalsy();
+    expect($('.score-table__row').textContent).not.toContain('Lv');
+    expect($('.score-table__list').classList.contains('score-table__list--no-level')).toBeTruthy();
+  });
+
   it('highlights a new entry after an update', () => {
     table = new ScoreTableComponent(host, { entries: [entry(300, 4)], highlight: null });
     table.render();

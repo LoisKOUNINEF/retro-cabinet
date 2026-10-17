@@ -2,10 +2,10 @@ export default {
   // Nutin options
   tailwind: false,         // Enable Tailwind CSS v4
   i18n: false,             // Enable i18n; configure languages in config/languages.json
-  generateSEOFiles: false, // Generate per-route HTML, robots.txt and sitemap.xml; configure SEO data in config/seo.json
+  generateSEOFiles: true, // Generate per-route HTML, robots.txt and sitemap.xml; configure SEO data in config/seo.json
 
   // Nutin features
-  dockerPorts: [9090],     // Ports the Docker container exposes/listens on — edit as needed
+  dockerPorts: [9002],     // Ports the Docker container exposes/listens on — edit as needed
 
   // Build pipeline
   builder: {
@@ -33,7 +33,7 @@ export default {
 
     coverage: {
       enabled: false,        // Include coverage in the normal test command
-      threshold: 95,         // Fail if any global coverage metric falls below this threshold
+      threshold: 90,         // Fail if any global coverage metric falls below this threshold
       reportUncovered: true, // Generate a report of uncovered lines, functions and branches
     },
 

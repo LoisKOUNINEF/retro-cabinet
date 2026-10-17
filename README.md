@@ -1,18 +1,22 @@
-# pixels-mansion - Built with Nutin
+# Retro Cabinet - a classic games platform
 
-## Development
+## Classic games 
 
-Requires Node.js 24 or later.
+- Tetris
+- Pacman
+- Space Invaders
+- Snake
+- Arkanoid
+- Asteroids
+- Columns
+- Frogger
+- Pong
 
-- `npm run serve`: build and serve
-- `npm run dev`: build and serve with live reload
-- Both serve on port 9090 by default. Pass `-- --port 3000` (or set `PORT=3000`) to change it
+## Quality of life
 
-## Build
+- Configurable options.
+- Auto-save on pause or when switching tabs / applications.
+- Keeps track of best scores with their dates.
+- Virtual controls on touch devices.
 
-- `npm run build`: build the application
-- `npm run build:prod`: build the application for production
-
-## Getting started
-
-See [Getting Started](GETTING_STARTED.md) for project-specific guidance.
+*Built with ❤️ and [Nutin](https://nutin.dev)*.

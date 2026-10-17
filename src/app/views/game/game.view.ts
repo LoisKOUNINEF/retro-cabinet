@@ -72,7 +72,7 @@ export class GameView extends View {
     }, {
       selector: 'scores',
       keep: 'scores',
-      factory: (el) => this._scores = new ScoreTableComponent(el, { entries: this._storage.scores(this.definition.id), highlight: null }),
+      factory: (el) => this._scores = new ScoreTableComponent(el, { entries: this._storage.scores(this.definition.id), highlight: null, showLevel: this.showsLevel }),
     }, {
       selector: 'touch',
       keep: this.definition.id,
@@ -239,7 +239,7 @@ export class GameView extends View {
       level: this.game.level,
       date: new Date().toISOString(),
     });
-    this._scores?.update({ entries: this._storage.scores(id), highlight: this._rank });
+    this._scores?.update({ entries: this._storage.scores(id), highlight: this._rank, showLevel: this.showsLevel });
   }
 
   private update(): void {
@@ -255,12 +255,16 @@ export class GameView extends View {
     this._options?.update(this.optionsConfig());
   }
 
+  private get showsLevel(): boolean {
+    return this.game.showsLevel !== false;
+  }
+
   private get options(): GameOption[] {
     return this.definition.options ?? [];
   }
 
   private statsConfig(): StatsConfig {
-    const values = { score: this.game.score, level: this.game.level, ...this.game.stats?.() };
+    const values = { score: this.game.score, ...(this.showsLevel && { level: this.game.level }), ...this.game.stats?.() };
     return {
       items: Object.entries(values).map(([key, value]) => ({ key, label: key[0]!.toUpperCase() + key.slice(1), value })),
     };
