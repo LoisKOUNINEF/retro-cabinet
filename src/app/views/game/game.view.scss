@@ -174,27 +174,45 @@
   color: var(--text);
 }
 
+// Stats (StatsComponent): one row per value, its label on the left.
 .game__stats {
   display: grid;
-  grid-template-columns: auto 1fr;
+  gap: 0.3rem;
+  list-style: none;
+}
+
+.game__stat {
+  display: flex;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 0.3rem 1rem;
+  gap: 1rem;
+}
 
-  dt {
-    text-transform: capitalize;
-    color: var(--text-secondary);
-  }
+.game__stat-label {
+  color: var(--text-secondary);
+}
 
-  dd {
-    font-size: 1.4rem;
-    font-weight: bold;
-    text-align: right;
-  }
+.game__stat-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+// The options' catalog: spaced like the section's own children.
+.game__option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 // Settings: framed in the secondary colour, so they read as such at a glance.
 .game__options {
   border: 3px solid var(--secondary);
+
+  // The title sits on the frame's top edge, cutting into the border.
+  legend {
+    padding-inline: 0.4rem;
+    margin-left: -0.4rem;
+  }
 
   &:disabled {
     opacity: 0.5;

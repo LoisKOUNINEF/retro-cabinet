@@ -62,4 +62,27 @@ describe('TicTacToeBoardComponent', () => {
     expect([0, 1, 2].every((i) => cell(i).classList.contains('ttt-board__cell--win'))).toBeTruthy();
     expect(cell(8).classList.contains('ttt-board__cell--cursor')).toBeTruthy();
   });
+
+  it('rebuilds only the cells a move changes, keeping the focus', () => {
+    mount();
+    const corner = cell(6);
+    cell(3).focus();
+
+    boardComponent.update(config({ cursor: 3 }));
+
+    expect(cell(6)).toBe(corner);
+    expect(cell(4).classList.contains('ttt-board__cell--cursor')).toBeFalsy();
+    expect(cell(3).classList.contains('ttt-board__cell--cursor')).toBeTruthy();
+    // Cell 3 was rebuilt (it gained the cursor), and still has the focus.
+    expect(document.activeElement).toBe(cell(3));
+  });
+
+  it('leaves the board alone when nothing changed', () => {
+    mount();
+    const centre = cell(4);
+
+    boardComponent.update(config());
+
+    expect(cell(4)).toBe(centre);
+  });
 });

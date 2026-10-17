@@ -1,3 +1,30 @@
+// Same layout as before; the title and link now use the theme's font and colours.
+.not-found {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  min-height: 80vh;
+  padding-top: clamp(1rem, 5vw, 2rem);
+}
+
+.not-found__title {
+  font-size: clamp(2rem, 8vw, 3rem);
+  font-weight: bold;
+}
+
+.not-found__home {
+  padding-block: clamp(0.75rem, 2vw, 1rem);
+  border: none;
+  background: inherit;
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(1.25rem, 5vw, 2rem);
+  font-style: italic;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 // The way into the secret game: a small dopefish swimming in the corner.
 .not-found__dopefish {
   position: fixed;

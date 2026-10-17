@@ -3,7 +3,7 @@ import { PersistenceService } from '#root/dist/src/app/services/persistence/pers
 
 const cell = (index) => $(`.ttt-board__cell[data-index="${index}"]`);
 const marks = () => $$('.ttt-board__cell').map((button) => button.textContent || '.').join('');
-const status = () => $('.secret__status').textContent;
+const status = () => $('.game__status').textContent;
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 
 describe('SecretView', () => {
@@ -28,6 +28,7 @@ describe('SecretView', () => {
 
   it('plays X on a click, then lets the AI think before answering', () => {
     open();
+    expect(view.documentTitle()).toBe('Noughts & Crosses');
     expect(status()).toBe('Your turn (X).');
 
     cell(0).click();
@@ -75,7 +76,7 @@ describe('SecretView', () => {
     });
 
     expect(status()).toContain('You win!');
-    expect($$('.secret__tally dd').map((value) => value.textContent)).toEqual(['1', '0', '0']);
+    expect($$('.game__stat-value').map((value) => value.textContent)).toEqual(['1', '0', '0']);
     expect(PersistenceService.getInstance().tally('secret', 'easy')).toEqual({ wins: 1, draws: 0, losses: 0 });
     expect(PersistenceService.getInstance().tally('secret', 'hard')).toEqual({ wins: 0, draws: 0, losses: 0 });
 
@@ -86,7 +87,7 @@ describe('SecretView', () => {
   it('cancels the AI move on a new round or an option change', () => {
     open();
     cell(0).click();
-    $('.secret__new').click();
+    $('.game__toggle').click();
     advanceTimersByTime(AI_DELAY_MS);
     expect(marks()).toBe('.........');
 

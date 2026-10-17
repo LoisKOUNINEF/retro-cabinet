@@ -1,15 +1,9 @@
 <div class="touch-controls">
   <button type="button" class="touch-controls__pause" aria-label="Play or pause" data-event="click:_togglePlay">⏯</button>
   ${layout.pad === 'cross'
-    ? html`<div class="touch-controls__cross">
-        ${layout.directions.map((direction) => html`
-          <button type="button" class="touch-controls__cross-button touch-controls__cross-button--${direction}"
-            data-direction="${direction}" aria-label="${direction}">${ARROWS[direction]}</button>`)}
-      </div>`
+    ? html`<div class="touch-controls__cross" data-catalog="cross"></div>`
     : html`<div class="touch-controls__stick" role="presentation">
         <div class="touch-controls__knob"></div>
       </div>`}
-  ${layout.action
-    ? html`<button type="button" class="touch-controls__action">${layout.action.label}</button>`
-    : ''}
+  <button type="button" class="touch-controls__action" data-optional>${layout.action?.label}</button>
 </div>

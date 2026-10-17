@@ -9,6 +9,10 @@ export class HomeView extends View {
     super({ template, viewName: 'home' });
   }
 
+  override documentTitle(): string {
+    return 'Pixels Mansion';
+  }
+
   override registerChildren(): Nutin.ComponentConfig[] {
     return this.createCatalogComponents({
       items: [...GAME_CARDS, { ...RANDOM_CARD, onSelect: () => Navigation.navigateTo(randomGamePath()) }],

@@ -169,4 +169,15 @@ describe('TouchControlsComponent', () => {
 
     expect(calls).toEqual(['press ArrowLeft', 'release ArrowLeft']);
   });
+
+  it('does not release a D-pad key twice when the finger lifts after a reset', () => {
+    mount({ pad: 'cross', directions: ALL });
+    const left = $('.touch-controls__cross-button--left');
+    pointer(left, 'pointerdown', { id: 1 });
+
+    controls.reset();
+    pointer(left, 'pointerup', { id: 1 });
+
+    expect(calls).toEqual(['press ArrowLeft', 'release ArrowLeft']);
+  });
 });

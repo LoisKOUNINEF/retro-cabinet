@@ -20,7 +20,6 @@
   &:hover,
   &:focus-visible {
     outline: 3px solid var(--text-secondary);
-    outline-offset: 3px;
     .game-card__icon {
       fill: var(--primary);
     }

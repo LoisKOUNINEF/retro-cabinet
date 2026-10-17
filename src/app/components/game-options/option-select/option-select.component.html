@@ -1,0 +1,5 @@
+<label class="game__option">${option.label}
+  <select data-option="${option.key}" data-focus-key="option-${option.key}" data-event="change:_change:@target">
+    ${option.choices.map((choice) => html`<option value="${choice.value}" ${choice.value === option.value ? 'selected' : ''}>${choice.label}</option>`)}
+  </select>
+</label>

@@ -16,3 +16,17 @@ $breakpoints: (
     }
   }
 }
+
+// A shaped cell (rounded, clipped…) draws its shape inside its lines, on ::after: shaping
+// the cell itself would curve or cut its border, i.e. the grid line.
+@mixin shape($fill, $radius: null, $clip: null) {
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: $fill;
+    border-radius: $radius;
+    clip-path: $clip;
+  }
+}

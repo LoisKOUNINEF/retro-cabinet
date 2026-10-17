@@ -12,6 +12,10 @@ describe('HomeView', () => {
 
   afterEach(() => view.destroy());
 
+  it('names the tab after the site', () => {
+    expect(view.documentTitle()).toBe('Pixels Mansion');
+  });
+
   it('shows one card per game, in a list', () => {
     const cards = $$('.home__games > li a.game-card');
     expect(cards.length).toBe(9);

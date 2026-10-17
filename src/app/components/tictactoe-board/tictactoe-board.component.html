@@ -1,11 +1,1 @@
-<div class="ttt-board" role="group" aria-label="Noughts and crosses board">
-  ${board.map((mark, index) => html`
-    <button
-      type="button"
-      class="ttt-board__cell${winLine?.includes(index) ? ' ttt-board__cell--win' : ''}${index === cursor ? ' ttt-board__cell--cursor' : ''}"
-      data-index="${index}"
-      data-event="click:_play:@dataset:index"
-      aria-label="${cellLabel(board, index)}"
-      ${mark !== null || locked ? 'disabled' : ''}
-    >${mark ?? ''}</button>`)}
-</div>
+<div class="ttt-board" role="group" aria-label="Noughts and crosses board" data-catalog="cells"></div>

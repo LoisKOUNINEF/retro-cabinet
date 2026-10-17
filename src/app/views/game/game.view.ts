@@ -1,15 +1,17 @@
 import { Navigation, View, html } from '../../../core/index.js';
 import { GameBoardComponent } from '../../components/game-board/game-board.component.js';
 import { GameCanvasComponent } from '../../components/game-canvas/game-canvas.component.js';
+import { GameOptionsComponent, type GameOptionsConfig } from '../../components/game-options/game-options.component.js';
 import { ScoreTableComponent } from '../../components/score-table/score-table.component.js';
 import { PlayControlsComponent, type PlayState } from '../../components/play-controls/play-controls.component.js';
+import { StatsComponent, type StatsConfig } from '../../components/stats/stats.component.js';
 import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
 import { GameLoop } from '../../games/game-loop.js';
 import { DEFAULT_TOUCH, SAVE_VERSION, type Game, type GameDefinition, type GameOption, type Settings } from '../../games/game.js';
 import { PersistenceService } from '../../services/persistence/persistence.service.js';
 
-const templateFn = (game: Game, options: GameOption[]) => html`__TEMPLATE_PLACEHOLDER__`;
+const templateFn = (game: Game, hasOptions: boolean) => html`__TEMPLATE_PLACEHOLDER__`;
 
 const PREVENTED_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
@@ -26,6 +28,8 @@ export class GameView extends View {
   private _preview: GameBoardComponent | null = null;
   private _scores: ScoreTableComponent | null = null;
   private _play: PlayControlsComponent | null = null;
+  private _stats: StatsComponent | null = null;
+  private _options: GameOptionsComponent | null = null;
   private _touch: TouchControlsComponent | null = null;
   private _started = false;
   // Restored from a save and not resumed yet.
@@ -57,6 +61,14 @@ export class GameView extends View {
         togglePlay: () => this.togglePlay(),
         newGame: () => this.startNewGame(),
       }, this.game.keyHints),
+    }, {
+      selector: 'stats',
+      keep: 'stats',
+      factory: (el) => this._stats = new StatsComponent(el, this.statsConfig()),
+    }, {
+      selector: 'options',
+      keep: 'options',
+      factory: (el) => this._options = new GameOptionsComponent(el, this.optionsConfig()),
     }, {
       selector: 'scores',
       keep: 'scores',
@@ -97,8 +109,12 @@ export class GameView extends View {
     window.removeEventListener('pagehide', this._onBlur);
   }
 
+  override documentTitle(): string {
+    return this.game.title;
+  }
+
   protected override generateTemplate(): Nutin.Template {
-    return templateFn(this.game, this.definition.options ?? []);
+    return templateFn(this.game, this.options.length > 0);
   }
 
   protected override onAfterRender(): void {
@@ -107,7 +123,8 @@ export class GameView extends View {
 
   // The saved game if there is a usable one, else a new game with the remembered options.
   private openGame(): Game {
-    const { id, options } = this.definition;
+    const { id } = this.definition;
+    const options = this.options;
     const save = this._storage.savedGame(id);
     if (save) {
       try {
@@ -178,12 +195,12 @@ export class GameView extends View {
     });
   }
 
-  // Takes the select itself: Nutin's @value token doesn't read <select> elements.
-  private _setOption(key: string, select: HTMLSelectElement): void {
-    this._settings = { ...this._settings, [key]: select.value };
+  // One function for the options box, so its config stays the same between ticks.
+  private readonly setOption = (key: string, value: string): void => {
+    this._settings = { ...this._settings, [key]: value };
     this._storage.saveSettings(this.definition.id, this._settings);
     this.startNewGame();
-  }
+  };
 
   // Drops the saved game and builds a fresh one with the current options.
   private startNewGame(): void {
@@ -222,7 +239,7 @@ export class GameView extends View {
       level: this.game.level,
       date: new Date().toISOString(),
     });
-    this._scores?.update(this._storage.scores(id), this._rank);
+    this._scores?.update({ entries: this._storage.scores(id), highlight: this._rank });
   }
 
   private update(): void {
@@ -233,20 +250,30 @@ export class GameView extends View {
     const preview = this.game.preview?.();
     if (preview) this._preview?.paint(preview);
 
-    const values = { score: this.game.score, level: this.game.level, ...this.game.stats?.() };
-    Object.entries(values).forEach(([key, value]) => {
-      const element = this.element.querySelector(`[data-stat="${key}"]`);
-      if (element) element.textContent = String(value);
-    });
-
-    // Options only change between games: the whole box is locked while playing.
-    this.element.querySelectorAll<HTMLSelectElement>('select[data-option]').forEach((select) => {
-      select.value = this._settings[select.dataset.option ?? ''] ?? '';
-    });
-    const options = this.element.querySelector<HTMLFieldSetElement>('.game__options');
-    if (options) options.disabled = this._loop.isRunning;
-
     this._play?.update(this.playState());
+    this._stats?.update(this.statsConfig());
+    this._options?.update(this.optionsConfig());
+  }
+
+  private get options(): GameOption[] {
+    return this.definition.options ?? [];
+  }
+
+  private statsConfig(): StatsConfig {
+    const values = { score: this.game.score, level: this.game.level, ...this.game.stats?.() };
+    return {
+      items: Object.entries(values).map(([key, value]) => ({ key, label: key[0]!.toUpperCase() + key.slice(1), value })),
+    };
+  }
+
+  private optionsConfig(): GameOptionsConfig {
+    return {
+      options: this.options,
+      settings: this._settings,
+      // Options only change between games: the whole box is locked while playing.
+      locked: this._loop.isRunning,
+      onChange: this.setOption,
+    };
   }
 
   private playState(): PlayState {

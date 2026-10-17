@@ -1,6 +1,7 @@
 import { Component, html } from '../../../core/index.js';
 import type { StickDirection, TouchLayout } from '../../games/game.js';
-import { DIRECTION_CODES, STICK_RADIUS, stickDirection } from './stick.js';
+import { CrossButtonComponent, type CrossButton } from './cross-button/cross-button.component.js';
+import { DIRECTION_CODES, STICK_RADIUS, capture, listenPointer, stickDirection } from './stick.js';
 
 export interface TouchHandlers {
   press(code: string): void;
@@ -8,19 +9,7 @@ export interface TouchHandlers {
   togglePlay(): void;
 }
 
-const ARROWS: Record<StickDirection, string> = { up: '▲', down: '▼', left: '◀', right: '▶' };
-
 const templateFn = (layout: TouchLayout) => html`__TEMPLATE_PLACEHOLDER__`;
-
-// Keeps a finger's events on its control even when it slides off. Only a nicety: it can
-// fail (a pointer already gone, no support) and must never block the press itself.
-function capture(event: PointerEvent): void {
-  try {
-    (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
-  } catch {
-    // Without capture, the control still works while the finger stays on it.
-  }
-}
 
 // A virtual stick or a D-pad (left thumb), an optional action button (right thumb) and a
 // play/pause button. They send the same key codes as the keyboard: games don't know the difference.
@@ -30,8 +19,17 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
   private _direction: StickDirection | null = null;
   private _repeat: ReturnType<typeof setInterval> | null = null;
   private _actionPointer: number | null = null;
-  // D-pad buttons held down, by finger.
-  private _crossPointers = new Map<number, string>();
+  // Keys the D-pad buttons hold down, so a pause can release them.
+  private readonly _crossHeld = new Set<string>();
+  // Passed to every D-pad button as is, so the catalog keeps them.
+  private readonly crossPress = (code: string): void => {
+    this._crossHeld.add(code);
+    this.handlers.press(code);
+  };
+  private readonly crossRelease = (code: string): void => {
+    // Already released by a reset: the finger only lifts now.
+    if (this._crossHeld.delete(code)) this.handlers.release(code);
+  };
 
   constructor(mountTarget: HTMLElement, layout: TouchLayout, private readonly handlers: TouchHandlers) {
     super({ templateFn, mountTarget, config: layout });
@@ -43,14 +41,24 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
     this.setDirection(null);
     this.moveKnob(0, 0);
     this.releaseAction();
-    this._crossPointers.forEach((code) => this.handlers.release(code));
-    this._crossPointers.clear();
+    this._crossHeld.forEach((code) => this.handlers.release(code));
+    this._crossHeld.clear();
+  }
+
+  override registerChildren(): Nutin.ComponentConfig[] {
+    if (this.config.pad !== 'cross') return [];
+    return this.createCatalogComponents({
+      items: this.config.directions.map((direction): CrossButton => ({ direction, press: this.crossPress, release: this.crossRelease })),
+      selector: 'cross',
+      elementName: 'cross-button',
+      component: CrossButtonComponent,
+      keepBy: (button: CrossButton) => button.direction,
+    });
   }
 
   protected override onAfterRender(): void {
     super.onAfterRender();
-    // Pointer events need several listeners per element (one data-event each):
-    // bound here into eventListeners, which Nutin unbinds on re-render and destroy.
+    // The D-pad buttons bind their own (CrossButtonComponent).
     const stick = this.element.querySelector<HTMLElement>('.touch-controls__stick');
     const action = this.element.querySelector<HTMLElement>('.touch-controls__action');
     if (stick) {
@@ -59,11 +67,6 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
       this.on(stick, 'pointerup', this.onStickUp);
       this.on(stick, 'pointercancel', this.onStickUp);
     }
-    this.element.querySelectorAll<HTMLElement>('.touch-controls__cross-button').forEach((button) => {
-      this.on(button, 'pointerdown', this.onCrossDown);
-      this.on(button, 'pointerup', this.onCrossUp);
-      this.on(button, 'pointercancel', this.onCrossUp);
-    });
     if (action) {
       this.on(action, 'pointerdown', this.onActionDown);
       this.on(action, 'pointerup', this.onActionUp);
@@ -80,9 +83,7 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
   }
 
   private on(element: HTMLElement, type: string, handler: (event: PointerEvent) => void): void {
-    const listener = (event: Event) => handler.call(this, event as PointerEvent);
-    element.addEventListener(type, listener);
-    this.eventListeners.push([element, type, listener]);
+    listenPointer(this.eventListeners, element, type, (event) => handler.call(this, event));
   }
 
   private onStickDown(event: PointerEvent): void {
@@ -102,24 +103,6 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
     this._stickPointer = null;
     this.setDirection(null);
     this.moveKnob(0, 0);
-  }
-
-  // D-pad: each tap is one key press, as fast as the player taps.
-  private onCrossDown(event: PointerEvent): void {
-    const direction = (event.currentTarget as HTMLElement | null)?.dataset.direction as StickDirection | undefined;
-    if (!direction) return;
-    event.preventDefault();
-    capture(event);
-    const code = DIRECTION_CODES[direction];
-    this._crossPointers.set(event.pointerId, code);
-    this.handlers.press(code);
-  }
-
-  private onCrossUp(event: PointerEvent): void {
-    const code = this._crossPointers.get(event.pointerId);
-    if (!code) return;
-    this._crossPointers.delete(event.pointerId);
-    this.handlers.release(code);
   }
 
   private followFinger(event: PointerEvent): void {

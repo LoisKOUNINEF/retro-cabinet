@@ -8,6 +8,7 @@ describe('NotFoundView', () => {
     const view = new NotFoundView();
     view.render();
 
+    expect(view.documentTitle()).toBe('Page not found');
     const dopefish = $('.not-found__dopefish');
     expect(dopefish.getAttribute('aria-label')).toBe('Dopefish lives!');
     expect(dopefish.querySelector('img').getAttribute('src')).toBe('/assets/images/dopefish.png');

@@ -46,3 +46,26 @@ export function watchForTouch(): void {
   };
   window.addEventListener('pointerdown', onPointerDown);
 }
+
+// Keeps a finger's events on its control even when it slides off. Only a nicety: it can
+// fail (a pointer already gone, no support) and must never block the press itself.
+export function capture(event: PointerEvent): void {
+  try {
+    (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
+  } catch {
+    // Without capture, the control still works while the finger stays on it.
+  }
+}
+
+// Pointer events need several listeners per element, where data-event binds one: this adds
+// one to a component's eventListeners, which Nutin unbinds on re-render and destroy.
+export function listenPointer(
+  listeners: Array<[EventTarget, string, EventListener]>,
+  element: HTMLElement,
+  type: string,
+  handler: (event: PointerEvent) => void,
+): void {
+  const listener = (event: Event) => handler(event as PointerEvent);
+  element.addEventListener(type, listener);
+  listeners.push([element, type, listener]);
+}

@@ -17,22 +17,9 @@
       </section>
       <section class="game__section" aria-labelledby="game-stats-title">
         <h2 class="game__section-title" id="game-stats-title">Stats</h2>
-        <dl class="game__stats">
-          <dt>Score</dt><dd data-stat="score">0</dd>
-          <dt>Level</dt><dd data-stat="level">1</dd>
-          ${Object.keys(game.stats?.() ?? {}).map((key) => html`<dt>${key}</dt><dd data-stat="${key}">0</dd>`)}
-        </dl>
+        <div data-component="stats"></div>
       </section>
-      ${options.length ? html`
-        <fieldset class="game__section game__options" aria-labelledby="game-options-title">
-          <h2 class="game__section-title" id="game-options-title">⚙ Options</h2>
-          ${options.map((option) => html`
-            <label class="game__option">${option.label}
-              <select data-option="${option.key}" data-event="change:_setOption:@dataset:option,@target">
-                ${option.choices.map((choice) => html`<option value="${choice.value}">${choice.label}</option>`)}
-              </select>
-            </label>`)}
-        </fieldset>` : ''}
+      ${hasOptions ? html`<div data-component="options"></div>` : ''}
       <section class="game__section"><div data-component="scores"></div></section>
     </aside>
   </div>

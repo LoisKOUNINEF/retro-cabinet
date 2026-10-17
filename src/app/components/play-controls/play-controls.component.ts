@@ -1,8 +1,9 @@
-import { Component, html } from '../../../core/index.js';
+import { html } from '../../../core/index.js';
 import type { KeyHint } from '../../games/game.js';
 import { describeKeys } from '../key-labels.js';
+import { UpdatableComponent } from '../updatable-component.js';
 
-// What the Play section shows: the play/pause label, the status line, and whether
+// What the Play section shows: the main button's label, the status line, and whether
 // there is a game New game would drop.
 export interface PlayState {
   label: string;
@@ -13,46 +14,31 @@ export interface PlayState {
 
 export interface PlayHandlers {
   togglePlay(): void;
-  newGame(): void;
+  // Only needed where New game can show (canStartOver).
+  newGame?(): void;
 }
 
-const templateFn = (state: PlayState, keys: string | null) => html`__TEMPLATE_PLACEHOLDER__`;
+const templateFn = (state: PlayState, keys: string) => html`__TEMPLATE_PLACEHOLDER__`;
 
 // The play/pause and New game buttons, the key hints and the status.
-// It only re-renders when what it shows changes: the game ticks many times a second,
-// and rewriting the buttons under the pointer would swallow clicks (WebKit drops a click
-// whose pressed node is gone).
-export class PlayControlsComponent extends Component<HTMLElement, PlayState> {
-  // Key hints, once the keyboard layout has answered; "" while waiting.
-  private _keys: string | null;
+// The game ticks many times a second: re-rendering only on change keeps the buttons
+// under the pointer, as WebKit drops a click whose pressed node is gone.
+export class PlayControlsComponent extends UpdatableComponent<PlayState> {
+  // Key hints, once the keyboard layout has answered; empty until then (no paragraph).
+  private _keys = '';
 
   constructor(mountTarget: HTMLElement, state: PlayState, private readonly handlers: PlayHandlers, hints?: KeyHint[]) {
     super({ templateFn: (config: PlayState) => templateFn(config, this._keys), mountTarget, config: state });
-    this._keys = hints ? '' : null;
     // Labels can depend on the keyboard layout, which the browser reports asynchronously.
     if (hints) describeKeys(hints).then((text) => {
       this._keys = text;
-      const element = this.element?.querySelector('.game__keys');
-      if (element) element.textContent = text;
+      if (this.element.isConnected) this.refresh();
     });
   }
 
-  update(state: PlayState): void {
-    const current = this.config;
-    const same = (Object.keys(state) as (keyof PlayState)[]).every((key) => state[key] === current[key]);
-    if (same) return;
-    // Keyboard players keep their place: a re-render rebuilds the focused button.
-    const focused = this.element?.contains(document.activeElement) ? document.activeElement : null;
-    this.config = state;
-    this.render();
-    if (focused) this.refocus(focused);
-  }
-
-  // The same button again, or the play button when New game just went away.
-  private refocus(previous: Element): void {
-    const same = previous.classList.contains('game__new') ? '.game__new:not([hidden])' : '.game__toggle';
-    const target = this.element?.querySelector<HTMLElement>(same) ?? this.element?.querySelector<HTMLElement>('.game__toggle');
-    target?.focus();
+  // New game just went away: back to the main button.
+  protected override fallbackFocus(): HTMLElement | null {
+    return this.element.querySelector<HTMLElement>('.game__toggle');
   }
 
   private _togglePlay(): void {
@@ -60,6 +46,6 @@ export class PlayControlsComponent extends Component<HTMLElement, PlayState> {
   }
 
   private _newGame(): void {
-    this.handlers.newGame();
+    this.handlers.newGame?.();
   }
 }

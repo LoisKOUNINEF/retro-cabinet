@@ -10,6 +10,12 @@
   width: max-content;
 }
 
+// The catalog's wrappers step aside: the cells' buttons are the grid's items.
+.ttt-board > *,
+.ttt-board__slot {
+  display: contents;
+}
+
 .ttt-board__cell {
   border: none;
   border-radius: 2px;

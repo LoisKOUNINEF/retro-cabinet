@@ -46,9 +46,22 @@ describe('ScoreTableComponent', () => {
     table = new ScoreTableComponent(host, { entries: [entry(300, 4)], highlight: null });
     table.render();
 
-    table.update([entry(300, 4), entry(150, 1)], 1);
+    table.update({ entries: [entry(300, 4), entry(150, 1)], highlight: 1 });
 
     expect($$('.score-table__row').length).toBe(2);
     expect($('.score-table__row--new .score-table__score').textContent).toBe('150');
+  });
+
+  it('keeps the rows a new score leaves in place, and rebuilds the ones it moves', () => {
+    table = new ScoreTableComponent(host, { entries: [entry(300, 4), entry(120, 2)], highlight: null });
+    table.render();
+    const [first, second] = $$('.score-table__row');
+
+    table.update({ entries: [entry(300, 4), entry(200, 3), entry(120, 2)], highlight: 1 });
+
+    const rows = $$('.score-table__row');
+    expect(rows[0]).toBe(first);
+    expect(rows[2]).not.toBe(second);
+    expect(rows.map((row) => row.querySelector('.score-table__rank').textContent)).toEqual(['1.', '2.', '3.']);
   });
 });

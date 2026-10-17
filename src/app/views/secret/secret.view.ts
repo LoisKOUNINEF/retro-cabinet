@@ -1,6 +1,9 @@
 import { Navigation, View, html } from '../../../core/index.js';
+import { GameOptionsComponent, type GameOptionsConfig } from '../../components/game-options/game-options.component.js';
+import { PlayControlsComponent, type PlayState } from '../../components/play-controls/play-controls.component.js';
+import { StatsComponent, type StatsConfig } from '../../components/stats/stats.component.js';
 import { TicTacToeBoardComponent, type TicTacToeBoardConfig } from '../../components/tictactoe-board/tictactoe-board.component.js';
-import type { GameOption, Random, Settings } from '../../games/game.js';
+import type { Random, Settings } from '../../games/game.js';
 import { SECRET_OPTIONS, chooseMove, type Difficulty } from '../../games/secret/ai.js';
 import { TicTacToe, other, type Mark } from '../../games/secret/tictactoe.js';
 import { PersistenceService, type TallyResult } from '../../services/persistence/persistence.service.js';
@@ -9,21 +12,24 @@ const GAME_ID = 'secret';
 // The AI "thinks" this long before playing, so its move doesn't feel instant.
 export const AI_DELAY_MS = 400;
 
-const templateFn = (options: GameOption[]) => html`__TEMPLATE_PLACEHOLDER__`;
+const template = html`__TEMPLATE_PLACEHOLDER__`;
 
 // The hidden game (reached from the 404 page): noughts and crosses against an AI.
-// Turn-based, so it simply re-renders its small board after each move.
+// Turn-based: after each move, its children (board, play, tally, options) update.
 export class SecretView extends View {
   private readonly _storage = PersistenceService.getInstance();
   private readonly _game = new TicTacToe();
   private _settings: Settings;
   private _board: TicTacToeBoardComponent | null = null;
+  private _play: PlayControlsComponent | null = null;
+  private _tally: StatsComponent | null = null;
+  private _options: GameOptionsComponent | null = null;
   // Keyboard cursor, as a cell index.
   private _cursor = 4;
   private _aiTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly random: Random = Math.random) {
-    super({ viewName: 'secret' });
+    super({ template, viewName: 'secret' });
     this._settings = this._storage.settings(GAME_ID, SECRET_OPTIONS);
     this.newRound();
   }
@@ -46,6 +52,18 @@ export class SecretView extends View {
       selector: 'board',
       keep: 'board',
       factory: (el) => this._board = new TicTacToeBoardComponent(el, this.boardConfig(), (index) => this.playerMove(index)),
+    }, {
+      selector: 'play',
+      keep: 'play',
+      factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), { togglePlay: () => this.newRound() }),
+    }, {
+      selector: 'tally',
+      keep: 'tally',
+      factory: (el) => this._tally = new StatsComponent(el, this.tallyConfig()),
+    }, {
+      selector: 'options',
+      keep: 'options',
+      factory: (el) => this._options = new GameOptionsComponent(el, this.optionsConfig()),
     }];
   }
 
@@ -58,8 +76,8 @@ export class SecretView extends View {
     document.removeEventListener('keydown', this._onKeydown);
   }
 
-  protected override generateTemplate(): Nutin.Template {
-    return templateFn(SECRET_OPTIONS);
+  override documentTitle(): string {
+    return 'Noughts & Crosses';
   }
 
   protected override onAfterRender(): void {
@@ -139,16 +157,12 @@ export class SecretView extends View {
     this._storage.recordResult(GAME_ID, this.difficulty, outcome);
   }
 
-  // Takes the select itself: Nutin's @value token doesn't read <select> elements.
-  private _setOption(key: string, select: HTMLSelectElement): void {
-    this._settings = { ...this._settings, [key]: select.value };
+  // One function for the options box, so its config stays the same between moves.
+  private readonly setOption = (key: string, value: string): void => {
+    this._settings = { ...this._settings, [key]: value };
     this._storage.saveSettings(GAME_ID, this._settings);
     this.newRound();
-  }
-
-  private _newRound(): void {
-    this.newRound();
-  }
+  };
 
   private _goHome(): void {
     Navigation.navigateTo('/');
@@ -160,18 +174,29 @@ export class SecretView extends View {
 
   private update(): void {
     this._board?.update(this.boardConfig());
+    this._play?.update(this.playState());
+    this._tally?.update(this.tallyConfig());
+    this._options?.update(this.optionsConfig());
+  }
 
-    this.element.querySelectorAll<HTMLSelectElement>('select[data-option]').forEach((select) => {
-      select.value = this._settings[select.dataset.option ?? ''] ?? '';
-    });
+  private playState(): PlayState {
+    return { label: 'New round', status: this.statusText(), over: false, canStartOver: false };
+  }
 
-    const status = this.element.querySelector('.secret__status');
-    if (status) status.textContent = this.statusText();
+  // The results at the chosen difficulty.
+  private tallyConfig(): StatsConfig {
+    const { wins, draws, losses } = this._storage.tally(GAME_ID, this.difficulty);
+    return {
+      items: [
+        { key: 'wins', label: 'Wins', value: wins },
+        { key: 'draws', label: 'Draws', value: draws },
+        { key: 'losses', label: 'Losses', value: losses },
+      ],
+    };
+  }
 
-    const tally = this._storage.tally(GAME_ID, this.difficulty);
-    this.element.querySelectorAll<HTMLElement>('[data-tally]').forEach((value) => {
-      value.textContent = String(tally[value.dataset.tally as keyof typeof tally] ?? 0);
-    });
+  private optionsConfig(): GameOptionsConfig {
+    return { options: SECRET_OPTIONS, settings: this._settings, locked: false, onChange: this.setOption };
   }
 
   private statusText(): string {

@@ -7,6 +7,10 @@ export class NotFoundView extends View {
     super({ template, viewName: 'not-found' });
   }
 
+  override documentTitle(): string {
+    return 'Page not found';
+  }
+
   private _handleHome(): void {
     Navigation.navigateTo('/');
   }

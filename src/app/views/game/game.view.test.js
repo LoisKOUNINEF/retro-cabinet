@@ -57,6 +57,7 @@ describe('GameView', () => {
     view.render();
 
     expect($('h1').textContent).toBe('Snake');
+    expect(view.documentTitle()).toBe('Snake');
     expect($$('.game-board__cell').length).toBe(21 * 21);
     expect(snakeCell(10, 10).className).toContain('game-board__cell--snake-head-right');
     expect($('[data-stat="score"]').textContent).toBe('0');
@@ -148,20 +149,21 @@ describe('GameView', () => {
     view.render();
     view.onEnter();
     const select = $('select[data-option="maze"]');
-    const box = $('fieldset.game__options');
+    // The box is rebuilt when it locks; its selects are kept.
+    const box = () => $('fieldset.game__options');
 
     expect(select.value).toBe('compact');
-    expect($('#game-options-title').textContent).toBe('⚙ Options');
-    expect(box.getAttribute('aria-labelledby')).toBe('game-options-title');
-    expect(box.disabled).toBeFalsy();
+    expect(box().querySelector('legend').textContent).toBe('⚙ Options');
+    expect(box().disabled).toBeFalsy();
     expect($('[data-stat="lives"]').textContent).toBe('3');
 
     // The whole box locks while playing, which disables every select in it.
     press('Space');
-    expect(box.disabled).toBeTruthy();
+    expect(box().disabled).toBeTruthy();
+    expect($('select[data-option="maze"]')).toBe(select);
     expect(select.matches(':disabled')).toBeTruthy();
     press('Space');
-    expect(box.disabled).toBeFalsy();
+    expect(box().disabled).toBeFalsy();
   });
 
   it('builds a new game and board when an option changes', () => {
