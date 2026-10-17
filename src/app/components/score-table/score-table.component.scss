@@ -1,0 +1,59 @@
+.score-table__title {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+// One grid for the whole table: rank, score, level and date columns sized to their
+// widest entry, so they line up and nothing wraps while there's room. The score takes
+// the space left; a score too long even for that wraps inside its own column.
+.score-table__list {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: 0.75em;
+  row-gap: 0.15em;
+  list-style: none;
+}
+
+// Without levels (e.g. Pong): rank, score and date.
+.score-table__list--no-level {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+// Each catalog row (li > .score-table__row) spans the table and shares its columns.
+.score-table__list > li,
+.score-table__row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+
+.score-table__row--new {
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.score-table__rank {
+  color: var(--text-secondary);
+}
+
+.score-table__score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.score-table__level,
+.score-table__date {
+  white-space: nowrap;
+  font-size: 1rem;
+}
+
+.score-table__level {
+  color: var(--text-secondary);
+}
+
+.score-table__empty {
+  font-style: italic;
+}

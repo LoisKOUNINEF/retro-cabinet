@@ -1,0 +1,89 @@
+@use "mixins";
+
+.game-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  border: 5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  text-align: center;
+  // Button cards look exactly like link cards.
+  box-sizing: content-box;
+  padding: 0;
+  background: var(--surface);
+  cursor: pointer;
+
+  @include mixins.hover-or-focus {
+    outline: 3px solid var(--text-secondary);
+
+    .game-card__icon {
+      fill: var(--primary);
+    }
+
+    .game-card__title {
+      color: var(--primary);
+      font-weight: bold;
+    }
+  }
+}
+
+// Only the icon, centred; on hover (or keyboard focus) the title slides in from the card's
+// bottom edge and opens to its height, and the icon rises as the pair re-centres: a
+// two-line title lifts it further. The title stays in the DOM: it's the card's accessible name.
+.game-card__icon {
+  flex: none;
+  height: 2rem;
+  max-width: 4rem;
+  fill: var(--text);
+}
+
+.game-card__title {
+  box-sizing: border-box;
+  width: 100%;
+  // Closed: no height in the column, so the icon is centred alone.
+  max-height: 0;
+  margin-top: 0;
+  padding-inline: 0.25rem;
+  font: .9rem monospace;
+  line-height: 1.1;
+  opacity: 0;
+  // Below the card's edge, hidden by its overflow.
+  transform: translateY(2.5rem);
+  transition: max-height 0.2s ease-out, margin-top 0.2s ease-out, transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+@mixin title-shown {
+  .game-card__title {
+    // Room for two lines.
+    max-height: 2.5rem;
+    margin-top: 0.4rem;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.game-card {
+  @include mixins.hover-or-focus {
+    @include title-shown;
+  }
+}
+
+// Touch screens can't hover: titles always show there.
+@media (hover: none) {
+  .game-card {
+    @include title-shown;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card__title {
+    transition: none;
+  }
+}

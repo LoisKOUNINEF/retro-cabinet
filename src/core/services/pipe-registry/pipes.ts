@@ -27,7 +27,7 @@ export const registerPipes = (): void => {
     const withTime = time === true || time === 'true';
     const timeOptions: Intl.DateTimeFormatOptions = withTime ? { hour: '2-digit', minute: '2-digit' } : {};
     const formats = {
-      short: { year: 'numeric', month: 'short', day: 'numeric', ...timeOptions } as Intl.DateTimeFormatOptions,
+      short: { year: '2-digit', month: 'numeric', day: 'numeric', ...timeOptions } as Intl.DateTimeFormatOptions,
       long: { year: 'numeric', month: 'long', day: 'numeric', ...timeOptions } as Intl.DateTimeFormatOptions,
       time: { hour: '2-digit', minute: '2-digit' } as Intl.DateTimeFormatOptions
     };

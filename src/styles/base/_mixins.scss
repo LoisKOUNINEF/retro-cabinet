@@ -1,0 +1,46 @@
+@use "sass:map";
+
+$breakpoints: (
+  small: 576px,
+  medium: 768px,
+  large: 992px,
+  largest: 1201px,
+);
+
+@mixin respond-to($breakpoint) {
+  $value: map.get($breakpoints, $breakpoint);
+
+  @if $value {
+    @media (max-width: $value) {
+      @content;
+    }
+  }
+}
+
+// A shaped cell (rounded, clipped…) draws its shape inside its lines, on ::after: shaping
+// the cell itself would curve or cut its border, i.e. the grid line.
+@mixin shape($fill, $radius: null, $clip: null) {
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: $fill;
+    border-radius: $radius;
+    clip-path: $clip;
+  }
+}
+
+// Hover and keyboard focus share a look. Hover only counts where a pointer can hover:
+// on touch screens a tap leaves :hover stuck on the element until the next tap elsewhere.
+@mixin hover-or-focus {
+  &:focus-visible {
+    @content;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      @content;
+    }
+  }
+}

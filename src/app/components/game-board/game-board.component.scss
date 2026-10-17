@@ -1,0 +1,38 @@
+// The 1px grid lines are borders, not gaps: browsers paint a border at least one device
+// pixel wide wherever it lands, while a 1px gap can snap to nothing. Safari snaps each
+// cell on its own, so on a board at a fractional position (it's centred) some gaps
+// vanished, always the same ones. Each cell draws its right and bottom line; the board
+// draws the outer top and left edges.
+.game-board {
+  --grid-line: #222;
+  // Fits the room the game view gives the board (--stage-*), with standalone fallbacks.
+  // A cell's size includes its line; only the board's outer edge (1px) comes off first.
+  --cell-size: min(
+    calc((var(--stage-height, 70vh) - 1px) / var(--rows)),
+    calc((var(--stage-width, calc(100vw - 2rem)) - 1px) / var(--cols))
+  );
+
+  // Whole-pixel cells keep every line on the pixel grid. Behind @supports: an unsupported
+  // value in a custom property doesn't fall back, it would break the grid.
+  @supports (width: round(down, 1.5px, 1px)) {
+    --cell-size: round(down, min(
+      calc((var(--stage-height, 70vh) - 1px) / var(--rows)),
+      calc((var(--stage-width, calc(100vw - 2rem)) - 1px) / var(--cols))
+    ), 1px);
+  }
+
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  grid-template-rows: repeat(var(--rows), var(--cell-size));
+  border-top: 1px solid var(--grid-line);
+  border-left: 1px solid var(--grid-line);
+  width: max-content;
+}
+
+// Each game styles its own cells (games/games.scss): .game-board__cell--<name>.
+.game-board__cell {
+  box-sizing: border-box;
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+  background: #000;
+}

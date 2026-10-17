@@ -1,0 +1,9 @@
+.game-canvas {
+  display: block;
+  aspect-ratio: var(--aspect);
+  // Fits the room the game view gives the board (--stage-*), keeping the aspect ratio.
+  height: min(var(--stage-height, 70vh), calc(var(--stage-width, calc(100vw - 2rem)) / (var(--aspect))));
+  max-width: var(--stage-width, calc(100vw - 2rem));
+  background: #000;
+  image-rendering: pixelated;
+}

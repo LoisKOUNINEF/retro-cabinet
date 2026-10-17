@@ -1,0 +1,45 @@
+.ttt-board {
+  --cell: min(24vw, 8rem);
+  display: grid;
+  grid-template-columns: repeat(3, var(--cell));
+  grid-template-rows: repeat(3, var(--cell));
+  gap: 4px;
+  background: var(--border);
+  padding: 4px;
+  border-radius: 6px;
+  width: max-content;
+}
+
+// The catalog's wrappers step aside: the cells' buttons are the grid's items.
+.ttt-board > *,
+.ttt-board__slot {
+  display: contents;
+}
+
+.ttt-board__cell {
+  border: none;
+  border-radius: 2px;
+  background: #000;
+  color: var(--text);
+  font-family: inherit;
+  font-size: calc(var(--cell) * 0.6);
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    color: var(--text);
+  }
+
+  // The keyboard cursor and the winning line, in the theme's accents (with a little glow).
+  &--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: -3px;
+  }
+
+  &--win {
+    color: var(--primary);
+    text-shadow: 0 0 calc(var(--cell) / 8) var(--primary);
+  }
+}

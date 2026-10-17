@@ -1,0 +1,6 @@
+// Spaced like the panel section it sits in (.game__section).
+.play-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}

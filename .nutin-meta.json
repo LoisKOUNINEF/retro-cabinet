@@ -3,7 +3,7 @@
   "packageManager": "npm",
   "lang": "ts",
   "features": {
-    "docker": false,
+    "docker": true,
     "markdown": false
   }
 }

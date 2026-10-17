@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="ttt-board__cell${cell.win ? ' ttt-board__cell--win' : ''}${cell.cursor ? ' ttt-board__cell--cursor' : ''}"
+  data-index="${cell.index}"
+  data-focus-key="cell-${cell.index}"
+  data-event="click:_play"
+  aria-label="${cell.label}"
+  ${cell.disabled ? 'disabled' : ''}
+>${cell.mark ?? ''}</button>
