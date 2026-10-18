@@ -1,5 +1,5 @@
 import {
-  applyFields, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
+  applyFields, cryptoRandom, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
   type Game, type GameDefinition, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawAsteroids } from './asteroids.draw.js';
@@ -98,7 +98,7 @@ export class Asteroids implements Game {
   private readonly random: Random;
 
   constructor(private readonly options: AsteroidsOptions = {}) {
-    this.random = options.random ?? Math.random;
+    this.random = options.random ?? cryptoRandom;
     // On touch the stick turns and thrusts (up), and hyperspaces (down) if enabled.
     this.touch = {
       directions: options.hyperspace ? ['left', 'right', 'up', 'down'] : ['left', 'right', 'up'],

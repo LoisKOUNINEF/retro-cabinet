@@ -64,16 +64,16 @@ export const samePoint = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
 
 export const directionName = ({ x, y }: Point) => y < 0 ? 'up' : y > 0 ? 'down' : x < 0 ? 'left' : 'right';
 
-// Touch controls: which way the virtual stick points, and the right-thumb button.
+// Touch controls: which way the D-pad or virtual stick points, and the right-thumb button.
 // They send the same key codes as the keyboard, so games need no touch-specific rules.
 export type StickDirection = 'up' | 'down' | 'left' | 'right';
 
 export interface TouchLayout {
-  // 'stick' (default): a joystick, for steering. 'cross': a D-pad of buttons, one press
-  // per tap, for games where you tap repeatedly (Frogger's hops).
+  // 'cross' (default): a D-pad of buttons, one press per tap. 'stick': a joystick,
+  // for steering (Snake).
   pad?: 'stick' | 'cross';
   directions: StickDirection[];
-  // Re-sends the held direction every repeatMs (e.g. Tetris sliding a piece).
+  // Re-sends the held direction every repeatMs, on either pad (e.g. Tetris sliding a piece).
   repeatMs?: number;
   action?: { label: string; code: string };
 }
@@ -95,7 +95,7 @@ export interface Game {
 
   // Ticks on every animation frame instead of every speed() ms (e.g. Arkanoid's physics).
   readonly realtime?: boolean;
-  // Touch layout, when it differs from DEFAULT_TOUCH (4-way stick, no button).
+  // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
   readonly touch?: TouchLayout;
   // Keys worth mentioning in the HUD (the ones beyond arrows and Space).
   readonly keyHints?: KeyHint[];
@@ -208,8 +208,21 @@ export function setCell(grid: Grid, x: number, y: number, value: Cell): void {
   if (row && x >= 0 && x < row.length) row[x] = value;
 }
 
+// Unpredictable, unlike Math.random: the browser's cryptographic generator, in [0, 1).
+export const cryptoRandom: Random = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32;
+
 export function pick<T>(items: readonly T[], random: Random): T {
   return items[Math.floor(random() * items.length)]!;
+}
+
+// A shuffled copy (Fisher–Yates); the input is left as is.
+export function shuffle<T>(items: readonly T[], random: Random = cryptoRandom): T[] {
+  const array = [...items];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [array[i], array[j]] = [array[j]!, array[i]!];
+  }
+  return array;
 }
 
 export function randomFreeCell(grid: Grid, random: Random): Point | null {

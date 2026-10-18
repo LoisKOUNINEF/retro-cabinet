@@ -10,7 +10,7 @@ export class HomeView extends View {
   }
 
   override documentTitle(): string {
-    return 'Pixels Mansion';
+    return 'Retro Cabinet';
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {

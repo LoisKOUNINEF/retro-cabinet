@@ -295,8 +295,8 @@ describe('Frogger', () => {
     expect(game.stats().time).toBe(60);
   });
 
-  it('uses a cross D-pad on touch screens', () => {
-    expect(newGame().touch).toEqual({ pad: 'cross', directions: ['up', 'down', 'left', 'right'] });
+  it('uses the default D-pad on touch screens', () => {
+    expect(newGame().touch).toBeUndefined();
   });
 
   it('saves and restores its exact state, mid-hop included', () => {

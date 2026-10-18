@@ -1,5 +1,5 @@
 import type { GameCard } from '../../components/game-card/game-card.component.js';
-import { pick, type Random } from '../../games/game.js';
+import { cryptoRandom, pick, type Random } from '../../games/game.js';
 import { INVADER_SPRITES } from '../../games/invaders/sprites.js';
 import { TETROMINOES } from '../../games/tetris/tetrominoes.js';
 
@@ -125,6 +125,6 @@ export const GAME_CARDS: GameCard[] = [
 // The last card: not a game, it opens one of them at random.
 export const RANDOM_CARD: GameCard = { title: 'Random', icon: ICONS.question };
 
-export function randomGamePath(random: Random = Math.random): string {
+export function randomGamePath(random: Random = cryptoRandom): string {
   return pick(GAME_CARDS, random).path ?? '/';
 }

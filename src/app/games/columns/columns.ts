@@ -1,5 +1,5 @@
 import {
-  applyFields, FIRE_KEYS, isFireKey, levelFrom, levelOption, levelSpeed, onOff, pick, pickFields,
+  applyFields, cryptoRandom, FIRE_KEYS, isFireKey, levelFrom, levelOption, levelSpeed, onOff, pick, pickFields,
   type Game, type GameDefinition, type Grid, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 
@@ -46,11 +46,11 @@ export class Columns implements Game {
   readonly title = 'Columns';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  // As in Tetris: the stick moves and drops, the button cycles the jewels.
+  // As in Tetris: the D-pad moves and drops, the button cycles the jewels.
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
     repeatMs: 120,
-    action: { label: '⟳', code: 'ArrowUp' },
+    action: { label: 'Cycle', code: 'ArrowUp' },
   };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
@@ -76,7 +76,7 @@ export class Columns implements Game {
   private readonly random: Random;
 
   constructor(private readonly options: ColumnsOptions = {}) {
-    this.random = options.random ?? Math.random;
+    this.random = options.random ?? cryptoRandom;
     this.reset();
   }
 

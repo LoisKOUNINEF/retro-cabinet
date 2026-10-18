@@ -1,5 +1,5 @@
 import {
-  applyFields, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
+  applyFields, cryptoRandom, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
   type Game, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { spriteHeight, spriteWidth } from '../sprites.js';
@@ -100,7 +100,7 @@ export class Invaders implements Game {
   private readonly random: Random;
 
   constructor(private readonly options: InvadersOptions = {}) {
-    this.random = options.random ?? Math.random;
+    this.random = options.random ?? cryptoRandom;
     this.reset();
   }
 

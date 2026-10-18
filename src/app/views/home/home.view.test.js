@@ -13,7 +13,7 @@ describe('HomeView', () => {
   afterEach(() => view.destroy());
 
   it('names the tab after the site', () => {
-    expect(view.documentTitle()).toBe('Pixels Mansion');
+    expect(view.documentTitle()).toBe('Retro Cabinet');
   });
 
   it('shows one card per game, in a list', () => {

@@ -1,5 +1,5 @@
 import {
-  applyFields, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, pickFields, samePoint, setCell,
+  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, pickFields, samePoint, setCell,
   type Game, type GameDefinition, type Grid, type Point, type Random, type Snapshot,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
@@ -134,7 +134,7 @@ export class Pacman implements Game {
 
   constructor(
     layout: string[] = COMPACT,
-    private readonly random: Random = Math.random,
+    private readonly random: Random = cryptoRandom,
     private readonly firstLevel = 1,
   ) {
     this.maze = parseMaze(layout);
@@ -411,5 +411,5 @@ export const pacmanGame: GameDefinition = {
     label: 'Maze',
     choices: [{ value: 'compact', label: 'Compact' }, { value: 'arcade', label: 'Arcade' }],
   }, levelOption],
-  create: (settings) => new Pacman(settings.maze === 'arcade' ? ARCADE : COMPACT, Math.random, levelFrom(settings)),
+  create: (settings) => new Pacman(settings.maze === 'arcade' ? ARCADE : COMPACT, cryptoRandom, levelFrom(settings)),
 };

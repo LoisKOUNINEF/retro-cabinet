@@ -11,7 +11,7 @@ export interface TouchHandlers {
 
 const templateFn = (layout: TouchLayout) => html`__TEMPLATE_PLACEHOLDER__`;
 
-// A virtual stick or a D-pad (left thumb), an optional action button (right thumb) and a
+// A D-pad or a virtual stick (left thumb), an optional action button (right thumb) and a
 // play/pause button. They send the same key codes as the keyboard: games don't know the difference.
 // Each control follows its own finger, so moving and firing work at the same time.
 export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> {
@@ -21,12 +21,19 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
   private _actionPointer: number | null = null;
   // Keys the D-pad buttons hold down, so a pause can release them.
   private readonly _crossHeld = new Set<string>();
+  // Held D-pad keys re-sent every repeatMs, when the game asks.
+  private readonly _crossRepeats = new Map<string, ReturnType<typeof setInterval>>();
   // Passed to every D-pad button as is, so the catalog keeps them.
   private readonly crossPress = (code: string): void => {
     this._crossHeld.add(code);
     this.handlers.press(code);
+    const { repeatMs } = this.config;
+    if (repeatMs && !this._crossRepeats.has(code)) {
+      this._crossRepeats.set(code, setInterval(() => this.handlers.press(code), repeatMs));
+    }
   };
   private readonly crossRelease = (code: string): void => {
+    this.stopCrossRepeat(code);
     // Already released by a reset: the finger only lifts now.
     if (this._crossHeld.delete(code)) this.handlers.release(code);
   };
@@ -41,12 +48,13 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
     this.setDirection(null);
     this.moveKnob(0, 0);
     this.releaseAction();
+    this._crossRepeats.forEach((_, code) => this.stopCrossRepeat(code));
     this._crossHeld.forEach((code) => this.handlers.release(code));
     this._crossHeld.clear();
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    if (this.config.pad !== 'cross') return [];
+    if (this.config.pad === 'stick') return [];
     return this.createCatalogComponents({
       items: this.config.directions.map((direction): CrossButton => ({ direction, press: this.crossPress, release: this.crossRelease })),
       selector: 'cross',
@@ -76,6 +84,7 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
 
   protected override onBeforeDestroy(): void {
     this.stopRepeat();
+    this._crossRepeats.forEach((_, code) => this.stopCrossRepeat(code));
   }
 
   private _togglePlay(): void {
@@ -141,6 +150,11 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
   private stopRepeat(): void {
     if (this._repeat !== null) clearInterval(this._repeat);
     this._repeat = null;
+  }
+
+  private stopCrossRepeat(code: string): void {
+    clearInterval(this._crossRepeats.get(code));
+    this._crossRepeats.delete(code);
   }
 
   private onActionDown(event: PointerEvent): void {

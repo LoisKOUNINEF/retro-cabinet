@@ -3,7 +3,7 @@ import { GameOptionsComponent, type GameOptionsConfig } from '../../components/g
 import { PlayControlsComponent, type PlayState } from '../../components/play-controls/play-controls.component.js';
 import { StatsComponent, type StatsConfig } from '../../components/stats/stats.component.js';
 import { TicTacToeBoardComponent, type TicTacToeBoardConfig } from '../../components/tictactoe-board/tictactoe-board.component.js';
-import type { Random, Settings } from '../../games/game.js';
+import { cryptoRandom, type Random, type Settings } from '../../games/game.js';
 import { SECRET_OPTIONS, chooseMove, type Difficulty } from '../../games/secret/ai.js';
 import { TicTacToe, other, type Mark } from '../../games/secret/tictactoe.js';
 import { PersistenceService, type TallyResult } from '../../services/persistence/persistence.service.js';
@@ -28,7 +28,7 @@ export class SecretView extends View {
   private _cursor = 4;
   private _aiTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly random: Random = Math.random) {
+  constructor(private readonly random: Random = cryptoRandom) {
     super({ template, viewName: 'secret' });
     this._settings = this._storage.settings(GAME_ID, SECRET_OPTIONS);
     this.newRound();

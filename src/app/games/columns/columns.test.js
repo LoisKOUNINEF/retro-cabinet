@@ -262,7 +262,7 @@ describe('Columns', () => {
     expect(columnsGame.create({ level: '4', magic: 'off' }).level).toBe(4);
 
     const game = newGame();
-    expect(game.touch).toEqual({ directions: ['left', 'right', 'down'], repeatMs: 120, action: { label: '⟳', code: 'ArrowUp' } });
+    expect(game.touch).toEqual({ directions: ['left', 'right', 'down'], repeatMs: 120, action: { label: 'Cycle', code: 'ArrowUp' } });
     expect(game.keyHints.map((hint) => hint.action)).toEqual(['Move', 'Cycle']);
   });
 

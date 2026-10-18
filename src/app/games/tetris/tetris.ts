@@ -1,5 +1,5 @@
 import {
-  applyFields, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell, FIRE_KEYS,
+  applyFields, cryptoRandom, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell, FIRE_KEYS,
   type Game, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout, type KeyHint,
 } from '../game.js';
 import { KINDS, TETROMINOES, type Shape, type TetrominoKind } from './tetrominoes.js';
@@ -39,11 +39,11 @@ export class Tetris implements Game {
   readonly title = 'Tetris';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  // On touch, the button rotates: the stick has no 'up', so a piece never turns by accident.
+  // On touch, the button rotates: the D-pad has no 'up', so a piece never turns by accident.
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
     repeatMs: 120,
-    action: { label: '⟳', code: 'ArrowUp' },
+    action: { label: 'Rotate', code: 'ArrowUp' },
   };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
@@ -63,7 +63,7 @@ export class Tetris implements Game {
   // Rows filled by the game-over curtain, counted from the bottom.
   curtainRows = 0;
 
-  constructor(private readonly random: Random = Math.random, private readonly firstLevel = 1) {
+  constructor(private readonly random: Random = cryptoRandom, private readonly firstLevel = 1) {
     this.reset();
   }
 
@@ -229,5 +229,5 @@ export class Tetris implements Game {
 export const tetrisGame: GameDefinition = {
   id: 'tetris',
   options: [levelOption],
-  create: (settings) => new Tetris(Math.random, levelFrom(settings)),
+  create: (settings) => new Tetris(cryptoRandom, levelFrom(settings)),
 };

@@ -139,6 +139,10 @@ describe('Snake', () => {
     expect(snakeGame.create({ level: '3' }).level).toBe(3);
   });
 
+  it('steers with the touch stick, unlike the other games', () => {
+    expect(newSnake().touch.pad).toBe('stick');
+  });
+
   it('saves and restores its exact state', () => {
     const game = newSnake();
     game.food = { x: 12, y: 10 };
