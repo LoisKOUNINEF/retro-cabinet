@@ -33,7 +33,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('presses a direction as the stick enters it, and releases it on the way out', () => {
-    mount({ directions: ALL });
+    mount({ pad: 'stick', directions: ALL });
     const stick = $('.touch-controls__stick');
 
     pointer(stick, 'pointerdown', { x: 40 });
@@ -45,7 +45,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('follows only the finger that grabbed the stick', () => {
-    mount({ directions: ALL });
+    mount({ pad: 'stick', directions: ALL });
     const stick = $('.touch-controls__stick');
 
     pointer(stick, 'pointerdown', { id: 1, x: 40 });
@@ -58,7 +58,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('moves the knob with the finger, inside the base', () => {
-    mount({ directions: ALL });
+    mount({ pad: 'stick', directions: ALL });
     const stick = $('.touch-controls__stick');
 
     pointer(stick, 'pointerdown', { x: 100 });
@@ -71,7 +71,7 @@ describe('TouchControlsComponent', () => {
 
   it('repeats a held direction when the game asks for it', () => {
     useFakeTimers();
-    mount({ directions: ['left', 'right', 'down'], repeatMs: 120 });
+    mount({ pad: 'stick', directions: ['left', 'right', 'down'], repeatMs: 120 });
     const stick = $('.touch-controls__stick');
 
     pointer(stick, 'pointerdown', { x: -40 });
@@ -101,7 +101,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('lets the stick and the action button work at the same time', () => {
-    mount({ directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
+    mount({ pad: 'stick', directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
 
     pointer($('.touch-controls__stick'), 'pointerdown', { id: 1, x: 40 });
     pointer($('.touch-controls__action'), 'pointerdown', { id: 2 });
@@ -117,7 +117,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('lets go of everything on reset', () => {
-    mount({ directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
+    mount({ pad: 'stick', directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
     pointer($('.touch-controls__stick'), 'pointerdown', { id: 1, x: 40 });
     pointer($('.touch-controls__action'), 'pointerdown', { id: 2 });
 
@@ -133,7 +133,7 @@ describe('TouchControlsComponent', () => {
     const refuse = () => { throw new Error('NotFoundError'); };
     const original = window.HTMLElement.prototype.setPointerCapture;
     window.HTMLElement.prototype.setPointerCapture = refuse;
-    mount({ directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
+    mount({ pad: 'stick', directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
 
     pointer($('.touch-controls__stick'), 'pointerdown', { id: 1, x: 40 });
     pointer($('.touch-controls__action'), 'pointerdown', { id: 2 });
@@ -142,15 +142,50 @@ describe('TouchControlsComponent', () => {
     window.HTMLElement.prototype.setPointerCapture = original;
   });
 
-  it('offers a D-pad instead of the stick when the game asks for a cross', () => {
-    mount({ pad: 'cross', directions: ALL });
+  it('offers a D-pad by default', () => {
+    mount({ directions: ALL });
 
     expect($('.touch-controls__stick')).toBeFalsy();
     expect($$('.touch-controls__cross-button').map((b) => b.dataset.direction)).toEqual(ALL);
   });
 
+  it('repeats a held D-pad button when the game asks for it, until it lifts', () => {
+    useFakeTimers();
+    mount({ directions: ['left', 'right', 'down'], repeatMs: 120 });
+    const left = $('.touch-controls__cross-button--left');
+
+    pointer(left, 'pointerdown', { id: 1 });
+    advanceTimersByTime(360);
+    expect(calls.filter((call) => call === 'press ArrowLeft').length).toBe(4);
+
+    pointer(left, 'pointerup', { id: 1 });
+    advanceTimersByTime(360);
+    expect(calls.filter((call) => call === 'press ArrowLeft').length).toBe(4);
+  });
+
+  it('stops repeating a held D-pad button on reset', () => {
+    useFakeTimers();
+    mount({ directions: ['left', 'right', 'down'], repeatMs: 120 });
+    pointer($('.touch-controls__cross-button--down'), 'pointerdown', { id: 1 });
+
+    controls.reset();
+    advanceTimersByTime(360);
+
+    expect(calls).toEqual(['press ArrowDown', 'release ArrowDown']);
+  });
+
+  it('presses a held D-pad button once when the game has no repeat', () => {
+    useFakeTimers();
+    mount({ directions: ALL });
+    pointer($('.touch-controls__cross-button--up'), 'pointerdown', { id: 1 });
+
+    advanceTimersByTime(1000);
+
+    expect(calls).toEqual(['press ArrowUp']);
+  });
+
   it('presses once per tap on the D-pad, however fast the taps come', () => {
-    mount({ pad: 'cross', directions: ALL });
+    mount({ directions: ALL });
     const up = $('.touch-controls__cross-button--up');
 
     pointer(up, 'pointerdown', { id: 1 });
@@ -162,7 +197,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('releases held D-pad buttons on reset', () => {
-    mount({ pad: 'cross', directions: ALL });
+    mount({ directions: ALL });
     pointer($('.touch-controls__cross-button--left'), 'pointerdown', { id: 1 });
 
     controls.reset();
@@ -171,7 +206,7 @@ describe('TouchControlsComponent', () => {
   });
 
   it('does not release a D-pad key twice when the finger lifts after a reset', () => {
-    mount({ pad: 'cross', directions: ALL });
+    mount({ directions: ALL });
     const left = $('.touch-controls__cross-button--left');
     pointer(left, 'pointerdown', { id: 1 });
 

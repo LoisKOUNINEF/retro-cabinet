@@ -64,16 +64,16 @@ export const samePoint = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
 
 export const directionName = ({ x, y }: Point) => y < 0 ? 'up' : y > 0 ? 'down' : x < 0 ? 'left' : 'right';
 
-// Touch controls: which way the virtual stick points, and the right-thumb button.
+// Touch controls: which way the D-pad or virtual stick points, and the right-thumb button.
 // They send the same key codes as the keyboard, so games need no touch-specific rules.
 export type StickDirection = 'up' | 'down' | 'left' | 'right';
 
 export interface TouchLayout {
-  // 'stick' (default): a joystick, for steering. 'cross': a D-pad of buttons, one press
-  // per tap, for games where you tap repeatedly (Frogger's hops).
+  // 'cross' (default): a D-pad of buttons, one press per tap. 'stick': a joystick,
+  // for steering (Snake).
   pad?: 'stick' | 'cross';
   directions: StickDirection[];
-  // Re-sends the held direction every repeatMs (e.g. Tetris sliding a piece).
+  // Re-sends the held direction every repeatMs, on either pad (e.g. Tetris sliding a piece).
   repeatMs?: number;
   action?: { label: string; code: string };
 }
@@ -95,7 +95,7 @@ export interface Game {
 
   // Ticks on every animation frame instead of every speed() ms (e.g. Arkanoid's physics).
   readonly realtime?: boolean;
-  // Touch layout, when it differs from DEFAULT_TOUCH (4-way stick, no button).
+  // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
   readonly touch?: TouchLayout;
   // Keys worth mentioning in the HUD (the ones beyond arrows and Space).
   readonly keyHints?: KeyHint[];

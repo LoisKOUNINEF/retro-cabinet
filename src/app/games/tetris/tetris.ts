@@ -39,7 +39,7 @@ export class Tetris implements Game {
   readonly title = 'Tetris';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  // On touch, the button rotates: the stick has no 'up', so a piece never turns by accident.
+  // On touch, the button rotates: the D-pad has no 'up', so a piece never turns by accident.
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
     repeatMs: 120,

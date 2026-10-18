@@ -46,7 +46,7 @@ export class Columns implements Game {
   readonly title = 'Columns';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  // As in Tetris: the stick moves and drops, the button cycles the jewels.
+  // As in Tetris: the D-pad moves and drops, the button cycles the jewels.
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
     repeatMs: 120,

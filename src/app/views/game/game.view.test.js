@@ -22,6 +22,7 @@ const release = (code) => document.dispatchEvent(new KeyboardEvent('keyup', { co
 const touch = (selector) => (type, { x = 0, y = 0, id = 1 } = {}) =>
   $(selector).dispatchEvent(new window.PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true }));
 const stickPush = touch('.touch-controls__stick');
+const crossPush = (direction) => touch(`.touch-controls__cross-button--${direction}`);
 const actionPush = (type) => touch('.touch-controls__action')(type, { id: 2 });
 
 // A 2D context that only counts what gets drawn (jsdom has no canvas).
@@ -375,7 +376,7 @@ describe('GameView', () => {
     expect(game.direction).toEqual({ x: 0, y: -1 });
   });
 
-  it('holds Arkanoid moves on the stick and launches with the action button', () => {
+  it('holds Arkanoid moves on the D-pad and launches with the action button', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
     const game = new Arkanoid();
     view = new GameView(definitionOf(game));
@@ -384,12 +385,12 @@ describe('GameView', () => {
     expect($('.touch-controls__action').textContent).toBe('Launch');
 
     press('Space');
-    stickPush('pointerdown', { x: 40 });
+    crossPush('right')('pointerdown');
     advanceTimersByTime(96);
     const moved = game.paddle.x;
     expect(moved).toBeGreaterThan(88);
 
-    stickPush('pointerup');
+    crossPush('right')('pointerup');
     advanceTimersByTime(96);
     expect(game.paddle.x).toBe(moved);
 
@@ -419,7 +420,7 @@ describe('GameView', () => {
     getContext.restore();
   });
 
-  it('lets go of the stick when the game pauses', () => {
+  it('lets go of the D-pad when the game pauses', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
     const game = new Arkanoid();
     view = new GameView(definitionOf(game));
@@ -427,15 +428,29 @@ describe('GameView', () => {
     view.onEnter();
 
     press('Space');
-    stickPush('pointerdown', { x: 40 });
+    crossPush('right')('pointerdown');
     press('Space');
     press('Space');
     const x = game.paddle.x;
     advanceTimersByTime(96);
 
     expect(game.paddle.x).toBe(x);
-    expect($('.touch-controls__knob').style.transform).toBe('');
     getContext.restore();
+  });
+
+  it('keeps sliding a Tetris piece while a D-pad button is held', () => {
+    const game = new Tetris(() => 3 / 7);
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    expect($('.touch-controls__stick')).toBeFalsy();
+
+    $('.touch-controls__pause').click();
+    const start = game.piece.x;
+    crossPush('left')('pointerdown');
+    advanceTimersByTime(240);
+
+    expect(game.piece.x).toBe(start - 3);
   });
 
   it('ignores clicks on the board', () => {

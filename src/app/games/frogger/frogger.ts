@@ -1,6 +1,6 @@
 import {
   applyFields, ARROW_DIRECTIONS, directionName, levelFrom, levelOption, onOff, overlaps, pick, pickFields, UP,
-  type Game, type GameDefinition, type Point, type Random, type Rect, type Snapshot, type TouchLayout,
+  type Game, type GameDefinition, type Point, type Random, type Rect, type Snapshot,
 } from '../game.js';
 import { drawFrogger } from './frogger.draw.js';
 import {
@@ -88,8 +88,6 @@ export class Frogger implements Game {
   readonly width = WIDTH;
   readonly height = HEIGHT;
   readonly realtime = true;
-  // One hop per tap: a D-pad suits repeated hops better than a stick.
-  readonly touch: TouchLayout = { pad: 'cross', directions: ['up', 'down', 'left', 'right'] };
 
   score = 0;
   level = 1;
