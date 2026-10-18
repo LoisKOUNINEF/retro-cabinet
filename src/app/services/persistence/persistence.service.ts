@@ -1,7 +1,7 @@
 import { Service } from '../../../core/index.js';
 import { SAVE_VERSION, defaultChoice, type GameOption, type Settings, type Snapshot } from '../../games/game.js';
 
-const PREFIX = 'pixels-mansion';
+const PREFIX = 'retro-cabinet';
 const MAX_SCORES = 5;
 
 export interface ScoreEntry {

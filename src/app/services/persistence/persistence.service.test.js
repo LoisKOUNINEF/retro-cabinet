@@ -60,12 +60,12 @@ describe('PersistenceService', () => {
     storage.saveGame('tetris', save(SAVE_VERSION + 1));
 
     expect(storage.savedGame('tetris')).toBe(null);
-    expect(localStorage.getItem('pixels-mansion:save:tetris')).toBe(null);
+    expect(localStorage.getItem('retro-cabinet:save:tetris')).toBe(null);
   });
 
   it('reads corrupt data as nothing stored', () => {
-    localStorage.setItem('pixels-mansion:scores:snake', '{not json');
-    localStorage.setItem('pixels-mansion:save:snake', '[]]');
+    localStorage.setItem('retro-cabinet:scores:snake', '{not json');
+    localStorage.setItem('retro-cabinet:save:snake', '[]]');
 
     expect(storage.scores('snake')).toEqual([]);
     expect(storage.savedGame('snake')).toBe(null);

@@ -13,7 +13,7 @@ import { resetKeyLabels } from '#root/dist/src/app/components/key-labels.js';
 const definitionOf = (game) => ({ id: game.id, create: () => game });
 // A definition building a fresh, predictable Snake each time (a restored save needs a new game).
 const snakeDefinition = { id: 'snake', create: () => new Snake(() => 0) };
-const SNAKE_SAVE = 'pixels-mansion:save:snake';
+const SNAKE_SAVE = 'retro-cabinet:save:snake';
 
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 const release = (code) => document.dispatchEvent(new KeyboardEvent('keyup', { code }));
@@ -223,7 +223,7 @@ describe('GameView', () => {
 
   it('leaves the level out of the stats and scores for games without levels', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
-    localStorage.setItem('pixels-mansion:scores:pong', JSON.stringify([{ score: 900, level: 2, date: '2026-10-16T10:00:00.000Z' }]));
+    localStorage.setItem('retro-cabinet:scores:pong', JSON.stringify([{ score: 900, level: 2, date: '2026-10-16T10:00:00.000Z' }]));
     view = new GameView(pongGame);
     view.render();
 
@@ -231,7 +231,7 @@ describe('GameView', () => {
     expect($('[data-stat="level"]')).toBeFalsy();
     expect($('.score-table__row .score-table__score').textContent).toBe('900');
     expect($('.score-table__level')).toBeFalsy();
-    localStorage.removeItem('pixels-mansion:scores:pong');
+    localStorage.removeItem('retro-cabinet:scores:pong');
     getContext.restore();
   });
 
