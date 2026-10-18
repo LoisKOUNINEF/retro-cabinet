@@ -1,5 +1,5 @@
 import {
-  applyFields, pickFields,
+  applyFields, cryptoRandom, pickFields,
   type Game, type GameDefinition, type GameOption, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawPong } from './pong.draw.js';
@@ -111,7 +111,7 @@ export class Pong implements Game {
   constructor(options: PongOptions = {}) {
     this.difficulty = options.difficulty ?? 'medium';
     this.level = LEVELS.indexOf(this.difficulty) + 1;
-    this.random = options.random ?? Math.random;
+    this.random = options.random ?? cryptoRandom;
     this.reset();
   }
 

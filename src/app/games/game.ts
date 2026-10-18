@@ -208,8 +208,21 @@ export function setCell(grid: Grid, x: number, y: number, value: Cell): void {
   if (row && x >= 0 && x < row.length) row[x] = value;
 }
 
+// Unpredictable, unlike Math.random: the browser's cryptographic generator, in [0, 1).
+export const cryptoRandom: Random = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32;
+
 export function pick<T>(items: readonly T[], random: Random): T {
   return items[Math.floor(random() * items.length)]!;
+}
+
+// A shuffled copy (Fisher–Yates); the input is left as is.
+export function shuffle<T>(items: readonly T[], random: Random = cryptoRandom): T[] {
+  const array = [...items];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [array[i], array[j]] = [array[j]!, array[i]!];
+  }
+  return array;
 }
 
 export function randomFreeCell(grid: Grid, random: Random): Point | null {

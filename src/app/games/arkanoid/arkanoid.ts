@@ -1,5 +1,5 @@
 import {
-  applyFields, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed,
+  applyFields, cryptoRandom, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed,
   type Game, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawArkanoid } from './arkanoid.draw.js';
@@ -76,7 +76,7 @@ export class Arkanoid implements Game {
   private readonly random: Random;
 
   constructor(private readonly options: ArkanoidOptions = {}) {
-    this.random = options.random ?? Math.random;
+    this.random = options.random ?? cryptoRandom;
     this.reset();
   }
 

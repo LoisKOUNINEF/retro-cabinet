@@ -100,4 +100,10 @@
   width: 40px;
   height: 40px;
   border-radius: 8px;
+  // Fully opaque, in the primary colour: the one control the player must always spot.
+  opacity: 1;
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--bg-app);
+  font-size: 1.75rem;
 }

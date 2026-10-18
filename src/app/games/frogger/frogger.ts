@@ -1,5 +1,5 @@
 import {
-  applyFields, ARROW_DIRECTIONS, directionName, levelFrom, levelOption, onOff, overlaps, pick, pickFields, UP,
+  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, levelFrom, levelOption, onOff, overlaps, pick, pickFields, UP,
   type Game, type GameDefinition, type Point, type Random, type Rect, type Snapshot,
 } from '../game.js';
 import { drawFrogger } from './frogger.draw.js';
@@ -127,7 +127,7 @@ export class Frogger implements Game {
   private readonly random: Random;
 
   constructor(private readonly options: FroggerOptions = {}) {
-    this.random = options.random ?? Math.random;
+    this.random = options.random ?? cryptoRandom;
     this.reset();
   }
 

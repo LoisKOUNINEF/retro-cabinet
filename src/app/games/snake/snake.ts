@@ -1,5 +1,5 @@
 import {
-  applyFields, ARROW_DIRECTIONS, directionName, emptyGrid, levelFrom, levelOption, levelSpeed, pickFields,
+  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, emptyGrid, levelFrom, levelOption, levelSpeed, pickFields,
   randomFreeCell, RIGHT, samePoint, setCell,
   type Game, type GameDefinition, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
@@ -36,7 +36,7 @@ export class Snake implements Game {
   // Only one turn per tick, so two quick keys can't reverse the snake onto itself.
   private _turned = false;
 
-  constructor(private readonly random: Random = Math.random, private readonly firstLevel = 1) {
+  constructor(private readonly random: Random = cryptoRandom, private readonly firstLevel = 1) {
     this.reset();
   }
 
@@ -128,5 +128,5 @@ export class Snake implements Game {
 export const snakeGame: GameDefinition = {
   id: 'snake',
   options: [levelOption],
-  create: (settings) => new Snake(Math.random, levelFrom(settings)),
+  create: (settings) => new Snake(cryptoRandom, levelFrom(settings)),
 };
