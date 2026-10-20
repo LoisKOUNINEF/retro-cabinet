@@ -25,7 +25,7 @@ describe('Arkanoid', () => {
     expect(game.paddle).toEqual({ x: 88, width: 32 });
     expect(game.balls[0].stuck).toBeTruthy();
     expect(game.balls[0].x).toBe(108);
-    expect(game.realtime).toBeTruthy();
+    expect(game.kind).toBe('canvas');
   });
 
   it('moves the paddle while an arrow is held, carrying a resting ball', () => {

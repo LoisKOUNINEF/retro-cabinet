@@ -10,6 +10,8 @@ export interface PlayState {
   status: string;
   over: boolean;
   canStartOver: boolean;
+  // New game is disabled while playing: pause first.
+  running: boolean;
 }
 
 export interface PlayHandlers {

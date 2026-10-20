@@ -1,6 +1,7 @@
 import { GameLoop } from '#root/dist/src/app/games/game-loop.js';
 
 const fakeGame = () => ({
+  kind: 'grid',
   isOver: false,
   ms: 100,
   ticks: 0,
@@ -80,8 +81,8 @@ describe('GameLoop', () => {
     loop.pause();
   });
 
-  it('ticks realtime games on every animation frame, ignoring speed()', () => {
-    const game = { ...fakeGame(), realtime: true, ms: 1000, dts: [] };
+  it('ticks canvas games on every animation frame, ignoring speed()', () => {
+    const game = { ...fakeGame(), kind: 'canvas', ms: 1000, dts: [] };
     game.tick = (dt) => { game.ticks += 1; game.dts.push(dt); };
     const loop = new GameLoop(game, () => {});
 
@@ -99,8 +100,8 @@ describe('GameLoop', () => {
     expect(loop.isRunning).toBeFalsy();
   });
 
-  it('caps a realtime frame at 50 ms', () => {
-    const game = { ...fakeGame(), realtime: true, dts: [] };
+  it('caps a canvas frame at 50 ms', () => {
+    const game = { ...fakeGame(), kind: 'canvas', dts: [] };
     game.tick = (dt) => game.dts.push(dt);
     const loop = new GameLoop(game, () => {});
 
@@ -112,6 +113,38 @@ describe('GameLoop', () => {
     now.restore();
 
     expect(game.dts).toEqual([50]);
+    loop.pause();
+  });
+
+  it('stops cleanly when tick() throws, so it can start again', () => {
+    const game = fakeGame();
+    game.tick = () => { throw new Error('broken state'); };
+    const loop = new GameLoop(game, () => {});
+
+    loop.start();
+    expect(() => advanceTimersByTime(100)).toThrow();
+    expect(loop.isRunning).toBeFalsy();
+
+    game.tick = function () { this.ticks += 1; };
+    loop.start();
+    advanceTimersByTime(100);
+    expect(game.ticks).toBe(1);
+    loop.pause();
+  });
+
+  it('never passes a negative time when the clock goes back', () => {
+    const game = fakeGame();
+    let elapsed = null;
+    game.tick = (dt) => { elapsed = dt; };
+    const loop = new GameLoop(game, () => {});
+
+    const startedAt = Date.now();
+    loop.start();
+    const now = spyOn(Date, 'now').andReturn(startedAt - 60_000);
+    advanceTimersByTime(100);
+    now.restore();
+
+    expect(elapsed).toBe(0);
     loop.pause();
   });
 });

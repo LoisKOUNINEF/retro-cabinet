@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, pickFields,
-  type Game, type GameDefinition, type GameOption, type KeyHint, type Random, type Snapshot, type TouchLayout,
+  applyFields, choiceOf, cryptoRandom, pickFields,
+  type CanvasGame, type GameDefinition, type GameOption, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawPong } from './pong.draw.js';
 import { AI_X, BALL_SIZE, HEIGHT, PADDLE_HEIGHT, PADDLE_WIDTH, PLAYER_X, WIDTH, type Ball, type Difficulty } from './field.js';
@@ -75,12 +75,12 @@ export interface PongOptions {
   random?: Random;
 }
 
-export class Pong implements Game {
+export class Pong implements CanvasGame {
+  readonly kind = 'canvas';
   readonly id = 'pong';
   readonly title = 'Pong';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly realtime = true;
   readonly touch: TouchLayout = { directions: ['up', 'down'] };
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ['ArrowUp', 'ArrowDown'] }];
   readonly difficulty: Difficulty;
@@ -140,11 +140,6 @@ export class Pong implements Game {
       return;
     }
     this.moveBall(seconds);
-  }
-
-  // Unused: realtime games tick on every animation frame.
-  speed(): number {
-    return 16;
   }
 
   snapshot(): Snapshot {
@@ -283,7 +278,7 @@ function clampPaddle(y: number): number {
   return Math.min(Math.max(y, PADDLE_HEIGHT / 2), HEIGHT - PADDLE_HEIGHT / 2);
 }
 
-export const PONG_DIFFICULTY: GameOption = {
+export const PONG_DIFFICULTY: GameOption<Difficulty> = {
   key: 'difficulty',
   label: 'Difficulty',
   choices: [{ value: 'easy', label: 'Easy' }, { value: 'medium', label: 'Medium' }, { value: 'hard', label: 'Hard' }],
@@ -293,5 +288,5 @@ export const PONG_DIFFICULTY: GameOption = {
 export const pongGame: GameDefinition = {
   id: 'pong',
   options: [PONG_DIFFICULTY],
-  create: (settings) => new Pong({ difficulty: (settings.difficulty as Difficulty | undefined) ?? 'medium' }),
+  create: (settings) => new Pong({ difficulty: choiceOf(settings, PONG_DIFFICULTY) }),
 };

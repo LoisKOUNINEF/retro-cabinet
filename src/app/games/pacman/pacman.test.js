@@ -12,15 +12,15 @@ const EXIT = { x: 9, y: 7 };
 const ghost = (name, position, direction, extra = {}) => ({ name, position, direction, state: 'active', frightened: false, ...extra });
 
 // A game already going (past the wait for the first arrow).
-const playing = (...args) => {
-  const game = new Pacman(...args);
+const playing = (options) => {
+  const game = new Pacman(options);
   game.waiting = false;
   return game;
 };
 
 // A game with no ghosts around, to test Pacman alone.
 const alone = () => {
-  const game = playing(COMPACT, () => 0);
+  const game = playing({ layout: COMPACT, random: () => 0 });
   game.ghosts = [];
   return game;
 };
@@ -64,7 +64,7 @@ describe('Pacman', () => {
   });
 
   it('holds still until the first arrow, which picks the starting direction', () => {
-    const game = new Pacman(COMPACT, () => 0);
+    const game = new Pacman({ layout: COMPACT, random: () => 0 });
     expect(game.waiting).toBeTruthy();
 
     for (let i = 0; i < 50; i++) game.tick();
@@ -81,7 +81,7 @@ describe('Pacman', () => {
   });
 
   it('takes a first arrow into a wall at the first open turn', () => {
-    const game = new Pacman(COMPACT, () => 0);
+    const game = new Pacman({ layout: COMPACT, random: () => 0 });
     game.ghosts = [];
     // Up is a wall at the start: Pacman sets off left, as in the arcade.
     game.handleKey('ArrowUp');
@@ -125,7 +125,7 @@ describe('Pacman', () => {
   });
 
   it('moves ghosts at 75% and frightened ghosts at 50%', () => {
-    const game = playing(COMPACT, () => 0);
+    const game = playing({ layout: COMPACT, random: () => 0 });
     stuck(game);
     game.ghosts = [ghost('blinky', EXIT, LEFT)];
     expect(ghostMoves(game, 0, 20)).toBe(15);
@@ -137,7 +137,7 @@ describe('Pacman', () => {
   });
 
   it('turns Blinky into Elroy as the maze empties', () => {
-    const game = playing(COMPACT, () => 0);
+    const game = playing({ layout: COMPACT, random: () => 0 });
     // Out of the maze: Elroy chases even in scatter time, and must not catch him.
     game.pacman = { position: { x: 100, y: 100 }, direction: LEFT };
     game.ghosts = [ghost('blinky', EXIT, LEFT)];
@@ -189,7 +189,7 @@ describe('Pacman', () => {
   });
 
   it('frightens the active ghosts on a power pellet, for 6 s on level 1', () => {
-    const game = playing(COMPACT, () => 0);
+    const game = playing({ layout: COMPACT, random: () => 0 });
     game.pacman = { position: { x: 1, y: 3 }, direction: UP };
 
     stepOnce(game);
@@ -222,7 +222,7 @@ describe('Pacman', () => {
 
   it('catches a ghost that swaps tiles with Pacman', () => {
     // random 0.99 sends the frightened ghost right, into Pacman's old tile.
-    const game = playing(COMPACT, () => 0.99);
+    const game = playing({ layout: COMPACT, random: () => 0.99 });
     game.frightenedMs = 4000;
     game.ghosts = [ghost('blinky', { x: 8, y: 15 }, RIGHT, { frightened: true, budget: 50 })];
 
@@ -282,7 +282,7 @@ describe('Pacman', () => {
   });
 
   it('releases a ghost once enough pellets are eaten', () => {
-    const game = playing(COMPACT, () => 0);
+    const game = playing({ layout: COMPACT, random: () => 0 });
     stuck(game);
     const states = () => game.ghosts.map((g) => g.state);
 
@@ -299,7 +299,7 @@ describe('Pacman', () => {
   });
 
   it('releases the next ghost when Pacman stops eating for 4 s', () => {
-    const game = playing(COMPACT, () => 0);
+    const game = playing({ layout: COMPACT, random: () => 0 });
     stuck(game);
     const states = () => game.ghosts.map((g) => g.state);
 
@@ -345,7 +345,7 @@ describe('Pacman', () => {
   });
 
   it('starts at the chosen level, with shorter fright time', () => {
-    const game = playing(COMPACT, () => 0, 4);
+    const game = playing({ layout: COMPACT, random: () => 0, firstLevel: 4 });
     game.ghosts = [];
     expect(game.level).toBe(4);
 
@@ -370,11 +370,11 @@ describe('Pacman', () => {
   });
 
   it('saves and restores its exact state, ghosts and modes included', () => {
-    const game = playing(COMPACT, () => 0);
+    const game = playing({ layout: COMPACT, random: () => 0 });
     for (let i = 0; i < 45; i++) game.tick();
     game.handleKey('ArrowUp');
 
-    const copy = new Pacman(COMPACT, () => 0);
+    const copy = new Pacman({ layout: COMPACT, random: () => 0 });
     copy.restore(JSON.parse(JSON.stringify(game.snapshot())));
     expect(copy.snapshot()).toEqual(game.snapshot());
 

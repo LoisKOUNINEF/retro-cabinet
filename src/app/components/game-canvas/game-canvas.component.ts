@@ -1,5 +1,5 @@
 import { Component, html } from '../../../core/index.js';
-import type { Game } from '../../games/game.js';
+import type { CanvasGame } from '../../games/game.js';
 
 export interface GameCanvasConfig {
   width: number;
@@ -18,10 +18,10 @@ export class GameCanvasComponent extends Component<HTMLElement, GameCanvasConfig
     super({ templateFn, mountTarget, config });
   }
 
-  paint(game: Game): void {
+  paint(game: CanvasGame): void {
     if (!this._ctx) return;
     this._ctx.clearRect(0, 0, this.config.width, this.config.height);
-    game.draw?.(this._ctx);
+    game.draw(this._ctx);
   }
 
   protected override onAfterRender(): void {

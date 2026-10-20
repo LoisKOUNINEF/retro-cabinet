@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, FIRE_KEYS, isFireKey, levelFrom, levelOption, levelSpeed, onOff, pick, pickFields,
-  type Game, type GameDefinition, type Grid, type KeyHint, type Random, type Snapshot, type TouchLayout,
+  applyFields, cryptoRandom, FIRE_KEYS, isFireKey, isOn, levelFrom, levelOption, levelSpeed, onOff, pick, pickFields,
+  type GridGame, type GameDefinition, type Grid, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 
 const WIDTH = 6;
@@ -41,7 +41,8 @@ const SAVED_FIELDS = [
   'board', 'piece', 'next', 'phase', 'matched', 'chain', 'shatterRow', 'jewels', 'score', 'level', 'isOver',
 ];
 
-export class Columns implements Game {
+export class Columns implements GridGame {
+  readonly kind = 'grid';
   readonly id = 'columns';
   readonly title = 'Columns';
   readonly width = WIDTH;
@@ -291,8 +292,10 @@ export class Columns implements Game {
   }
 }
 
+const MAGIC_OPTION = onOff('magic', 'Magic jewel', true);
+
 export const columnsGame: GameDefinition = {
   id: 'columns',
-  options: [levelOption, onOff('magic', 'Magic jewel', true)],
-  create: (settings) => new Columns({ firstLevel: levelFrom(settings), magic: settings.magic !== 'off' }),
+  options: [levelOption, MAGIC_OPTION],
+  create: (settings) => new Columns({ firstLevel: levelFrom(settings), magic: isOn(settings, MAGIC_OPTION) }),
 };

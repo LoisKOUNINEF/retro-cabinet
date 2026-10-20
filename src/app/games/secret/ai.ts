@@ -7,16 +7,20 @@ const CENTRE = 4;
 // Hard plays perfectly, except this share of its moves: then it plays at random.
 export const MISTAKE_CHANCE = 0.1;
 
-export const SECRET_OPTIONS: GameOption[] = [
-  {
-    key: 'difficulty',
-    label: 'Difficulty',
-    choices: [{ value: 'easy', label: 'Easy' }, { value: 'medium', label: 'Medium' }, { value: 'hard', label: 'Hard' }],
-    defaultValue: 'medium',
-  },
-  { key: 'mark', label: 'You play', choices: [{ value: 'X', label: 'X' }, { value: 'O', label: 'O' }] },
-  { key: 'first', label: 'First move', choices: [{ value: 'you', label: 'You' }, { value: 'ai', label: 'AI' }] },
-];
+export const DIFFICULTY_OPTION: GameOption<Difficulty> = {
+  key: 'difficulty',
+  label: 'Difficulty',
+  choices: [{ value: 'easy', label: 'Easy' }, { value: 'medium', label: 'Medium' }, { value: 'hard', label: 'Hard' }],
+  defaultValue: 'medium',
+};
+export const MARK_OPTION: GameOption<Mark> = { key: 'mark', label: 'You play', choices: [{ value: 'X', label: 'X' }, { value: 'O', label: 'O' }] };
+export const FIRST_OPTION: GameOption<'you' | 'ai'> = {
+  key: 'first',
+  label: 'First move',
+  choices: [{ value: 'you', label: 'You' }, { value: 'ai', label: 'AI' }],
+};
+
+export const SECRET_OPTIONS: GameOption[] = [DIFFICULTY_OPTION, MARK_OPTION, FIRST_OPTION];
 
 // The AI's move for `ai` on `board` (which must have a free cell).
 export function chooseMove(board: Board, ai: Mark, difficulty: Difficulty, random: Random): number {

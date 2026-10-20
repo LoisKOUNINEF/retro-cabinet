@@ -6,13 +6,14 @@ import { froggerGame } from '#root/dist/src/app/games/frogger/frogger.js';
 import { Arkanoid, arkanoidGame } from '#root/dist/src/app/games/arkanoid/arkanoid.js';
 import { Invaders } from '#root/dist/src/app/games/invaders/invaders.js';
 import { pongGame } from '#root/dist/src/app/games/pong/pong.js';
+import { levelOption } from '#root/dist/src/app/games/game.js';
 import { Navigation, registerPipes } from '#root/dist/src/core/index.js';
 import { resetKeyLabels } from '#root/dist/src/app/components/key-labels.js';
 
 // A definition that always hands back the given game instance.
 const definitionOf = (game) => ({ id: game.id, create: () => game });
 // A definition building a fresh, predictable Snake each time (a restored save needs a new game).
-const snakeDefinition = { id: 'snake', create: () => new Snake(() => 0) };
+const snakeDefinition = { id: 'snake', create: () => new Snake({ random: () => 0 }) };
 const SNAKE_SAVE = 'retro-cabinet:save:snake';
 
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
@@ -55,7 +56,7 @@ describe('GameView', () => {
   });
 
   it('renders the board, HUD and start prompt', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
 
     expect($('h1').textContent).toBe('Snake');
@@ -67,7 +68,7 @@ describe('GameView', () => {
   });
 
   it('starts with Space, ticks the game and repaints the board', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     view.onEnter();
 
@@ -80,7 +81,7 @@ describe('GameView', () => {
   });
 
   it('forwards keys to the game only while running', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -96,7 +97,7 @@ describe('GameView', () => {
   });
 
   it('pauses on Space and when the window loses focus', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     view.onEnter();
 
@@ -115,7 +116,7 @@ describe('GameView', () => {
   });
 
   it('restarts a finished game with Space', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -135,7 +136,7 @@ describe('GameView', () => {
   });
 
   it('stops listening to the keyboard on exit', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -199,7 +200,7 @@ describe('GameView', () => {
   });
 
   it('shows the Tetris preview and lines stat', () => {
-    view = new GameView(definitionOf(new Tetris(() => 3 / 7)));
+    view = new GameView(definitionOf(new Tetris({ random: () => 3 / 7 })));
     view.render();
 
     expect($$('.game__preview .game-board__cell').length).toBe(16);
@@ -316,7 +317,7 @@ describe('GameView', () => {
   });
 
   it('records the score on game over and drops the save', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -343,8 +344,11 @@ describe('GameView', () => {
     expect($('.game__new').hidden).toBeTruthy();
     press('Space');
     advanceTimersByTime(250);
-    press('Space');
+    // Disabled while playing: pause first.
     expect($('.game__new').hidden).toBeFalsy();
+    expect($('.game__new').disabled).toBeTruthy();
+    press('Space');
+    expect($('.game__new').disabled).toBeFalsy();
 
     $('.game__new').click();
 
@@ -364,8 +368,28 @@ describe('GameView', () => {
     expect(localStorage.getItem(SNAKE_SAVE)).toBe(null);
   });
 
+  it('drops a save whose options are no longer valid', () => {
+    const definition = { ...snakeDefinition, options: [levelOption] };
+    view = new GameView(definition);
+    view.render();
+    view.onEnter();
+    press('Space');
+    advanceTimersByTime(250);
+    press('Space');
+    view.onExit();
+    view.destroy();
+
+    const saved = JSON.parse(localStorage.getItem(SNAKE_SAVE));
+    localStorage.setItem(SNAKE_SAVE, JSON.stringify({ ...saved, settings: { level: '99' } }));
+    view = new GameView(definition);
+    view.render();
+
+    expect($('.game__status').textContent).toBe('Press Space to start');
+    expect(localStorage.getItem(SNAKE_SAVE)).toBe(null);
+  });
+
   it('plays Snake with the touch stick', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -439,7 +463,7 @@ describe('GameView', () => {
   });
 
   it('keeps sliding a Tetris piece while a D-pad button is held', () => {
-    const game = new Tetris(() => 3 / 7);
+    const game = new Tetris({ random: () => 3 / 7 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -454,7 +478,7 @@ describe('GameView', () => {
   });
 
   it('ignores clicks on the board', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     view.onEnter();
 
@@ -465,7 +489,7 @@ describe('GameView', () => {
 
   it('talks about tapping on touch devices', () => {
     document.documentElement.classList.add('touch');
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     view.onEnter();
 
@@ -513,13 +537,13 @@ describe('GameView', () => {
   });
 
   it('shows no key line for games without key hints', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     expect($('.game__keys')).toBeFalsy();
   });
 
   it('lowers the Tetris curtain before announcing the game over', () => {
-    const game = new Tetris(() => 3 / 7);
+    const game = new Tetris({ random: () => 3 / 7 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -542,7 +566,7 @@ describe('GameView', () => {
   });
 
   it('has a play/pause button that follows the game, like Space', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
@@ -569,7 +593,7 @@ describe('GameView', () => {
   });
 
   it('leaves Space on a focused button to the button, so it toggles once', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     view.onEnter();
     const toggle = () => $('.game__toggle');
@@ -585,14 +609,14 @@ describe('GameView', () => {
   });
 
   it('shows no Options box for games without options', () => {
-    const game = new Snake(() => 0);
+    const game = new Snake({ random: () => 0 });
     view = new GameView({ id: 'snake', create: () => game });
     view.render();
     expect($('.game__options')).toBeFalsy();
   });
 
   it('goes back to the games from the header', () => {
-    view = new GameView(definitionOf(new Snake(() => 0)));
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
     const paths = [];
     const stop = Navigation.onNavigate(({ path }) => paths.push(path));

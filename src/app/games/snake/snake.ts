@@ -1,7 +1,7 @@
 import {
   applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, emptyGrid, levelFrom, levelOption, levelSpeed, pickFields,
   randomFreeCell, RIGHT, samePoint, setCell,
-  type Game, type GameDefinition, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
+  type GridGame, type GameDefinition, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 
 const SIZE = 21;
@@ -14,7 +14,13 @@ const levelThreshold = (level: number) => 100 * level * (level + 1) / 2;
 // What a save keeps (held keys and the random source never are).
 const SAVED_FIELDS = ['body', 'direction', 'heading', 'food', 'score', 'level', 'isOver', '_turned'];
 
-export class Snake implements Game {
+export interface SnakeOptions {
+  firstLevel?: number;
+  random?: Random;
+}
+
+export class Snake implements GridGame {
+  readonly kind = 'grid';
   readonly id = 'snake';
   readonly title = 'Snake';
   readonly width = SIZE;
@@ -36,7 +42,12 @@ export class Snake implements Game {
   // Only one turn per tick, so two quick keys can't reverse the snake onto itself.
   private _turned = false;
 
-  constructor(private readonly random: Random = cryptoRandom, private readonly firstLevel = 1) {
+  private readonly random: Random;
+  private readonly firstLevel: number;
+
+  constructor({ firstLevel = 1, random = cryptoRandom }: SnakeOptions = {}) {
+    this.random = random;
+    this.firstLevel = firstLevel;
     this.reset();
   }
 
@@ -128,5 +139,5 @@ export class Snake implements Game {
 export const snakeGame: GameDefinition = {
   id: 'snake',
   options: [levelOption],
-  create: (settings) => new Snake(cryptoRandom, levelFrom(settings)),
+  create: (settings) => new Snake({ firstLevel: levelFrom(settings) }),
 };

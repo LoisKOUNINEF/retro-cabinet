@@ -8,10 +8,11 @@ import { StatsComponent, type StatsConfig } from '../../components/stats/stats.c
 import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
 import { GameLoop } from '../../games/game-loop.js';
-import { DEFAULT_TOUCH, SAVE_VERSION, type Game, type GameDefinition, type GameOption, type Settings } from '../../games/game.js';
-import { PersistenceService } from '../../services/persistence/persistence.service.js';
+import { isControlKey } from '../keyboard.js';
+import { DEFAULT_TOUCH, SAVE_VERSION, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
+import { PersistenceService, validSettings } from '../../services/persistence/persistence.service.js';
 
-const templateFn = (game: Game, hasOptions: boolean) => html`__TEMPLATE_PLACEHOLDER__`;
+const templateFn = (game: Game, hasPreview: boolean, hasOptions: boolean) => html`__TEMPLATE_PLACEHOLDER__`;
 
 const PREVENTED_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
@@ -19,7 +20,7 @@ const PREVENTED_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRigh
 // directly on each tick. Changing an option builds a new game and re-renders.
 // The game is saved whenever it pauses, and comes back paused on the next visit.
 export class GameView extends View {
-  private game: Game;
+  private _game: Game;
   private _loop: GameLoop;
   private _settings: Settings = {};
   private readonly _storage = PersistenceService.getInstance();
@@ -38,20 +39,20 @@ export class GameView extends View {
   private _finished = false;
   private _rank: number | null = null;
 
-  constructor(private readonly definition: GameDefinition) {
-    super({ viewName: definition.id });
-    this.game = this.openGame();
-    this._loop = new GameLoop(this.game, () => this.update());
+  constructor(private readonly _definition: GameDefinition) {
+    super({ viewName: _definition.id });
+    this._game = this.openGame();
+    this._loop = new GameLoop(this._game, () => this.update());
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    const { width, height } = this.game;
+    const { width, height } = this._game;
     const children: Nutin.ComponentConfig[] = [{
       selector: 'board',
       // A new size (e.g. another maze) needs a new board.
       keep: `${width}x${height}`,
       // Canvas games draw themselves; grid games are painted cell by cell.
-      factory: (el) => this.game.draw
+      factory: (el) => this._game.kind === 'canvas'
         ? this._canvas = new GameCanvasComponent(el, { width, height })
         : this._board = new GameBoardComponent(el, { width, height }),
     }, {
@@ -60,7 +61,7 @@ export class GameView extends View {
       factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
         togglePlay: () => this.togglePlay(),
         newGame: () => this.startNewGame(),
-      }, this.game.keyHints),
+      }, this._game.keyHints),
     }, {
       selector: 'stats',
       keep: 'stats',
@@ -72,18 +73,18 @@ export class GameView extends View {
     }, {
       selector: 'scores',
       keep: 'scores',
-      factory: (el) => this._scores = new ScoreTableComponent(el, { entries: this._storage.scores(this.definition.id), highlight: null, showLevel: this.showsLevel }),
+      factory: (el) => this._scores = new ScoreTableComponent(el, { entries: this._storage.scores(this._definition.id), highlight: null, showLevel: this.showsLevel }),
     }, {
       selector: 'touch',
-      keep: this.definition.id,
+      keep: this._definition.id,
       // Touch sends the same codes as the keyboard, through the same press/release path.
-      factory: (el) => this._touch = new TouchControlsComponent(el, this.game.touch ?? DEFAULT_TOUCH, {
+      factory: (el) => this._touch = new TouchControlsComponent(el, this._game.touch ?? DEFAULT_TOUCH, {
         press: (code) => this.press(code),
         release: (code) => this.release(code),
         togglePlay: () => this.togglePlay(),
       }),
     }];
-    const preview = this.game.preview?.();
+    const preview = this.previewGrid();
     if (preview) children.push({
       selector: 'preview',
       keep: 'preview',
@@ -110,11 +111,11 @@ export class GameView extends View {
   }
 
   override documentTitle(): string {
-    return this.game.title;
+    return this._game.title;
   }
 
   protected override generateTemplate(): Nutin.Template {
-    return templateFn(this.game, this.options.length > 0);
+    return templateFn(this._game, this._game.kind === 'grid' && Boolean(this._game.preview), this.options.length > 0);
   }
 
   protected override onAfterRender(): void {
@@ -123,15 +124,18 @@ export class GameView extends View {
 
   // The saved game if there is a usable one, else a new game with the remembered options.
   private openGame(): Game {
-    const { id } = this.definition;
+    const { id } = this._definition;
     const options = this.options;
-    const save = this._storage.savedGame(id);
+    const save = this._storage.savedGame(id, this.saveVersion);
     if (save) {
       try {
-        const game = this.definition.create(save.settings);
+        // Settings no longer valid (an option or choice removed): the state may not fit either.
+        const settings = validSettings(save.settings, options);
+        if (options.some(({ key }) => settings[key] !== save.settings[key])) throw new Error(`${id}'s saved options are outdated.`);
+        const game = this._definition.create(settings);
         if (!game.restore) throw new Error(`${id} can't restore a save.`);
         game.restore(save.state);
-        this._settings = save.settings;
+        this._settings = settings;
         this._started = true;
         this._restored = true;
         return game;
@@ -141,16 +145,11 @@ export class GameView extends View {
       }
     }
     this._settings = this._storage.settings(id, options);
-    return this.definition.create(this._settings);
+    return this._definition.create(this._settings);
   }
 
   private readonly _onKeydown = (event: KeyboardEvent): void => {
-    // Let a focused option select handle its own keys.
-    if (event.target instanceof HTMLSelectElement) return;
-    // Space/Enter on a focused button is the button's own click (e.g. the play/pause
-    // toggle): handling it here too would toggle twice.
-    const activates = event.code === 'Space' || event.code === 'Enter';
-    if (activates && event.target instanceof HTMLButtonElement) return;
+    if (isControlKey(event)) return;
     if (PREVENTED_KEYS.includes(event.code)) event.preventDefault();
     if (event.code === 'Space') return this.togglePlay();
     this.press(event.code);
@@ -163,12 +162,12 @@ export class GameView extends View {
   // Keyboard and touch controls both end up here.
   private press(code: string): void {
     if (!this._loop.isRunning) return;
-    this.game.handleKey?.(code);
+    this._game.handleKey?.(code);
     this.update();
   }
 
   private release(code: string): void {
-    this.game.handleKeyUp?.(code);
+    this._game.handleKeyUp?.(code);
   }
 
   // Window blur, hidden tab (which doesn't always blur the window) or closed page.
@@ -180,35 +179,35 @@ export class GameView extends View {
   // Every pause saves a game in progress.
   private pause(): void {
     this._loop.pause();
-    this.game.releaseKeys?.();
+    this._game.releaseKeys?.();
     this._touch?.reset();
     this.save();
   }
 
   private save(): void {
-    if (!this._started || this.game.isOver || !this.game.snapshot) return;
-    this._storage.saveGame(this.definition.id, {
-      version: SAVE_VERSION,
+    if (!this._started || this._game.isOver || !this._game.snapshot) return;
+    this._storage.saveGame(this._definition.id, {
+      version: this.saveVersion,
       settings: this._settings,
-      state: this.game.snapshot(),
+      state: this._game.snapshot(),
       savedAt: new Date().toISOString(),
     });
   }
 
   // One function for the options box, so its config stays the same between ticks.
-  private readonly setOption = (key: string, value: string): void => {
+  private readonly _setOption = (key: string, value: string): void => {
     this._settings = { ...this._settings, [key]: value };
-    this._storage.saveSettings(this.definition.id, this._settings);
+    this._storage.saveSettings(this._definition.id, this._settings);
     this.startNewGame();
   };
 
   // Drops the saved game and builds a fresh one with the current options.
   private startNewGame(): void {
     this._loop.pause();
-    this.game.releaseKeys?.();
-    this._storage.deleteSave(this.definition.id);
-    this.game = this.definition.create(this._settings);
-    this._loop = new GameLoop(this.game, () => this.update());
+    this._game.releaseKeys?.();
+    this._storage.deleteSave(this._definition.id);
+    this._game = this._definition.create(this._settings);
+    this._loop = new GameLoop(this._game, () => this.update());
     this._started = false;
     this._restored = false;
     this._finished = false;
@@ -217,8 +216,8 @@ export class GameView extends View {
   }
 
   private togglePlay(): void {
-    if (this.game.isOver) {
-      this.game.reset();
+    if (this._game.isOver) {
+      this._game.reset();
       this._finished = false;
       this._rank = null;
     }
@@ -231,40 +230,51 @@ export class GameView extends View {
 
   // Records the result once per game: the score table, and no save to come back to.
   private finish(): void {
-    const { id } = this.definition;
+    const { id } = this._definition;
     this._finished = true;
     this._storage.deleteSave(id);
     this._rank = this._storage.addScore(id, {
-      score: this.game.score,
-      level: this.game.level,
+      score: this._game.score,
+      level: this._game.level,
       date: new Date().toISOString(),
     });
     this._scores?.update({ entries: this._storage.scores(id), highlight: this._rank, showLevel: this.showsLevel });
   }
 
   private update(): void {
-    if (this.game.isOver && !this._finished) this.finish();
+    if (this._game.isOver && !this._finished) this.finish();
 
-    if (this.game.cells) this._board?.paint(this.game.cells());
-    this._canvas?.paint(this.game);
-    const preview = this.game.preview?.();
-    if (preview) this._preview?.paint(preview);
+    if (this._game.kind === 'canvas') {
+      this._canvas?.paint(this._game);
+    } else {
+      this._board?.paint(this._game.cells());
+      const preview = this.previewGrid();
+      if (preview) this._preview?.paint(preview);
+    }
 
     this._play?.update(this.playState());
     this._stats?.update(this.statsConfig());
     this._options?.update(this.optionsConfig());
   }
 
+  private previewGrid(): Grid | undefined {
+    return this._game.kind === 'grid' ? this._game.preview?.() : undefined;
+  }
+
+  private get saveVersion(): number {
+    return this._definition.saveVersion ?? SAVE_VERSION;
+  }
+
   private get showsLevel(): boolean {
-    return this.game.showsLevel !== false;
+    return this._game.showsLevel !== false;
   }
 
   private get options(): GameOption[] {
-    return this.definition.options ?? [];
+    return this._definition.options ?? [];
   }
 
   private statsConfig(): StatsConfig {
-    const values = { score: this.game.score, ...(this.showsLevel && { level: this.game.level }), ...this.game.stats?.() };
+    const values = { score: this._game.score, ...(this.showsLevel && { level: this._game.level }), ...this._game.stats?.() };
     return {
       items: Object.entries(values).map(([key, value]) => ({ key, label: key[0]!.toUpperCase() + key.slice(1), value })),
     };
@@ -276,7 +286,7 @@ export class GameView extends View {
       settings: this._settings,
       // Options only change between games: the whole box is locked while playing.
       locked: this._loop.isRunning,
-      onChange: this.setOption,
+      onChange: this._setOption,
     };
   }
 
@@ -284,14 +294,15 @@ export class GameView extends View {
     return {
       label: this.toggleLabel(),
       status: this.statusText(),
-      over: this.game.isOver,
+      over: this._game.isOver,
       // Only when there is a game to drop: Play again already covers a finished one.
-      canStartOver: this._started && !this.game.isOver,
+      canStartOver: this._started && !this._game.isOver,
+      running: this._loop.isRunning,
     };
   }
 
   private toggleLabel(): string {
-    if (this.game.isOver) return '↻ Play again';
+    if (this._game.isOver) return '↻ Play again';
     if (this._loop.isRunning) return '⏸ Pause';
     return this._started ? '▶ Resume' : '▶ Start';
   }
@@ -299,7 +310,7 @@ export class GameView extends View {
   private statusText(): string {
     const touch = isTouchDevice();
     const action = touch ? 'tap' : 'press Space';
-    if (this.game.isOver) {
+    if (this._game.isOver) {
       const highScore = this._rank === null ? '' : ` - New high score!`;
       return `Game over${highScore}`;
     }

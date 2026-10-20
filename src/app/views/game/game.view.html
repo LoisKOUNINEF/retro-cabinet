@@ -6,7 +6,7 @@
   <div class="game__layout">
     <div class="game__stage"><div data-component="board"></div></div>
     <aside class="game__panel">
-      ${game.preview ? html`
+      ${hasPreview ? html`
         <section class="game__section game__next" aria-labelledby="game-next-title">
           <h2 class="game__section-title" id="game-next-title">Next</h2>
           <div class="game__preview"><div data-component="preview"></div></div>

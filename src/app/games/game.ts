@@ -81,8 +81,8 @@ export interface TouchLayout {
 export const DEFAULT_TOUCH: TouchLayout = { directions: ['up', 'down', 'left', 'right'] };
 
 // Contract between a game and the GameView: the game owns its state and rules,
-// knows nothing about the DOM or timers.
-export interface Game {
+// knows nothing about the DOM or timers. It is either a GridGame or a CanvasGame.
+interface BaseGame {
   readonly id: string;
   readonly title: string;
   readonly width: number;
@@ -93,8 +93,6 @@ export interface Game {
   // False for games without levels (e.g. Pong): the HUD and score table leave the level out.
   readonly showsLevel?: boolean;
 
-  // Ticks on every animation frame instead of every speed() ms (e.g. Arkanoid's physics).
-  readonly realtime?: boolean;
   // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
   readonly touch?: TouchLayout;
   // Keys worth mentioning in the HUD (the ones beyond arrows and Space).
@@ -103,11 +101,6 @@ export interface Game {
   reset(): void;
   // dt: ms elapsed since the previous tick (most grid games ignore it).
   tick(dt: number): void;
-  // ms to wait before the next tick (unused by realtime games).
-  speed(): number;
-  // A game is drawn either as a grid of cells or on a canvas.
-  cells?(): Grid;
-  draw?(ctx: CanvasRenderingContext2D): void;
   handleKey?(code: string): void;
   // For keys held down, e.g. Arkanoid's paddle.
   handleKeyUp?(code: string): void;
@@ -116,23 +109,45 @@ export interface Game {
   // Saving: a JSON-safe copy of the game's state, and putting it back.
   snapshot?(): Snapshot;
   restore?(snapshot: Snapshot): void;
-  // Small side grid, e.g. Tetris's next piece.
-  preview?(): Grid;
   // Extra HUD values, e.g. { lines: 12 }.
   stats?(): Record<string, number>;
 }
 
-// A user-selectable setting shown in the HUD, e.g. Pacman's maze. The default is
-// `defaultValue`, else the first choice.
-export interface GameOption {
-  key: string;
-  label: string;
-  choices: { value: string; label: string }[];
-  defaultValue?: string;
+// Drawn as a grid of cells, ticking every speed() ms (e.g. Tetris).
+export interface GridGame extends BaseGame {
+  readonly kind: 'grid';
+  // ms to wait before the next tick, read again before every tick.
+  speed(): number;
+  cells(): Grid;
+  // Small side grid, e.g. Tetris's next piece.
+  preview?(): Grid;
 }
 
-export function defaultChoice({ choices, defaultValue }: GameOption): string {
+// Drawn on a canvas, ticking on every animation frame (e.g. Arkanoid's physics).
+export interface CanvasGame extends BaseGame {
+  readonly kind: 'canvas';
+  draw(ctx: CanvasRenderingContext2D): void;
+}
+
+export type Game = GridGame | CanvasGame;
+
+// A user-selectable setting shown in the HUD, e.g. Pacman's maze. The default is
+// `defaultValue`, else the first choice. T narrows the values, read back with choiceOf().
+export interface GameOption<T extends string = string> {
+  key: string;
+  label: string;
+  choices: readonly { value: T; label: string }[];
+  defaultValue?: T;
+}
+
+export function defaultChoice<T extends string>({ choices, defaultValue }: GameOption<T>): T | '' {
   return defaultValue ?? choices[0]?.value ?? '';
+}
+
+// The option's value in `settings`, typed; its default when missing or not one of its choices.
+export function choiceOf<T extends string>(settings: Settings, option: GameOption<T>): T {
+  const chosen = option.choices.find((choice) => choice.value === settings[option.key]);
+  return chosen?.value ?? option.defaultValue ?? option.choices[0]!.value;
 }
 
 export type Settings = Record<string, string>;
@@ -141,6 +156,9 @@ export type Settings = Record<string, string>;
 export interface GameDefinition {
   // Same as the game's id: names its stored options, scores and save.
   id: string;
+  // Bump whenever this game's saved fields change: its older saves are then dropped
+  // instead of restored into the wrong shape. Defaults to SAVE_VERSION.
+  saveVersion?: number;
   options?: GameOption[];
   create(settings: Settings): Game;
 }
@@ -163,21 +181,28 @@ export function levelFrom(settings: Settings): number {
   return Number.isFinite(level) ? Math.min(Math.max(level, 1), MAX_START_LEVEL) : 1;
 }
 
-// A boolean setting, off unless defaultOn; read it with settings[key] === 'on'.
-export function onOff(key: string, label: string, defaultOn = false): GameOption {
-  const choices = [{ value: 'off', label: 'Off' }, { value: 'on', label: 'On' }];
-  return { key, label, choices, defaultValue: defaultOn ? 'on' : 'off' };
+export type OnOff = GameOption<'on' | 'off'>;
+
+// A boolean setting, off unless defaultOn; read it with isOn().
+export function onOff(key: string, label: string, defaultOn = false): OnOff {
+  return { key, label, choices: [{ value: 'off', label: 'Off' }, { value: 'on', label: 'On' }], defaultValue: defaultOn ? 'on' : 'off' };
 }
 
-// A game's saved state. Bump SAVE_VERSION whenever a game's saved fields change:
-// older saves are then dropped instead of restored into the wrong shape.
+export const isOn = (settings: Settings, option: OnOff) => choiceOf(settings, option) === 'on';
+
+// A game's saved state; versioned per game (GameDefinition.saveVersion).
 export type Snapshot = Record<string, unknown>;
+// The version every game's saves started at. Bump a game's own saveVersion, not this.
 export const SAVE_VERSION = 7;
 
 // Deep copies of the listed fields (private ones included: they are plain properties at runtime).
+// A field the game doesn't have is a typo or a rename: it throws rather than save nothing.
 export function pickFields(game: object, fields: readonly string[]): Snapshot {
   const source = game as Record<string, unknown>;
-  return Object.fromEntries(fields.map((field) => [field, structuredClone(source[field])]));
+  return Object.fromEntries(fields.map((field) => {
+    if (!(field in source)) throw new Error(`Can't save "${field}": the game has no such field.`);
+    return [field, structuredClone(source[field])];
+  }));
 }
 
 export function applyFields(game: object, snapshot: Snapshot, fields: readonly string[]): void {

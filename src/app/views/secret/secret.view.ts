@@ -3,9 +3,10 @@ import { GameOptionsComponent, type GameOptionsConfig } from '../../components/g
 import { PlayControlsComponent, type PlayState } from '../../components/play-controls/play-controls.component.js';
 import { StatsComponent, type StatsConfig } from '../../components/stats/stats.component.js';
 import { TicTacToeBoardComponent, type TicTacToeBoardConfig } from '../../components/tictactoe-board/tictactoe-board.component.js';
-import { cryptoRandom, type Random, type Settings } from '../../games/game.js';
-import { SECRET_OPTIONS, chooseMove, type Difficulty } from '../../games/secret/ai.js';
+import { choiceOf, cryptoRandom, type Random, type Settings } from '../../games/game.js';
+import { DIFFICULTY_OPTION, FIRST_OPTION, MARK_OPTION, SECRET_OPTIONS, chooseMove, type Difficulty } from '../../games/secret/ai.js';
 import { TicTacToe, other, type Mark } from '../../games/secret/tictactoe.js';
+import { isControlKey } from '../keyboard.js';
 import { PersistenceService, type TallyResult } from '../../services/persistence/persistence.service.js';
 
 const GAME_ID = 'secret';
@@ -28,18 +29,18 @@ export class SecretView extends View {
   private _cursor = 4;
   private _aiTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private readonly random: Random = cryptoRandom) {
+  constructor(private readonly _random: Random = cryptoRandom) {
     super({ template, viewName: 'secret' });
     this._settings = this._storage.settings(GAME_ID, SECRET_OPTIONS);
     this.newRound();
   }
 
   private get playerMark(): Mark {
-    return this._settings.mark === 'O' ? 'O' : 'X';
+    return choiceOf(this._settings, MARK_OPTION);
   }
 
   private get difficulty(): Difficulty {
-    return this._settings.difficulty as Difficulty;
+    return choiceOf(this._settings, DIFFICULTY_OPTION);
   }
 
   // Only the player's turn, in a round still going, accepts moves.
@@ -85,13 +86,9 @@ export class SecretView extends View {
   }
 
   private readonly _onKeydown = (event: KeyboardEvent): void => {
-    const target = event.target;
-    // Selects keep their keys; a focused button handles Enter/Space itself (a click).
-    if (target instanceof HTMLSelectElement) return;
-    const activates = event.code === 'Enter' || event.code === 'Space';
-    if (activates && target instanceof HTMLButtonElement) return;
+    if (isControlKey(event)) return;
 
-    if (activates) {
+    if (event.code === 'Enter' || event.code === 'Space') {
       event.preventDefault();
       if (this._game.result) this.newRound();
       else this.playerMove(this._cursor);
@@ -119,7 +116,7 @@ export class SecretView extends View {
 
   private newRound(): void {
     this.cancelAiMove();
-    const aiFirst = this._settings.first === 'ai';
+    const aiFirst = choiceOf(this._settings, FIRST_OPTION) === 'ai';
     this._game.reset(aiFirst ? other(this.playerMark) : this.playerMark);
     this._cursor = 4;
     if (aiFirst) this.scheduleAiMove();
@@ -141,7 +138,7 @@ export class SecretView extends View {
   private scheduleAiMove(): void {
     this._aiTimer = setTimeout(() => {
       this._aiTimer = null;
-      this._game.play(chooseMove(this._game.board, this._game.turn, this.difficulty, this.random));
+      this._game.play(chooseMove(this._game.board, this._game.turn, this.difficulty, this._random));
       this.afterMove();
     }, AI_DELAY_MS);
   }
@@ -158,7 +155,7 @@ export class SecretView extends View {
   }
 
   // One function for the options box, so its config stays the same between moves.
-  private readonly setOption = (key: string, value: string): void => {
+  private readonly _setOption = (key: string, value: string): void => {
     this._settings = { ...this._settings, [key]: value };
     this._storage.saveSettings(GAME_ID, this._settings);
     this.newRound();
@@ -180,7 +177,7 @@ export class SecretView extends View {
   }
 
   private playState(): PlayState {
-    return { label: 'New round', status: this.statusText(), over: false, canStartOver: false };
+    return { label: 'New round', status: this.statusText(), over: false, canStartOver: false, running: false };
   }
 
   // The results at the chosen difficulty.
@@ -196,7 +193,7 @@ export class SecretView extends View {
   }
 
   private optionsConfig(): GameOptionsConfig {
-    return { options: SECRET_OPTIONS, settings: this._settings, locked: false, onChange: this.setOption };
+    return { options: SECRET_OPTIONS, settings: this._settings, locked: false, onChange: this._setOption };
   }
 
   private statusText(): string {

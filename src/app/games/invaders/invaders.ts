@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
-  type Game, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
+  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
+  type CanvasGame, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { spriteHeight, spriteWidth } from '../sprites.js';
 import { drawInvaders } from './invaders.draw.js';
@@ -65,12 +65,12 @@ const SAVED_FIELDS = [
   '_marchMs', '_bombMs', '_ufoMs', '_nextUfoDirection',
 ];
 
-export class Invaders implements Game {
+export class Invaders implements CanvasGame {
+  readonly kind = 'canvas';
   readonly id = 'invaders';
   readonly title = 'Space Invaders';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly realtime = true;
   readonly touch: TouchLayout = { directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
@@ -160,11 +160,6 @@ export class Invaders implements Game {
       this.level += 1;
       this.startWave();
     }
-  }
-
-  // Unused: realtime games tick on every animation frame.
-  speed(): number {
-    return 16;
   }
 
   snapshot(): Snapshot {
@@ -363,8 +358,10 @@ export function buildShields(): Rect[] {
       : [])));
 }
 
+const SHIELDS_OPTION = onOff('shields', 'Shields', true);
+
 export const invadersGame: GameDefinition = {
   id: 'invaders',
-  options: [levelOption, onOff('shields', 'Shields', true)],
-  create: (settings) => new Invaders({ firstLevel: levelFrom(settings), shields: settings.shields !== 'off' }),
+  options: [levelOption, SHIELDS_OPTION],
+  create: (settings) => new Invaders({ firstLevel: levelFrom(settings), shields: isOn(settings, SHIELDS_OPTION) }),
 };
