@@ -1,4 +1,4 @@
-import { cryptoRandom, defaultSettings, levelFrom, levelOption, onOff, shuffle } from '#root/dist/src/app/games/game.js';
+import { applyFields, choiceOf, cryptoRandom, defaultSettings, isOn, levelFrom, levelOption, onOff, pickFields, shuffle } from '#root/dist/src/app/games/game.js';
 
 describe('Game options', () => {
   it('offers starting levels 1 to 10, defaulting to 1', () => {
@@ -24,6 +24,21 @@ describe('Game options', () => {
   it('builds toggles that default to on when asked', () => {
     expect(defaultSettings([onOff('shields', 'Shields', true)])).toEqual({ shields: 'on' });
   });
+
+  it('reads a toggle, falling back to its default when missing or invalid', () => {
+    const shields = onOff('shields', 'Shields', true);
+    expect(isOn({ shields: 'off' }, shields)).toBe(false);
+    expect(isOn({}, shields)).toBe(true);
+    expect(isOn({ shields: 'maybe' }, shields)).toBe(true);
+    expect(isOn({}, onOff('time', 'Time limit'))).toBe(false);
+  });
+
+  it('reads a choice, falling back to the declared default, else the first choice', () => {
+    const choices = [{ value: 'easy', label: 'Easy' }, { value: 'hard', label: 'Hard' }];
+    expect(choiceOf({ difficulty: 'hard' }, { key: 'difficulty', label: '', choices })).toBe('hard');
+    expect(choiceOf({ difficulty: 'nope' }, { key: 'difficulty', label: '', choices })).toBe('easy');
+    expect(choiceOf({}, { key: 'difficulty', label: '', choices, defaultValue: 'hard' })).toBe('hard');
+  });
 });
 
 describe('Randomness', () => {
@@ -46,5 +61,22 @@ describe('Randomness', () => {
     expect(shuffle([1, 2, 3, 4], () => 0)).toEqual([2, 3, 4, 1]);
     expect(shuffle([], () => 0)).toEqual([]);
     expect(shuffle([7], () => 0)).toEqual([7]);
+  });
+});
+
+describe('Saving fields', () => {
+  it('deep-copies the listed fields and puts them back', () => {
+    const game = { score: 10, board: [[1]] };
+    const snapshot = pickFields(game, ['score', 'board']);
+    game.board[0][0] = 2;
+    expect(snapshot).toEqual({ score: 10, board: [[1]] });
+
+    applyFields(game, snapshot, ['score', 'board']);
+    expect(game.board).toEqual([[1]]);
+  });
+
+  it('throws on a field the game does not have, or a save that lacks one', () => {
+    expect(() => pickFields({ score: 10 }, ['scroe'])).toThrow();
+    expect(() => applyFields({ score: 10 }, {}, ['score'])).toThrow();
   });
 });

@@ -34,7 +34,7 @@ describe('Frogger', () => {
     expect(game.stats()).toEqual({ lives: 3 });
     expect([game.width, game.height]).toEqual([WIDTH, HEIGHT]);
     expect([WIDTH, HEIGHT]).toEqual([240, 224]);
-    expect(game.realtime).toBeTruthy();
+    expect(game.kind).toBe('canvas');
   });
 
   it('turns each lane pattern into objects, one per run', () => {

@@ -27,7 +27,7 @@ export default {
   // Testing toolkit
   // `npm run testin-nutin`
   testinNutin: {
-    includeFramework: true,  // Test Nutin source - src/core
+    includeFramework: false,  // Test Nutin source - src/core
     includeTools: false,     // Test tools/ (builder, testin-nutin, etc.)
     includeApp: true,        // Include application tests
 

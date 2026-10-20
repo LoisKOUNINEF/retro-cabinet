@@ -29,18 +29,36 @@ export type TallyResult = keyof Tally;
 
 type Kind = 'settings' | 'scores' | 'save' | 'tally';
 
+// Stored JSON is untrusted (older versions, hand edits, other code on the origin): every
+// reader checks the shape it gets and treats anything else as nothing stored.
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isScoreEntry = (value: unknown): value is ScoreEntry =>
+  isRecord(value) && typeof value.score === 'number' && typeof value.level === 'number' && typeof value.date === 'string';
+
+const isSavedGame = (value: unknown): value is SavedGame =>
+  isRecord(value) && typeof value.version === 'number' && isRecord(value.settings) && isRecord(value.state);
+
+const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+// Each option's stored value, or its default when missing or no longer one of its choices.
+export function validSettings(stored: unknown, options: GameOption[] = []): Settings {
+  const record = isRecord(stored) ? stored : {};
+  return Object.fromEntries(options.map((option) => {
+    const value = record[option.key];
+    const isValid = typeof value === 'string' && option.choices.some((choice) => choice.value === value);
+    return [option.key, isValid ? value : defaultChoice(option)];
+  }));
+}
+
 // Everything the app keeps between visits, per game: chosen options, the top-5 table
 // and one saved game. Plain JSON in localStorage; when storage is unavailable
 // (private mode, full quota), reads fall back to defaults and writes are skipped.
 export class PersistenceService extends Service<PersistenceService> {
   // The stored options, falling back to each option's default when missing or no longer valid.
   settings(gameId: string, options: GameOption[] = []): Settings {
-    const stored = this.read<Settings>('settings', gameId, {});
-    return Object.fromEntries(options.map((option) => {
-      const value = stored[option.key];
-      const isValid = option.choices.some((choice) => choice.value === value);
-      return [option.key, isValid && value !== undefined ? value : defaultChoice(option)];
-    }));
+    return validSettings(this.read('settings', gameId), options);
   }
 
   saveSettings(gameId: string, settings: Settings): void {
@@ -48,8 +66,8 @@ export class PersistenceService extends Service<PersistenceService> {
   }
 
   scores(gameId: string): ScoreEntry[] {
-    const scores = this.read<ScoreEntry[]>('scores', gameId, []);
-    return Array.isArray(scores) ? scores : [];
+    const scores = this.read('scores', gameId);
+    return Array.isArray(scores) ? scores.filter(isScoreEntry) : [];
   }
 
   // Adds a result to the table: its rank (0 = best) if it made the top 5, else null.
@@ -63,11 +81,11 @@ export class PersistenceService extends Service<PersistenceService> {
     return rank;
   }
 
-  // A save from another SAVE_VERSION can't be trusted: it is dropped.
-  savedGame(gameId: string): SavedGame | null {
-    const save = this.read<SavedGame | null>('save', gameId, null);
-    if (!save) return null;
-    if (save.version !== SAVE_VERSION) {
+  // A save from another version of the game can't be trusted: it is dropped.
+  savedGame(gameId: string, version = SAVE_VERSION): SavedGame | null {
+    const save = this.read('save', gameId);
+    if (save === null) return null;
+    if (!isSavedGame(save) || save.version !== version) {
       this.deleteSave(gameId);
       return null;
     }
@@ -88,12 +106,15 @@ export class PersistenceService extends Service<PersistenceService> {
 
   // The tally kept under `key` (e.g. a difficulty), zeros if none yet.
   tally(gameId: string, key: string): Tally {
-    const stored = this.read<Record<string, Partial<Tally>>>('tally', gameId, {})[key] ?? {};
-    return { wins: stored.wins ?? 0, draws: stored.draws ?? 0, losses: stored.losses ?? 0 };
+    const all = this.read('tally', gameId);
+    const stored = isRecord(all) ? all[key] : undefined;
+    if (!isRecord(stored)) return { wins: 0, draws: 0, losses: 0 };
+    return { wins: count(stored.wins), draws: count(stored.draws), losses: count(stored.losses) };
   }
 
   recordResult(gameId: string, key: string, result: TallyResult): Tally {
-    const all = this.read<Record<string, Tally>>('tally', gameId, {});
+    const stored = this.read('tally', gameId);
+    const all = isRecord(stored) ? stored : {};
     const tally = this.tally(gameId, key);
     tally[result] += 1;
     this.write('tally', gameId, { ...all, [key]: tally });
@@ -104,12 +125,13 @@ export class PersistenceService extends Service<PersistenceService> {
     return `${PREFIX}:${kind}:${gameId}`;
   }
 
-  private read<T>(kind: Kind, gameId: string, fallback: T): T {
+  // The parsed value, or null when missing, unreadable or not JSON.
+  private read(kind: Kind, gameId: string): unknown {
     try {
       const raw = localStorage.getItem(this.key(kind, gameId));
-      return raw === null ? fallback : (JSON.parse(raw) as T);
+      return raw === null ? null : (JSON.parse(raw) as unknown);
     } catch {
-      return fallback;
+      return null;
     }
   }
 

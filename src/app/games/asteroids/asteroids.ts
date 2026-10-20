@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
-  type Game, type GameDefinition, type KeyHint, type Random, type Snapshot, type TouchLayout,
+  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
+  type CanvasGame, type GameDefinition, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawAsteroids } from './asteroids.draw.js';
 import {
@@ -68,12 +68,12 @@ const SAVED_FIELDS = [
   'invulnerableMs', '_fireMs', '_nextWaveMs', '_saucerMs', '_hyperspaceMs', '_nextExtraLife',
 ];
 
-export class Asteroids implements Game {
+export class Asteroids implements CanvasGame {
+  readonly kind = 'canvas';
   readonly id = 'asteroids';
   readonly title = 'Asteroids';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly realtime = true;
   readonly touch: TouchLayout;
   readonly keyHints: KeyHint[];
 
@@ -146,11 +146,6 @@ export class Asteroids implements Game {
     this.saucerBullets = this.moveBullets(this.saucerBullets, dt, (bullet) => this.saucerBulletHits(bullet));
     this.checkShip();
     this.nextWave(dt);
-  }
-
-  // Unused: realtime games tick on every animation frame.
-  speed(): number {
-    return 16;
   }
 
   snapshot(): Snapshot {
@@ -427,12 +422,15 @@ export class Asteroids implements Game {
   }
 }
 
+const SAUCERS_OPTION = onOff('saucers', 'Saucers', true);
+const HYPERSPACE_OPTION = onOff('hyperspace', 'Hyperspace', true);
+
 export const asteroidsGame: GameDefinition = {
   id: 'asteroids',
-  options: [levelOption, onOff('saucers', 'Saucers', true), onOff('hyperspace', 'Hyperspace', true)],
+  options: [levelOption, SAUCERS_OPTION, HYPERSPACE_OPTION],
   create: (settings) => new Asteroids({
     firstLevel: levelFrom(settings),
-    saucers: settings.saucers !== 'off',
-    hyperspace: settings.hyperspace !== 'off',
+    saucers: isOn(settings, SAUCERS_OPTION),
+    hyperspace: isOn(settings, HYPERSPACE_OPTION),
   }),
 };

@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, pickFields, samePoint, setCell,
-  type Game, type GameDefinition, type Grid, type Point, type Random, type Snapshot,
+  applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, pickFields, samePoint, setCell,
+  type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
 import {
@@ -104,7 +104,15 @@ const SAVED_FIELDS = [
   '_modeIndex', '_modeMs', '_ghostsEaten', '_pelletsEaten', '_idleMs', '_lostLife', '_extraLife',
 ];
 
-export class Pacman implements Game {
+export interface PacmanOptions {
+  // The maze, as rows of characters (see mazes.ts).
+  layout?: string[];
+  firstLevel?: number;
+  random?: Random;
+}
+
+export class Pacman implements GridGame {
+  readonly kind = 'grid';
   readonly id = 'pacman';
   readonly title = 'Pacman';
   readonly maze: Maze;
@@ -132,11 +140,12 @@ export class Pacman implements Game {
   private _lostLife = false;
   private _extraLife = false;
 
-  constructor(
-    layout: string[] = COMPACT,
-    private readonly random: Random = cryptoRandom,
-    private readonly firstLevel = 1,
-  ) {
+  private readonly random: Random;
+  private readonly firstLevel: number;
+
+  constructor({ layout = COMPACT, firstLevel = 1, random = cryptoRandom }: PacmanOptions = {}) {
+    this.random = random;
+    this.firstLevel = firstLevel;
     this.maze = parseMaze(layout);
     this.width = this.maze.width;
     this.height = this.maze.height;
@@ -404,12 +413,16 @@ export class Pacman implements Game {
   }
 }
 
+const MAZES = { compact: COMPACT, arcade: ARCADE };
+
+const MAZE_OPTION: GameOption<keyof typeof MAZES> = {
+  key: 'maze',
+  label: 'Maze',
+  choices: [{ value: 'compact', label: 'Compact' }, { value: 'arcade', label: 'Arcade' }],
+};
+
 export const pacmanGame: GameDefinition = {
   id: 'pacman',
-  options: [{
-    key: 'maze',
-    label: 'Maze',
-    choices: [{ value: 'compact', label: 'Compact' }, { value: 'arcade', label: 'Arcade' }],
-  }, levelOption],
-  create: (settings) => new Pacman(settings.maze === 'arcade' ? ARCADE : COMPACT, cryptoRandom, levelFrom(settings)),
+  options: [MAZE_OPTION, levelOption],
+  create: (settings) => new Pacman({ layout: MAZES[choiceOf(settings, MAZE_OPTION)], firstLevel: levelFrom(settings) }),
 };

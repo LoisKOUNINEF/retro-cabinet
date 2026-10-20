@@ -1,6 +1,6 @@
 import {
   applyFields, cryptoRandom, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell, FIRE_KEYS,
-  type Game, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout, type KeyHint,
+  type GridGame, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout, type KeyHint,
 } from '../game.js';
 import { KINDS, TETROMINOES, type Shape, type TetrominoKind } from './tetrominoes.js';
 
@@ -34,7 +34,13 @@ export function rotate(shape: Shape, clockwise: boolean): Shape {
 // What a save keeps (held keys and the random source never are).
 const SAVED_FIELDS = ['board', 'piece', 'next', 'score', 'level', 'lines', 'isOver', 'phase', 'clearingRows', 'curtainRows'];
 
-export class Tetris implements Game {
+export interface TetrisOptions {
+  firstLevel?: number;
+  random?: Random;
+}
+
+export class Tetris implements GridGame {
+  readonly kind = 'grid';
   readonly id = 'tetris';
   readonly title = 'Tetris';
   readonly width = WIDTH;
@@ -63,7 +69,12 @@ export class Tetris implements Game {
   // Rows filled by the game-over curtain, counted from the bottom.
   curtainRows = 0;
 
-  constructor(private readonly random: Random = cryptoRandom, private readonly firstLevel = 1) {
+  private readonly random: Random;
+  private readonly firstLevel: number;
+
+  constructor({ firstLevel = 1, random = cryptoRandom }: TetrisOptions = {}) {
+    this.random = random;
+    this.firstLevel = firstLevel;
     this.reset();
   }
 
@@ -229,5 +240,5 @@ export class Tetris implements Game {
 export const tetrisGame: GameDefinition = {
   id: 'tetris',
   options: [levelOption],
-  create: (settings) => new Tetris(cryptoRandom, levelFrom(settings)),
+  create: (settings) => new Tetris({ firstLevel: levelFrom(settings) }),
 };

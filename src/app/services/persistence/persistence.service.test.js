@@ -71,6 +71,29 @@ describe('PersistenceService', () => {
     expect(storage.savedGame('snake')).toBe(null);
   });
 
+  it('reads well-formed JSON of the wrong shape as nothing stored', () => {
+    ['settings', 'tally', 'save'].forEach((kind) => localStorage.setItem(`retro-cabinet:${kind}:secret`, 'null'));
+
+    expect(storage.settings('secret', OPTIONS)).toEqual({ level: '1', time: 'off' });
+    expect(storage.tally('secret', 'hard')).toEqual({ wins: 0, draws: 0, losses: 0 });
+    expect(storage.recordResult('secret', 'hard', 'wins')).toEqual({ wins: 1, draws: 0, losses: 0 });
+    expect(storage.savedGame('secret')).toBe(null);
+  });
+
+  it('skips malformed score entries and drops a malformed save', () => {
+    localStorage.setItem('retro-cabinet:scores:snake', JSON.stringify([entry(300), null, { score: '9000' }, entry(100)]));
+    localStorage.setItem('retro-cabinet:save:snake', JSON.stringify({ version: SAVE_VERSION, settings: {}, state: 'nope' }));
+
+    expect(storage.scores('snake').map((e) => e.score)).toEqual([300, 100]);
+    expect(storage.savedGame('snake')).toBe(null);
+    expect(localStorage.getItem('retro-cabinet:save:snake')).toBe(null);
+  });
+
+  it('ignores stored settings that are not strings', () => {
+    localStorage.setItem('retro-cabinet:settings:frogger', JSON.stringify({ level: 4, time: ['on'] }));
+    expect(storage.settings('frogger', OPTIONS)).toEqual({ level: '1', time: 'off' });
+  });
+
   it('keeps working when storage is unavailable', () => {
     const fail = () => { throw new Error('QuotaExceededError'); };
     const getItem = spyOn(window.Storage.prototype, 'getItem').andCallFake(fail);

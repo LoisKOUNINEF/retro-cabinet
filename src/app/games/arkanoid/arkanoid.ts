@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, isFireKey, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed,
-  type Game, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
+  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed,
+  type CanvasGame, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawArkanoid } from './arkanoid.draw.js';
 import {
@@ -49,12 +49,12 @@ export interface ArkanoidOptions {
 // What a save keeps (held keys and the random source never are).
 const SAVED_FIELDS = ['paddle', 'balls', 'bricks', 'capsule', 'effect', 'score', 'level', 'lives', 'isOver', '_stuckMs'];
 
-export class Arkanoid implements Game {
+export class Arkanoid implements CanvasGame {
+  readonly kind = 'canvas';
   readonly id = 'arkanoid';
   readonly title = 'Arkanoid';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly realtime = true;
   readonly touch: TouchLayout = { directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
@@ -112,11 +112,6 @@ export class Arkanoid implements Game {
       this.level += 1;
       this.startRound();
     }
-  }
-
-  // Unused: realtime games tick on every animation frame.
-  speed(): number {
-    return 16;
   }
 
   snapshot(): Snapshot {
@@ -319,8 +314,10 @@ export class Arkanoid implements Game {
   }
 }
 
+const POWER_UPS_OPTION = onOff('powerups', 'Power-ups');
+
 export const arkanoidGame: GameDefinition = {
   id: 'arkanoid',
-  options: [levelOption, onOff('powerups', 'Power-ups')],
-  create: (settings) => new Arkanoid({ firstLevel: levelFrom(settings), powerUps: settings.powerups === 'on' }),
+  options: [levelOption, POWER_UPS_OPTION],
+  create: (settings) => new Arkanoid({ firstLevel: levelFrom(settings), powerUps: isOn(settings, POWER_UPS_OPTION) }),
 };

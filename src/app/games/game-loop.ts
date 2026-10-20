@@ -1,10 +1,10 @@
 import type { Game } from './game.js';
 
-// Longest step a realtime game gets: a stalled frame can't make the ball jump through bricks.
+// Longest step a canvas game gets: a stalled frame can't make the ball jump through bricks.
 const MAX_FRAME_MS = 50;
 
 // Drives a game: grid games with chained timeouts, reading speed() before every
-// tick so a level-up takes effect immediately; realtime games on every animation frame.
+// tick so a level-up takes effect immediately; canvas games on every animation frame.
 export class GameLoop {
   private _timer: ReturnType<typeof setTimeout> | null = null;
   private _frame: number | null = null;
@@ -38,17 +38,19 @@ export class GameLoop {
   }
 
   private schedule(): void {
-    if (this.game.realtime) this._frame = requestAnimationFrame(() => this.step());
+    if (this.game.kind === 'canvas') this._frame = requestAnimationFrame(() => this.step());
     else this._timer = setTimeout(() => this.step(), this.game.speed());
   }
 
   private step(): void {
-    const now = Date.now();
-    const elapsed = now - this._lastTick;
-    this.game.tick(this.game.realtime ? Math.min(elapsed, MAX_FRAME_MS) : elapsed);
-    this._lastTick = now;
+    // Cleared first: if tick() throws, the loop is stopped rather than stuck "running".
     this._timer = null;
     this._frame = null;
+    const now = Date.now();
+    // Never negative: Date.now() goes back when the system clock is set back.
+    const elapsed = Math.max(0, now - this._lastTick);
+    this._lastTick = now;
+    this.game.tick(this.game.kind === 'canvas' ? Math.min(elapsed, MAX_FRAME_MS) : elapsed);
     if (!this.game.isOver) this.schedule();
     this.onTick();
   }

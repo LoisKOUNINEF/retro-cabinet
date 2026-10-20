@@ -1,7 +1,7 @@
 import { Snake, snakeGame } from '#root/dist/src/app/games/snake/snake.js';
 
 // random() = 0 always picks the first free cell, (0, 0) on an empty board.
-const newSnake = () => new Snake(() => 0);
+const newSnake = () => new Snake({ random: () => 0 });
 
 describe('Snake', () => {
   it('starts in the middle, heading right, with food on a free cell', () => {
@@ -122,7 +122,7 @@ describe('Snake', () => {
   });
 
   it('starts at the chosen level, with its speed and score multiplier', () => {
-    const game = new Snake(() => 0, 3);
+    const game = new Snake({ random: () => 0, firstLevel: 3 });
     expect(game.level).toBe(3);
     expect(game.speed()).toBeLessThan(newSnake().speed());
 

@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, levelFrom, levelOption, onOff, overlaps, pick, pickFields, UP,
-  type Game, type GameDefinition, type Point, type Random, type Rect, type Snapshot,
+  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, levelFrom, levelOption, onOff, overlaps, pick, pickFields, UP,
+  type CanvasGame, type GameDefinition, type Point, type Random, type Rect, type Snapshot,
 } from '../game.js';
 import { drawFrogger } from './frogger.draw.js';
 import {
@@ -82,12 +82,12 @@ const SAVED_FIELDS = [
   '_clockMs', '_bestRow', '_flyInMs', '_ladyInMs', '_bayCrocodileInMs', '_otterInMs', '_extraLife',
 ];
 
-export class Frogger implements Game {
+export class Frogger implements CanvasGame {
+  readonly kind = 'canvas';
   readonly id = 'frogger';
   readonly title = 'Frogger';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly realtime = true;
 
   score = 0;
   level = 1;
@@ -182,11 +182,6 @@ export class Frogger implements Game {
       if (this.frog.row === HOME_ROW) return this.reachHome();
     }
     this.checkFrog();
-  }
-
-  // Unused: realtime games tick on every animation frame.
-  speed(): number {
-    return 16;
   }
 
   snapshot(): Snapshot {
@@ -525,12 +520,15 @@ export class Frogger implements Game {
   }
 }
 
+const TIME_OPTION = onOff('time', 'Time limit');
+const TURTLES_OPTION = onOff('turtles', 'Diving turtles');
+
 export const froggerGame: GameDefinition = {
   id: 'frogger',
-  options: [levelOption, onOff('time', 'Time limit'), onOff('turtles', 'Diving turtles')],
+  options: [levelOption, TIME_OPTION, TURTLES_OPTION],
   create: (settings) => new Frogger({
     firstLevel: levelFrom(settings),
-    timeLimit: settings.time === 'on',
-    divingTurtles: settings.turtles === 'on',
+    timeLimit: isOn(settings, TIME_OPTION),
+    divingTurtles: isOn(settings, TURTLES_OPTION),
   }),
 };

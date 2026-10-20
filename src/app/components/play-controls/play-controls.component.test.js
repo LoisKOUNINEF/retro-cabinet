@@ -1,6 +1,6 @@
 import { PlayControlsComponent } from '#root/dist/src/app/components/play-controls/play-controls.component.js';
 
-const state = (overrides = {}) => ({ label: '▶ Start', status: 'Press Space to start', over: false, canStartOver: false, ...overrides });
+const state = (overrides = {}) => ({ label: '▶ Start', status: 'Press Space to start', over: false, canStartOver: false, running: false, ...overrides });
 
 describe('PlayControlsComponent', () => {
   let host;
@@ -33,6 +33,16 @@ describe('PlayControlsComponent', () => {
 
     controls.update(state({ label: '↻ Play again', status: 'Game over', over: true }));
     expect($('.game__status').classList.contains('game__status--over')).toBeTruthy();
+  });
+
+  it('disables New game while playing', () => {
+    controls = new PlayControlsComponent(host, state({ label: '⏸ Pause', canStartOver: true, running: true }), handlers);
+    controls.render();
+    expect($('.game__new').hidden).toBeFalsy();
+    expect($('.game__new').disabled).toBeTruthy();
+
+    controls.update(state({ label: '▶ Resume', canStartOver: true }));
+    expect($('.game__new').disabled).toBeFalsy();
   });
 
   it('calls its handlers from the buttons', () => {
@@ -71,6 +81,12 @@ describe('PlayControlsComponent', () => {
 
     $('.game__new').focus();
     controls.update(state({ label: '▶ Start' }));
+    expect(document.activeElement).toBe($('.game__toggle'));
+
+    // Disabled while playing: back to the main button too.
+    controls.update(state({ label: '▶ Resume', canStartOver: true }));
+    $('.game__new').focus();
+    controls.update(state({ label: '⏸ Pause', canStartOver: true, running: true }));
     expect(document.activeElement).toBe($('.game__toggle'));
   });
 

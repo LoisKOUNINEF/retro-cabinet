@@ -16,7 +16,7 @@ const dropToBottom = (game) => {
 
 describe('Tetris', () => {
   it('spawns the piece at the top centre with a next piece ready', () => {
-    const game = new Tetris(alwaysI);
+    const game = new Tetris({ random: alwaysI });
 
     expect(game.piece.kind).toBe('I');
     expect(game.piece.x).toBe(3);
@@ -32,7 +32,7 @@ describe('Tetris', () => {
   });
 
   it('moves left and right but not through the walls', () => {
-    const game = new Tetris(alwaysI);
+    const game = new Tetris({ random: alwaysI });
 
     for (let i = 0; i < 10; i++) game.handleKey('ArrowLeft');
     expect(game.piece.x).toBe(-1);
@@ -49,7 +49,7 @@ describe('Tetris', () => {
   });
 
   it('kicks a rotated piece away from the wall', () => {
-    const game = new Tetris(alwaysI);
+    const game = new Tetris({ random: alwaysI });
     for (let i = 0; i < 20; i++) game.handleKey('ArrowRight');
 
     game.handleKey('ArrowUp');
@@ -60,7 +60,7 @@ describe('Tetris', () => {
   });
 
   it('keeps the piece unchanged when no rotation fits', () => {
-    const game = new Tetris(alwaysI);
+    const game = new Tetris({ random: alwaysI });
     [1, 2, 3].forEach((y) => fillRow(game, y, [4]));
     const shapeBefore = game.piece.shape;
 
@@ -72,7 +72,7 @@ describe('Tetris', () => {
   });
 
   it('locks a piece at the bottom and spawns the next one', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
 
     for (let i = 0; i < 16; i++) game.tick();
     expect(game.piece.y).toBe(16);
@@ -84,13 +84,13 @@ describe('Tetris', () => {
   });
 
   it('soft-drops one row with ArrowDown', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     game.handleKey('ArrowDown');
     expect(game.piece.y).toBe(1);
   });
 
   it('clears a full line and scores 40 × level', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     fillRow(game, 17, [3, 4]);
 
     dropToBottom(game);
@@ -104,7 +104,7 @@ describe('Tetris', () => {
   });
 
   it('scores 1200 × level for four lines at once', () => {
-    const game = new Tetris(alwaysI);
+    const game = new Tetris({ random: alwaysI });
     [14, 15, 16, 17].forEach((y) => fillRow(game, y, [4]));
     game.level = 2;
 
@@ -116,7 +116,7 @@ describe('Tetris', () => {
   });
 
   it('levels up every 10 lines and gets faster', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     game.lines = 9;
     fillRow(game, 17, [3, 4]);
     const slowSpeed = game.speed();
@@ -130,16 +130,16 @@ describe('Tetris', () => {
 
   it('falls at Game Boy speed: 53 frames per row on level 1, down to 3 from level 21', () => {
     const frame = 1000 / 59.73;
-    expect(new Tetris(alwaysO).speed()).toBe(53 * frame);
-    expect(new Tetris(alwaysO, 10).speed()).toBe(11 * frame);
-    const fastest = new Tetris(alwaysO);
+    expect(new Tetris({ random: alwaysO }).speed()).toBe(53 * frame);
+    expect(new Tetris({ random: alwaysO, firstLevel: 10 }).speed()).toBe(11 * frame);
+    const fastest = new Tetris({ random: alwaysO });
     fastest.level = 30;
     expect(fastest.speed()).toBe(3 * frame);
     expect(FLASH_MS).toBe(1557);
   });
 
   it('fills the well from the bottom when a piece locks at the top, then ends the game', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     fillRow(game, 2);
 
     game.tick();
@@ -164,7 +164,7 @@ describe('Tetris', () => {
   });
 
   it('resets to a fresh game', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     fillRow(game, 2);
     for (let i = 0; i < 21; i++) game.tick();
     game.reset();
@@ -179,7 +179,7 @@ describe('Tetris', () => {
   });
 
   it('shows the next piece in a 4×4 preview', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     const preview = game.preview();
 
     expect(preview.length).toBe(4);
@@ -190,7 +190,7 @@ describe('Tetris', () => {
   });
 
   it('centres 2-high pieces vertically in the preview, against the left edge', () => {
-    const preview = new Tetris(() => 4 / 7).preview();
+    const preview = new Tetris({ random: () => 4 / 7 }).preview();
 
     expect(preview[0]).toEqual([null, null, null, null]);
     expect(preview[1]).toEqual(['tetris-T', 'tetris-T', 'tetris-T', null]);
@@ -199,15 +199,15 @@ describe('Tetris', () => {
   });
 
   it('keeps the I piece upright in the preview\'s second column', () => {
-    const preview = new Tetris(alwaysI).preview();
+    const preview = new Tetris({ random: alwaysI }).preview();
 
     expect(preview.map((row) => row[1])).toEqual(['tetris-I', 'tetris-I', 'tetris-I', 'tetris-I']);
   });
 
   it('starts at the chosen level, with its speed and score multiplier', () => {
-    const game = new Tetris(alwaysO, 3);
+    const game = new Tetris({ random: alwaysO, firstLevel: 3 });
     expect(game.level).toBe(3);
-    expect(game.speed()).toBeLessThan(new Tetris(alwaysO).speed());
+    expect(game.speed()).toBeLessThan(new Tetris({ random: alwaysO }).speed());
 
     fillRow(game, 17, [3, 4]);
     dropToBottom(game);
@@ -223,11 +223,11 @@ describe('Tetris', () => {
   });
 
   it('saves and restores its exact state', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     game.handleKey('ArrowLeft');
     for (let i = 0; i < 25; i++) game.tick();
 
-    const copy = new Tetris(alwaysO);
+    const copy = new Tetris({ random: alwaysO });
     copy.restore(JSON.parse(JSON.stringify(game.snapshot())));
     expect(copy.snapshot()).toEqual(game.snapshot());
 
@@ -247,7 +247,7 @@ describe('Tetris', () => {
   });
 
   it('flashes completed lines before they vanish', () => {
-    const game = new Tetris(alwaysO);
+    const game = new Tetris({ random: alwaysO });
     fillRow(game, 17, [3, 4]);
     for (let i = 0; i < 17; i++) game.tick();
 
@@ -272,7 +272,7 @@ describe('Tetris', () => {
   });
 
   it('flashes all four lines of a Tetris', () => {
-    const game = new Tetris(alwaysI);
+    const game = new Tetris({ random: alwaysI });
     [14, 15, 16, 17].forEach((y) => fillRow(game, y, [4]));
     for (let i = 0; i < 15; i++) game.tick();
 
@@ -281,16 +281,16 @@ describe('Tetris', () => {
   });
 
   it('saves and restores a game mid-flash and mid-curtain', () => {
-    const flashing = new Tetris(alwaysO);
+    const flashing = new Tetris({ random: alwaysO });
     fillRow(flashing, 17, [3, 4]);
     for (let i = 0; i < 17; i++) flashing.tick();
 
-    const ending = new Tetris(alwaysO);
+    const ending = new Tetris({ random: alwaysO });
     fillRow(ending, 2);
     for (let i = 0; i < 6; i++) ending.tick();
 
     [flashing, ending].forEach((game) => {
-      const copy = new Tetris(alwaysO);
+      const copy = new Tetris({ random: alwaysO });
       copy.restore(JSON.parse(JSON.stringify(game.snapshot())));
       expect(copy.cells()).toEqual(game.cells());
       for (let i = 0; i < 3; i++) { game.tick(); copy.tick(); }

@@ -1,7 +1,7 @@
 <div class="play-controls">
   <div class="game__actions">
     <button type="button" class="game__button game__toggle" data-focus-key="toggle" data-event="click:_togglePlay">${state.label}</button>
-    <button type="button" class="game__button game__new" data-focus-key="new" data-event="click:_newGame" ${state.canStartOver ? '' : 'hidden'}>New game</button>
+    <button type="button" class="game__button game__new" data-focus-key="new" data-event="click:_newGame" ${state.canStartOver ? '' : 'hidden'} ${state.running ? 'disabled' : ''}>New game</button>
   </div>
   <p class="game__keys" data-optional>${keys}</p>
   <p class="game__status${state.over ? ' game__status--over' : ''}" role="status">${state.status}</p>
