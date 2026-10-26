@@ -367,10 +367,18 @@ describe('Pacman', () => {
   });
 
   it('combines the maze and level options', () => {
-    expect(pacmanGame.options.map((o) => o.key)).toEqual(['maze', 'level']);
+    expect(pacmanGame.options.map((o) => o.key)).toEqual(['maze', 'level', 'lives']);
     const game = pacmanGame.create({ maze: 'arcade', level: '2' });
     expect(game.width).toBe(28);
-    expect(game.level).toBe(2);
+    expect(game.lives).toBe(3);
+  });
+
+  it('starts every game with the chosen lives', () => {
+    const game = pacmanGame.create({ lives: '99' });
+    expect(game.lives).toBe(99);
+    game.lives = 1;
+    game.reset();
+    expect(game.lives).toBe(99);
   });
 
   it('saves and restores its exact state, ghosts and modes included', () => {

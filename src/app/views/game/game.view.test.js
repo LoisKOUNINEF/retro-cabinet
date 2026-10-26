@@ -208,7 +208,7 @@ describe('GameView', () => {
     view = new GameView(froggerGame);
     view.render();
 
-    expect($$('select[data-option]').length).toBe(3);
+    expect($$('select[data-option]').length).toBe(4);
     expect($('[data-stat="time"]')).toBeFalsy();
 
     const select = $('select[data-option="time"]');

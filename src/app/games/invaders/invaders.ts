@@ -1,5 +1,5 @@
 import {
-  applyFields, autoFireOption, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, overlaps, pick, pickFields,
+  applyFields, autoFireOption, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff, overlaps, pick, pickFields,
   type CanvasGame, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { spriteHeight, spriteWidth } from '../sprites.js';
@@ -55,6 +55,7 @@ export interface Invader {
 
 export interface InvadersOptions {
   firstLevel?: number;
+  lives?: number;
   shields?: boolean;
   // Touch only: see TouchLayout.autoFire.
   autoFire?: boolean;
@@ -146,7 +147,7 @@ export class Invaders implements CanvasGame {
   reset(): void {
     this.score = 0;
     this.level = this.options.firstLevel ?? 1;
-    this.lives = LIVES;
+    this.lives = this.options.lives ?? LIVES;
     this.isOver = false;
     this.shotsFired = 0;
     this.startWave();
@@ -370,9 +371,10 @@ const SHIELDS_OPTION = onOff('shields', 'Shields', true);
 
 export const invadersGame: GameDefinition = {
   id: 'invaders',
-  options: [levelOption, SHIELDS_OPTION, autoFireOption],
+  options: [levelOption, livesOption(LIVES), SHIELDS_OPTION, autoFireOption],
   create: (settings) => new Invaders({
     firstLevel: levelFrom(settings),
+    lives: livesFrom(settings, LIVES),
     shields: isOn(settings, SHIELDS_OPTION),
     autoFire: isOn(settings, autoFireOption),
   }),

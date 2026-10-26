@@ -1,4 +1,4 @@
-import { applyFields, choiceOf, cryptoRandom, defaultSettings, isOn, levelFrom, levelOption, onOff, pickFields, shuffle } from '#root/dist/src/app/games/game.js';
+import { applyFields, choiceOf, cryptoRandom, defaultSettings, isOn, levelFrom, levelOption, livesFrom, livesOption, onOff, pickFields, shuffle } from '#root/dist/src/app/games/game.js';
 
 describe('Game options', () => {
   it('offers starting levels 1 to 10, defaulting to 1', () => {
@@ -12,6 +12,24 @@ describe('Game options', () => {
     expect(levelFrom({ level: '42' })).toBe(10);
     expect(levelFrom({ level: 'abc' })).toBe(1);
     expect(levelFrom({})).toBe(1);
+  });
+
+  it('offers the original lives (shown) or 3, 6, 9, 99, defaulting to the original', () => {
+    const option = livesOption(5);
+    expect(option.choices.map((c) => c.value)).toEqual(['original', '3', '6', '9', '99']);
+    expect(option.choices[0].label).toBe('Original (5)');
+    expect(defaultSettings([option])).toEqual({ lives: 'original' });
+  });
+
+  it('leaves out the fixed choice equal to the original count', () => {
+    expect(livesOption(3).choices.map((c) => c.value)).toEqual(['original', '6', '9', '99']);
+  });
+
+  it('reads the lives from settings, falling back to the original count', () => {
+    expect(livesFrom({ lives: '9' }, 5)).toBe(9);
+    expect(livesFrom({ lives: 'original' }, 5)).toBe(5);
+    expect(livesFrom({ lives: '42' }, 5)).toBe(5);
+    expect(livesFrom({}, 5)).toBe(5);
   });
 
   it('builds on/off toggles that default to off', () => {

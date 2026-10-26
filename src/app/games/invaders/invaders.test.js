@@ -298,13 +298,21 @@ describe('Space Invaders', () => {
   });
 
   it('builds from its definition settings, shields on and auto-fire off by default', () => {
-    expect(invadersGame.options.map((o) => o.key)).toEqual(['level', 'shields', 'autoFire']);
-    expect(defaultSettings(invadersGame.options)).toEqual({ level: '1', shields: 'on', autoFire: 'off' });
+    expect(invadersGame.options.map((o) => o.key)).toEqual(['level', 'lives', 'shields', 'autoFire']);
+    expect(defaultSettings(invadersGame.options)).toEqual({ level: '1', lives: 'original', shields: 'on', autoFire: 'off' });
 
     const game = invadersGame.create({ level: '2', shields: 'off' });
     expect(game.level).toBe(2);
     expect(game.shieldChunks.length).toBe(0);
     expect(game.stats()).toEqual({ lives: 3 });
+  });
+
+  it('starts every game with the chosen lives', () => {
+    const game = invadersGame.create({ lives: '9' });
+    expect(game.lives).toBe(9);
+    game.lives = 1;
+    game.reset();
+    expect(game.lives).toBe(9);
   });
 
   it('saves and restores its exact state, timers and shields included', () => {

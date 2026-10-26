@@ -184,6 +184,26 @@ export function levelFrom(settings: Settings): number {
   return Number.isFinite(level) ? Math.min(Math.max(level, 1), MAX_START_LEVEL) : 1;
 }
 
+const LIVES_CHOICES = [3, 6, 9, 99];
+
+// "Lives": the game's original count (its arcade cabinet's default), or a fixed one other than it.
+export function livesOption(original: number): GameOption {
+  return {
+    key: 'lives',
+    label: 'Lives',
+    choices: [
+      { value: 'original', label: `Original (${original})` },
+      ...LIVES_CHOICES.filter((n) => n !== original).map((n) => ({ value: String(n), label: String(n) })),
+    ],
+  };
+}
+
+// The chosen lives; `original` when missing, 'original' or not one of the choices.
+export function livesFrom(settings: Settings, original: number): number {
+  const lives = Number(settings.lives);
+  return LIVES_CHOICES.includes(lives) ? lives : original;
+}
+
 export type OnOff = GameOption<'on' | 'off'>;
 
 // A boolean setting, off unless defaultOn; read it with isOn().

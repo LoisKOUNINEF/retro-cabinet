@@ -250,10 +250,18 @@ describe('Arkanoid', () => {
   });
 
   it('builds from its definition settings', () => {
-    expect(arkanoidGame.options.map((o) => o.key)).toEqual(['level', 'powerups']);
+    expect(arkanoidGame.options.map((o) => o.key)).toEqual(['level', 'lives', 'powerups']);
     const game = arkanoidGame.create({ level: '3', powerups: 'on' });
     expect(game.level).toBe(3);
     expect(game.stats()).toEqual({ lives: 3 });
+  });
+
+  it('starts every game with the chosen lives', () => {
+    const game = arkanoidGame.create({ lives: '6' });
+    expect(game.lives).toBe(6);
+    game.lives = 1;
+    game.reset();
+    expect(game.lives).toBe(6);
   });
 
   it('saves and restores its exact state, balls and bricks included', () => {
