@@ -338,6 +338,7 @@ describe('Space Invaders', () => {
     const { touch } = invadersGame.create({ autoFire: 'on' });
     expect(touch.autoFire).toBe(true);
     expect(touch.action).toEqual({ label: 'Hold', code: 'ArrowUp' });
+    expect(invadersGame.create({ autoFire: 'on' }).keyHints.map((hint) => hint.action)).toEqual(['Move', 'Hold fire']);
   });
 
   it('also fires with the fire key, and keeps firing while it is held', () => {

@@ -70,6 +70,7 @@
 
 // Play/pause (touch screens) and the HUD drawer's button (phones).
 .game__toolbar {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -99,7 +100,9 @@
 }
 
 .game__back {
+  flex: none;
   color: var(--text-secondary);
+  white-space: nowrap;
   font-weight: bold;
 
   @include mixins.hover-or-focus {
@@ -112,8 +115,9 @@
   font-size: 1.75rem;
   font-weight: bold;
 
-  // Room for the toolbar.
+  // Room for the back link and the toolbar: the title is the one that gets cut.
   @include mixins.respond-to(medium) {
+    flex: 1 1 0;
     min-width: 0;
     overflow: hidden;
     font-size: 1.25rem;

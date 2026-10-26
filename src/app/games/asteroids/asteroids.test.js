@@ -301,5 +301,6 @@ describe('Asteroids', () => {
     const { touch } = asteroidsGame.create({ autoFire: 'on' });
     expect(touch.autoFire).toBe(true);
     expect(touch.action).toEqual({ label: 'Hold', code: 'KeyZ' });
+    expect(asteroidsGame.create({ autoFire: 'on' }).keyHints.map((h) => h.action)).toEqual(['Turn', 'Thrust', 'Hold fire', 'Hyperspace']);
   });
 });

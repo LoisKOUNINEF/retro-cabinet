@@ -57,7 +57,7 @@ export interface InvadersOptions {
   firstLevel?: number;
   lives?: number;
   shields?: boolean;
-  // Touch only: see TouchLayout.autoFire.
+  // See TouchLayout.autoFire (the keyboard's fire keys work the same way).
   autoFire?: boolean;
   random?: Random;
 }
@@ -75,10 +75,7 @@ export class Invaders implements CanvasGame {
   readonly width = WIDTH;
   readonly height = HEIGHT;
   readonly touch: TouchLayout;
-  readonly keyHints: KeyHint[] = [
-    { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
-    { action: 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] },
-  ];
+  readonly keyHints: KeyHint[];
 
   score = 0;
   // The wave: each one starts lower and marches faster.
@@ -110,6 +107,10 @@ export class Invaders implements CanvasGame {
       action: { label: options.autoFire ? 'Hold' : 'Fire', code: 'ArrowUp' },
       ...(options.autoFire && { autoFire: true }),
     };
+    this.keyHints = [
+      { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
+      { action: options.autoFire ? 'Hold fire' : 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] },
+    ];
     this.reset();
   }
 

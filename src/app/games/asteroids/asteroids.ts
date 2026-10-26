@@ -47,7 +47,7 @@ export interface AsteroidsOptions {
   lives?: number;
   saucers?: boolean;
   hyperspace?: boolean;
-  // Touch only: see TouchLayout.autoFire.
+  // See TouchLayout.autoFire (the keyboard's fire keys work the same way).
   autoFire?: boolean;
   random?: Random;
 }
@@ -112,7 +112,7 @@ export class Asteroids implements CanvasGame {
     this.keyHints = [
       { action: 'Turn', codes: ['ArrowLeft', 'ArrowRight'] },
       { action: 'Thrust', codes: ['ArrowUp'] },
-      { action: 'Fire', codes: FIRE_KEYS },
+      { action: options.autoFire ? 'Hold fire' : 'Fire', codes: FIRE_KEYS },
       ...(options.hyperspace ? [{ action: 'Hyperspace', codes: ['ArrowDown'] }] : []),
     ];
     this.reset();

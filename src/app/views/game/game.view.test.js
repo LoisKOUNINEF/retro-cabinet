@@ -5,7 +5,7 @@ import { pacmanGame } from '#root/dist/src/app/games/pacman/pacman.js';
 import { froggerGame } from '#root/dist/src/app/games/frogger/frogger.js';
 import { Arkanoid, arkanoidGame } from '#root/dist/src/app/games/arkanoid/arkanoid.js';
 import { Invaders, invadersGame } from '#root/dist/src/app/games/invaders/invaders.js';
-import { asteroidsGame } from '#root/dist/src/app/games/asteroids/asteroids.js';
+import { Asteroids, asteroidsGame } from '#root/dist/src/app/games/asteroids/asteroids.js';
 import { pongGame } from '#root/dist/src/app/games/pong/pong.js';
 import { levelOption, onOff } from '#root/dist/src/app/games/game.js';
 import { Navigation, registerPipes } from '#root/dist/src/core/index.js';
@@ -552,9 +552,96 @@ describe('GameView', () => {
     getContext.restore();
   });
 
-  it('leaves the keyboard alone with auto-fire on', () => {
+  it('auto-fires on the keyboard with the option, holding a fire key to cease fire', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
     const game = new Invaders({ random: () => 0, autoFire: true });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+
+    press('Space');
+    expect(game.shotsFired).toBe(1);
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+
+    // Two fire keys held: fire resumes once both are let go.
+    press('KeyZ');
+    press('ArrowUp');
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+    release('KeyZ');
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+    release('ArrowUp');
+    expect(game.shotsFired).toBe(3);
+
+    // A pause stops it, the next resume starts it again.
+    press('Space');
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(3);
+    press('Space');
+    expect(game.shotsFired).toBe(4);
+    getContext.restore();
+  });
+
+  it('does not resume keyboard auto-fire while a fire key is held', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    const game = new Invaders({ random: () => 0, autoFire: true });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+
+    press('KeyZ');
+    press('Space');
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(0);
+    release('KeyZ');
+    expect(game.shotsFired).toBe(1);
+    getContext.restore();
+  });
+
+  it('keeps thrust apart from fire with keyboard auto-fire', () => {
+    const anyContext = new Proxy({}, { get: (target, key) => target[key] ?? (() => {}) });
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(anyContext);
+    const game = new Asteroids({ random: () => 0, autoFire: true });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    const keyUp = spyOn(game, 'handleKeyUp');
+    const keyDown = spyOn(game, 'handleKey');
+
+    press('Space');
+    expect(keyDown).toHaveBeenCalledWith('KeyZ');
+    press('ArrowUp');
+    expect(keyDown).toHaveBeenCalledWith('ArrowUp');
+    expect(keyUp).not.toHaveBeenCalled();
+    press('KeyW');
+    expect(keyUp).toHaveBeenCalledWith('KeyZ');
+    getContext.restore();
+  });
+
+  it('updates the key hints when turning auto-fire on', async () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    view = new GameView(invadersGame);
+    view.render();
+    view.onEnter();
+    await flushPromises();
+    expect($('.game__keys').textContent).not.toContain('Hold fire');
+
+    const select = $('select[data-option="autoFire"]');
+    select.value = 'on';
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await flushPromises();
+    expect($('.game__keys').textContent).toContain('Hold fire');
+    getContext.restore();
+  });
+
+  it('leaves the keyboard alone with auto-fire off', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    const game = new Invaders({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();

@@ -77,7 +77,8 @@ export interface TouchLayout {
   repeatMs?: number;
   // onPad: the button takes the D-pad's empty up slot (Tetris's Rotate) instead of the right thumb.
   action?: { label: string; code: string; onPad?: boolean };
-  // The action key stays pressed while playing; holding the button lets go of it (cease fire).
+  // The action key stays pressed while playing; holding the button, or a fire key on the
+  // keyboard (GameView), lets go of it (cease fire).
   autoFire?: boolean;
 }
 
@@ -213,7 +214,7 @@ export function onOff(key: string, label: string, defaultOn = false): OnOff {
 
 export const isOn = (settings: Settings, option: OnOff) => choiceOf(settings, option) === 'on';
 
-// Shooters on touch screens: the action button fires on its own, held to cease fire (TouchLayout.autoFire).
+// Shooters: fire on their own, the action button or a fire key held to cease fire (TouchLayout.autoFire).
 export const autoFireOption = onOff('autoFire', 'Auto-fire');
 
 // A game's saved state; versioned per game (GameDefinition.saveVersion).

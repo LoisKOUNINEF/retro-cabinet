@@ -10,7 +10,7 @@ import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
 import { GameLoop } from '../../games/game-loop.js';
 import { isControlKey } from '../keyboard.js';
-import { DEFAULT_TOUCH, SAVE_VERSION, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
+import { DEFAULT_TOUCH, SAVE_VERSION, isFireKey, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
 import { PersistenceService, validSettings } from '../../services/persistence/persistence.service.js';
 import type { DrawerElement } from 'a11y-elements/overlays/drawer/element';
 
@@ -37,6 +37,8 @@ export class GameView extends View {
   private _options: GameOptionsComponent | null = null;
   private _touch: TouchControlsComponent | null = null;
   private _playToggle: PlayToggleComponent | null = null;
+  // Auto-fire on the keyboard: the fire keys held down to cease fire.
+  private readonly _fireHeld = new Set<string>();
   // Phones: the HUD drawer, created on first use, and the media query that moves the panel.
   private _drawer: DrawerElement | null = null;
   private _mobileQuery: MediaQueryList | null = null;
@@ -71,7 +73,8 @@ export class GameView extends View {
         : this._board = new GameBoardComponent(el, { width, height }),
     }, {
       selector: 'play',
-      keep: 'play',
+      // New key hints (an option changed them, e.g. auto-fire) need new controls.
+      keep: JSON.stringify(this._game.keyHints ?? null),
       factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
         togglePlay: () => this.togglePlay(),
         newGame: () => this.startNewGame(),
@@ -242,12 +245,39 @@ export class GameView extends View {
     if (isControlKey(event)) return;
     if (PREVENTED_KEYS.includes(event.code)) event.preventDefault();
     if (event.code === 'Space') return this.togglePlay();
+    const fire = this.autoFireCode;
+    if (fire && this.isHoldFireKey(event.code)) {
+      // With auto-fire, holding a fire key holds fire (as the touch button does).
+      this._fireHeld.add(event.code);
+      return this.release(fire);
+    }
     this.press(event.code);
   };
 
   private readonly _onKeyup = (event: KeyboardEvent): void => {
+    if (this.autoFireCode && this.isHoldFireKey(event.code)) {
+      this._fireHeld.delete(event.code);
+      return this.resumeFire();
+    }
     this.release(event.code);
   };
+
+  // The key auto-fire keeps pressed, if the game has it on.
+  private get autoFireCode(): string | undefined {
+    const touch = this._game.touch;
+    return touch?.autoFire ? touch.action?.code : undefined;
+  }
+
+  // The action key and the shared fire keys, but not e.g. Asteroids' thrust.
+  private isHoldFireKey(code: string): boolean {
+    return code === this.autoFireCode || isFireKey(code);
+  }
+
+  // Keyboard auto-fire starts firing again, unless a fire key is held.
+  private resumeFire(): void {
+    const fire = this.autoFireCode;
+    if (fire && this._fireHeld.size === 0) this.press(fire);
+  }
 
   // Keyboard and touch controls both end up here.
   private press(code: string): void {
@@ -271,6 +301,8 @@ export class GameView extends View {
     this._loop.pause();
     this._game.releaseKeys?.();
     this._touch?.reset();
+    // A key let go while the page was blurred never sends its keyup.
+    this._fireHeld.clear();
     this.save();
   }
 
@@ -316,8 +348,9 @@ export class GameView extends View {
     if (this._loop.isRunning) this.pause();
     else {
       this._loop.start();
-      // Auto-fire is for touch screens only: keyboards fire as before.
+      // Auto-fire: the touch controls or the keyboard keep the action key pressed.
       if (isTouchDevice()) this._touch?.resume();
+      else this.resumeFire();
     }
     this.update();
   }

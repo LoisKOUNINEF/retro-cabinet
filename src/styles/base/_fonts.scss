@@ -14,3 +14,11 @@ Example:
   font-family: 'Manaspace';
   src: url('/assets/fonts/mana_space.ttf') format('truetype');
 }
+
+// Manaspace draws . and … blank: this face, listed before it, draws them instead
+// (text-overflow: ellipsis included).
+@font-face {
+  font-family: 'Dots';
+  src: local('Arial'), local('Helvetica'), local('Roboto');
+  unicode-range: U+002E, U+2026;
+}
