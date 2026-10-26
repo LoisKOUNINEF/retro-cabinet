@@ -209,7 +209,7 @@ describe('Pong', () => {
 
   it('has a simple touch layout, key hints, and its difficulty as level', () => {
     const game = newGame({ difficulty: 'hard' });
-    expect(game.touch).toEqual({ directions: ['up', 'down'] });
+    expect(game.touch).toEqual({ pad: 'stick', directions: ['up', 'down'] });
     expect(game.keyHints).toEqual([{ action: 'Move', codes: ['ArrowUp', 'ArrowDown'] }]);
     expect(game.level).toBe(3);
     expect(newGame({ difficulty: 'easy' }).level).toBe(1);

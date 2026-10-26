@@ -1,5 +1,6 @@
 import {
-  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
+  applyFields, autoFireOption, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff,
+  pick, pickFields, rotate, withSpeed, wrap,
   type CanvasGame, type GameDefinition, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawAsteroids } from './asteroids.draw.js';
@@ -43,8 +44,11 @@ const HYPERSPACE_FAIL_CHANCE = 0.1;
 
 export interface AsteroidsOptions {
   firstLevel?: number;
+  lives?: number;
   saucers?: boolean;
   hyperspace?: boolean;
+  // Touch only: see TouchLayout.autoFire.
+  autoFire?: boolean;
   random?: Random;
 }
 
@@ -102,7 +106,8 @@ export class Asteroids implements CanvasGame {
     // On touch the stick turns and thrusts (up), and hyperspaces (down) if enabled.
     this.touch = {
       directions: options.hyperspace ? ['left', 'right', 'up', 'down'] : ['left', 'right', 'up'],
-      action: { label: 'Fire', code: FIRE_KEYS[0]! },
+      action: { label: options.autoFire ? 'Hold' : 'Fire', code: FIRE_KEYS[0]! },
+      ...(options.autoFire && { autoFire: true }),
     };
     this.keyHints = [
       { action: 'Turn', codes: ['ArrowLeft', 'ArrowRight'] },
@@ -120,7 +125,7 @@ export class Asteroids implements CanvasGame {
   reset(): void {
     this.score = 0;
     this.level = this.options.firstLevel ?? 1;
-    this.lives = LIVES;
+    this.lives = this.options.lives ?? LIVES;
     this.isOver = false;
     this._nextExtraLife = EXTRA_LIFE_EVERY;
     this.respawn();
@@ -427,10 +432,12 @@ const HYPERSPACE_OPTION = onOff('hyperspace', 'Hyperspace', true);
 
 export const asteroidsGame: GameDefinition = {
   id: 'asteroids',
-  options: [levelOption, SAUCERS_OPTION, HYPERSPACE_OPTION],
+  options: [levelOption, livesOption(LIVES), SAUCERS_OPTION, HYPERSPACE_OPTION, autoFireOption],
   create: (settings) => new Asteroids({
     firstLevel: levelFrom(settings),
+    lives: livesFrom(settings, LIVES),
     saucers: isOn(settings, SAUCERS_OPTION),
     hyperspace: isOn(settings, HYPERSPACE_OPTION),
+    autoFire: isOn(settings, autoFireOption),
   }),
 };

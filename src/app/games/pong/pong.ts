@@ -81,7 +81,7 @@ export class Pong implements CanvasGame {
   readonly title = 'Pong';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly touch: TouchLayout = { directions: ['up', 'down'] };
+  readonly touch: TouchLayout = { pad: 'stick', directions: ['up', 'down'] };
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ['ArrowUp', 'ArrowDown'] }];
   readonly difficulty: Difficulty;
   // The difficulty: 1 easy, 2 medium, 3 hard. Pong has no levels, so the HUD hides it.

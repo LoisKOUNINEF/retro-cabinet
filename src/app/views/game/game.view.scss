@@ -1,7 +1,10 @@
 @use "mixins";
+@use "pkg:a11y-elements/a11y.css";
 
 // Board on the left, filling the height; the panel on its right (under it on mobile).
 // --stage-width/--stage-height tell every grid and canvas how much room it has.
+// The game view (.game--hud-drawer) differs on phones: the board fills the screen, Next above
+// it, and the panel goes into the HUD drawer (GameView.undockPanel).
 .game {
   // The panel grows with the screen, so it stays readable on large ones.
   --panel-width: clamp(18rem, 24vw, 28rem);
@@ -21,11 +24,78 @@
   }
 }
 
+@include mixins.respond-to(medium) {
+  .game--hud-drawer {
+    --gap: 0.5rem;
+    --header-height: 3rem;
+    // Room kept under the stage for the touch controls (none without them).
+    --controls-height: 0px;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+
+    // Phones: the whole height left by the header and the touch controls, Next on top.
+    .game__stage {
+      flex: none;
+      flex-direction: column;
+      gap: var(--gap);
+      height: calc(100dvh - var(--header-height) - var(--gap) - var(--controls-height));
+    }
+  }
+
+  // The touch controls show (touch-controls.component.scss): the D-pad is 144px, 1.5rem off the bottom.
+  @media (pointer: coarse) {
+    .game--hud-drawer {
+      --controls-height: calc(144px + 2rem + env(safe-area-inset-bottom));
+    }
+  }
+
+  .touch .game--hud-drawer {
+    --controls-height: calc(144px + 2rem + env(safe-area-inset-bottom));
+  }
+}
+
 .game__header {
   display: flex;
   align-items: center;
   gap: 1.5rem;
   height: var(--header-height);
+
+  @include mixins.respond-to(medium) {
+    .game--hud-drawer & {
+      gap: 0.75rem;
+    }
+  }
+}
+
+// Play/pause (touch screens) and the HUD drawer's button (phones).
+.game__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.game__hud-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--secondary);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--secondary);
+  font: bold 1.5rem monospace;
+  line-height: 1;
+  cursor: pointer;
+
+  @include mixins.hover-or-focus {
+    outline: 2px solid var(--secondary);
+    outline-offset: 2px;
+  }
+
+  @include mixins.respond-to(medium) {
+    display: block;
+  }
 }
 
 .game__back {
@@ -41,6 +111,15 @@
 .game__title {
   font-size: 1.75rem;
   font-weight: bold;
+
+  // Room for the toolbar.
+  @include mixins.respond-to(medium) {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 1.25rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }
 
 .game__layout {
@@ -78,6 +157,24 @@
   }
 }
 
+// The board's own room. On phones it's what's left under Next: a size container, so the
+// board and canvas fit it through --stage-* (resolved where they use them).
+.game__screen {
+  display: contents;
+
+  @include mixins.respond-to(medium) {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    min-height: 0;
+    container-type: size;
+    --stage-width: 100cqw;
+    --stage-height: 100cqh;
+  }
+}
+
 .game__panel {
   display: flex;
   flex-direction: column;
@@ -112,16 +209,48 @@
   color: var(--secondary);
 }
 
-// "Next" (Tetris, Columns): first in the panel, so first under the stage on mobile.
+// "Next" (Tetris, Columns): first in the panel; on phones above the board, on its left,
+// as a compact row.
 .game__next {
   align-items: center;
+
+  @include mixins.respond-to(medium) {
+    flex: none;
+    flex-direction: row;
+    align-self: flex-start;
+    gap: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
 }
 
 .game__preview .game-board {
   --cell-size: clamp(1.5rem, 2.2vw, 2.25rem);
 
   @include mixins.respond-to(medium) {
-    --cell-size: 1.75rem;
+    --cell-size: 1rem;
+  }
+}
+
+// The HUD drawer (phones), in the page's colours: set on its backdrop, which wraps the
+// panel's frame and the drawer element itself.
+.a11y-drawer-backdrop:has(#game-hud) {
+  --a11y-drawer-color-background: var(--bg-app);
+  --a11y-drawer-color-text: var(--text);
+  --a11y-drawer-color-overlay: rgba(0, 0, 0, 0.6);
+  --a11y-drawer-width: min(22rem, 90vw);
+  // The panel inside it is out of .game, which sets these.
+  --gap: 0.75rem;
+  --a11y-drawer-content-padding: 3rem 1rem 1rem;
+  --a11y-modal-color-secondary: var(--secondary);
+  --a11y-modal-color-text: var(--text);
+
+  // Play/pause is in the header: the drawer keeps New game only.
+  .game__toggle {
+    display: none;
+  }
+  // Manaspace draws no ×.
+  .a11y-modal-close-button {
+    font-family: monospace;
   }
 }
 

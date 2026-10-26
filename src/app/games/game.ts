@@ -75,7 +75,10 @@ export interface TouchLayout {
   directions: StickDirection[];
   // Re-sends the held direction every repeatMs, on either pad (e.g. Tetris sliding a piece).
   repeatMs?: number;
-  action?: { label: string; code: string };
+  // onPad: the button takes the D-pad's empty up slot (Tetris's Rotate) instead of the right thumb.
+  action?: { label: string; code: string; onPad?: boolean };
+  // The action key stays pressed while playing; holding the button lets go of it (cease fire).
+  autoFire?: boolean;
 }
 
 export const DEFAULT_TOUCH: TouchLayout = { directions: ['up', 'down', 'left', 'right'] };
@@ -181,6 +184,26 @@ export function levelFrom(settings: Settings): number {
   return Number.isFinite(level) ? Math.min(Math.max(level, 1), MAX_START_LEVEL) : 1;
 }
 
+const LIVES_CHOICES = [3, 6, 9, 99];
+
+// "Lives": the game's original count (its arcade cabinet's default), or a fixed one other than it.
+export function livesOption(original: number): GameOption {
+  return {
+    key: 'lives',
+    label: 'Lives',
+    choices: [
+      { value: 'original', label: `Original (${original})` },
+      ...LIVES_CHOICES.filter((n) => n !== original).map((n) => ({ value: String(n), label: String(n) })),
+    ],
+  };
+}
+
+// The chosen lives; `original` when missing, 'original' or not one of the choices.
+export function livesFrom(settings: Settings, original: number): number {
+  const lives = Number(settings.lives);
+  return LIVES_CHOICES.includes(lives) ? lives : original;
+}
+
 export type OnOff = GameOption<'on' | 'off'>;
 
 // A boolean setting, off unless defaultOn; read it with isOn().
@@ -189,6 +212,9 @@ export function onOff(key: string, label: string, defaultOn = false): OnOff {
 }
 
 export const isOn = (settings: Settings, option: OnOff) => choiceOf(settings, option) === 'on';
+
+// Shooters on touch screens: the action button fires on its own, held to cease fire (TouchLayout.autoFire).
+export const autoFireOption = onOff('autoFire', 'Auto-fire');
 
 // A game's saved state; versioned per game (GameDefinition.saveVersion).
 export type Snapshot = Record<string, unknown>;

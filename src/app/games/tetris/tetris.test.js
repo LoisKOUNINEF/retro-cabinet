@@ -239,10 +239,10 @@ describe('Tetris', () => {
     expect(() => new Tetris().restore({ score: 10 })).toThrow();
   });
 
-  it('rotates with the touch button, never with the stick', () => {
+  it('rotates with a touch button in the D-pad\'s up slot, never with a direction', () => {
     const { touch } = new Tetris();
     expect(touch.directions).toEqual(['left', 'right', 'down']);
-    expect(touch.action).toEqual({ label: 'Rotate', code: 'ArrowUp' });
+    expect(touch.action).toEqual({ label: 'Rotate', code: 'ArrowUp', onPad: true });
     expect(touch.repeatMs).toBeGreaterThan(0);
   });
 

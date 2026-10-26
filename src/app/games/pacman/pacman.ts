@@ -1,6 +1,6 @@
 import {
-  applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, pickFields, samePoint, setCell,
-  type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot,
+  applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, livesFrom, livesOption, pickFields, samePoint, setCell,
+  type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
 import {
@@ -108,6 +108,7 @@ export interface PacmanOptions {
   // The maze, as rows of characters (see mazes.ts).
   layout?: string[];
   firstLevel?: number;
+  lives?: number;
   random?: Random;
 }
 
@@ -115,6 +116,7 @@ export class Pacman implements GridGame {
   readonly kind = 'grid';
   readonly id = 'pacman';
   readonly title = 'Pacman';
+  readonly touch: TouchLayout = { pad: 'stick', directions: ['up', 'down', 'left', 'right'] };
   readonly maze: Maze;
   readonly width: number;
   readonly height: number;
@@ -142,10 +144,12 @@ export class Pacman implements GridGame {
 
   private readonly random: Random;
   private readonly firstLevel: number;
+  private readonly startLives: number;
 
-  constructor({ layout = COMPACT, firstLevel = 1, random = cryptoRandom }: PacmanOptions = {}) {
+  constructor({ layout = COMPACT, firstLevel = 1, lives = LIVES, random = cryptoRandom }: PacmanOptions = {}) {
     this.random = random;
     this.firstLevel = firstLevel;
+    this.startLives = lives;
     this.maze = parseMaze(layout);
     this.width = this.maze.width;
     this.height = this.maze.height;
@@ -170,7 +174,7 @@ export class Pacman implements GridGame {
   reset(): void {
     this.score = 0;
     this.level = this.firstLevel;
-    this.lives = LIVES;
+    this.lives = this.startLives;
     this.isOver = false;
     this._extraLife = false;
     this.startLevel();
@@ -423,6 +427,10 @@ const MAZE_OPTION: GameOption<keyof typeof MAZES> = {
 
 export const pacmanGame: GameDefinition = {
   id: 'pacman',
-  options: [MAZE_OPTION, levelOption],
-  create: (settings) => new Pacman({ layout: MAZES[choiceOf(settings, MAZE_OPTION)], firstLevel: levelFrom(settings) }),
+  options: [MAZE_OPTION, levelOption, livesOption(LIVES)],
+  create: (settings) => new Pacman({
+    layout: MAZES[choiceOf(settings, MAZE_OPTION)],
+    firstLevel: levelFrom(settings),
+    lives: livesFrom(settings, LIVES),
+  }),
 };

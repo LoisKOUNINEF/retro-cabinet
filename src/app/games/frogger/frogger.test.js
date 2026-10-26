@@ -288,11 +288,19 @@ describe('Frogger', () => {
   });
 
   it('reads all three options from its definition settings', () => {
-    expect(froggerGame.options.map((o) => o.key)).toEqual(['level', 'time', 'turtles']);
+    expect(froggerGame.options.map((o) => o.key)).toEqual(['level', 'lives', 'time', 'turtles']);
     const game = froggerGame.create({ level: '2', time: 'on', turtles: 'off' });
     expect(game).toBeInstanceOf(Frogger);
     expect(game.level).toBe(2);
     expect(game.stats().time).toBe(60);
+  });
+
+  it('starts every game with the chosen lives', () => {
+    const game = froggerGame.create({ lives: '6' });
+    expect(game.lives).toBe(6);
+    game.lives = 1;
+    game.reset();
+    expect(game.lives).toBe(6);
   });
 
   it('uses the default D-pad on touch screens', () => {

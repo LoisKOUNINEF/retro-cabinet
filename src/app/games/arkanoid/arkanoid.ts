@@ -1,5 +1,5 @@
 import {
-  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed,
+  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff, pick, pickFields, rotate, withSpeed,
   type CanvasGame, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawArkanoid } from './arkanoid.draw.js';
@@ -42,6 +42,7 @@ export interface Capsule {
 
 export interface ArkanoidOptions {
   firstLevel?: number;
+  lives?: number;
   powerUps?: boolean;
   random?: Random;
 }
@@ -55,7 +56,7 @@ export class Arkanoid implements CanvasGame {
   readonly title = 'Arkanoid';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly touch: TouchLayout = { directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } };
+  readonly touch: TouchLayout = { pad: 'stick', directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
     { action: 'Launch', codes: ['ArrowUp', ...FIRE_KEYS] },
@@ -92,7 +93,7 @@ export class Arkanoid implements CanvasGame {
   reset(): void {
     this.score = 0;
     this.level = this.options.firstLevel ?? 1;
-    this.lives = LIVES;
+    this.lives = this.options.lives ?? LIVES;
     this.isOver = false;
     this.startRound();
   }
@@ -318,6 +319,10 @@ const POWER_UPS_OPTION = onOff('powerups', 'Power-ups');
 
 export const arkanoidGame: GameDefinition = {
   id: 'arkanoid',
-  options: [levelOption, POWER_UPS_OPTION],
-  create: (settings) => new Arkanoid({ firstLevel: levelFrom(settings), powerUps: isOn(settings, POWER_UPS_OPTION) }),
+  options: [levelOption, livesOption(LIVES), POWER_UPS_OPTION],
+  create: (settings) => new Arkanoid({
+    firstLevel: levelFrom(settings),
+    lives: livesFrom(settings, LIVES),
+    powerUps: isOn(settings, POWER_UPS_OPTION),
+  }),
 };

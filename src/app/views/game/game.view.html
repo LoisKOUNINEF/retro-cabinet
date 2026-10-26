@@ -1,10 +1,14 @@
-<div class="game">
+<div class="game game--hud-drawer">
   <header class="game__header">
     <a class="game__back" href="/" data-event="click:_goHome">← Games</a>
     <h1 class="game__title">${game.title}</h1>
+    <div class="game__toolbar">
+      <div data-component="play-toggle"></div>
+      <button type="button" class="game__hud-toggle" aria-haspopup="dialog" aria-controls="game-hud" aria-label="Game menu" data-event="click:_openHud">⚙</button>
+    </div>
   </header>
   <div class="game__layout">
-    <div class="game__stage"><div data-component="board"></div></div>
+    <div class="game__stage"><div class="game__screen"><div data-component="board"></div></div></div>
     <aside class="game__panel">
       ${hasPreview ? html`
         <section class="game__section game__next" aria-labelledby="game-next-title">

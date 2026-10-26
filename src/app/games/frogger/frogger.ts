@@ -1,5 +1,5 @@
 import {
-  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, levelFrom, levelOption, onOff, overlaps, pick, pickFields, UP,
+  applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, levelFrom, levelOption, livesFrom, livesOption, onOff, overlaps, pick, pickFields, UP,
   type CanvasGame, type GameDefinition, type Point, type Random, type Rect, type Snapshot,
 } from '../game.js';
 import { drawFrogger } from './frogger.draw.js';
@@ -54,6 +54,7 @@ const RIVER_LANES = LANES.flatMap((lane, i) => (isRiver(lane.kind) ? [i] : []));
 
 export interface FroggerOptions {
   firstLevel?: number;
+  lives?: number;
   // Each frog has TIME_LIMIT ms to reach a bay.
   timeLimit?: boolean;
   // '~' turtles dive on a cycle, drowning a frog riding them.
@@ -134,7 +135,7 @@ export class Frogger implements CanvasGame {
   reset(): void {
     this.score = 0;
     this.level = this.options.firstLevel ?? 1;
-    this.lives = LIVES;
+    this.lives = this.options.lives ?? LIVES;
     this.isOver = false;
     this.homes = BAYS.map(() => false);
     this.offsets = LANES.map(() => 0);
@@ -525,9 +526,10 @@ const TURTLES_OPTION = onOff('turtles', 'Diving turtles');
 
 export const froggerGame: GameDefinition = {
   id: 'frogger',
-  options: [levelOption, TIME_OPTION, TURTLES_OPTION],
+  options: [levelOption, livesOption(LIVES), TIME_OPTION, TURTLES_OPTION],
   create: (settings) => new Frogger({
     firstLevel: levelFrom(settings),
+    lives: livesFrom(settings, LIVES),
     timeLimit: isOn(settings, TIME_OPTION),
     divingTurtles: isOn(settings, TURTLES_OPTION),
   }),

@@ -4,6 +4,7 @@ import { GameCanvasComponent } from '../../components/game-canvas/game-canvas.co
 import { GameOptionsComponent, type GameOptionsConfig } from '../../components/game-options/game-options.component.js';
 import { ScoreTableComponent } from '../../components/score-table/score-table.component.js';
 import { PlayControlsComponent, type PlayState } from '../../components/play-controls/play-controls.component.js';
+import { PlayToggleComponent } from '../../components/play-toggle/play-toggle.component.js';
 import { StatsComponent, type StatsConfig } from '../../components/stats/stats.component.js';
 import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
@@ -11,10 +12,13 @@ import { GameLoop } from '../../games/game-loop.js';
 import { isControlKey } from '../keyboard.js';
 import { DEFAULT_TOUCH, SAVE_VERSION, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
 import { PersistenceService, validSettings } from '../../services/persistence/persistence.service.js';
+import type { DrawerElement } from 'a11y-elements/overlays/drawer/element';
 
 const templateFn = (game: Game, hasPreview: boolean, hasOptions: boolean) => html`__TEMPLATE_PLACEHOLDER__`;
 
 const PREVENTED_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+// Phones ($breakpoints.medium in styles/base/_mixins.scss): the HUD panel moves into a drawer.
+const MOBILE_QUERY = '(max-width: 768px)';
 
 // One view for every game: renders once, then the loop repaints the board and HUD
 // directly on each tick. Changing an option builds a new game and re-renders.
@@ -32,6 +36,15 @@ export class GameView extends View {
   private _stats: StatsComponent | null = null;
   private _options: GameOptionsComponent | null = null;
   private _touch: TouchControlsComponent | null = null;
+  private _playToggle: PlayToggleComponent | null = null;
+  // Phones: the HUD drawer, created on first use, and the media query that moves the panel.
+  private _drawer: DrawerElement | null = null;
+  private _mobileQuery: MediaQueryList | null = null;
+  // The current render's panel and Next box, wherever they were moved.
+  private _panel: HTMLElement | null = null;
+  private _next: HTMLElement | null = null;
+  // Focused in the drawer before a render (e.g. an option changed): focused again after it.
+  private _drawerFocus: HTMLElement | null = null;
   private _started = false;
   // Restored from a save and not resumed yet.
   private _restored = false;
@@ -47,6 +60,7 @@ export class GameView extends View {
 
   override registerChildren(): Nutin.ComponentConfig[] {
     const { width, height } = this._game;
+    const touch = this._game.touch ?? DEFAULT_TOUCH;
     const children: Nutin.ComponentConfig[] = [{
       selector: 'board',
       // A new size (e.g. another maze) needs a new board.
@@ -63,6 +77,10 @@ export class GameView extends View {
         newGame: () => this.startNewGame(),
       }, this._game.keyHints),
     }, {
+      selector: 'play-toggle',
+      keep: 'play-toggle',
+      factory: (el) => this._playToggle = new PlayToggleComponent(el, { running: this._loop.isRunning }, () => this.togglePlay()),
+    }, {
       selector: 'stats',
       keep: 'stats',
       factory: (el) => this._stats = new StatsComponent(el, this.statsConfig()),
@@ -76,12 +94,12 @@ export class GameView extends View {
       factory: (el) => this._scores = new ScoreTableComponent(el, { entries: this._storage.scores(this._definition.id), highlight: null, showLevel: this.showsLevel }),
     }, {
       selector: 'touch',
-      keep: this._definition.id,
+      // A new layout (an option changed it, e.g. auto-fire) needs new controls.
+      keep: JSON.stringify(touch),
       // Touch sends the same codes as the keyboard, through the same press/release path.
-      factory: (el) => this._touch = new TouchControlsComponent(el, this._game.touch ?? DEFAULT_TOUCH, {
+      factory: (el) => this._touch = new TouchControlsComponent(el, touch, {
         press: (code) => this.press(code),
         release: (code) => this.release(code),
-        togglePlay: () => this.togglePlay(),
       }),
     }];
     const preview = this.previewGrid();
@@ -99,6 +117,8 @@ export class GameView extends View {
     document.addEventListener('visibilitychange', this._onBlur);
     window.addEventListener('blur', this._onBlur);
     window.addEventListener('pagehide', this._onBlur);
+    this._mobileQuery = window.matchMedia?.(MOBILE_QUERY) ?? null;
+    this._mobileQuery?.addEventListener('change', this._onLayoutChange);
   }
 
   override onExit(): void {
@@ -108,6 +128,8 @@ export class GameView extends View {
     document.removeEventListener('visibilitychange', this._onBlur);
     window.removeEventListener('blur', this._onBlur);
     window.removeEventListener('pagehide', this._onBlur);
+    this._mobileQuery?.removeEventListener('change', this._onLayoutChange);
+    this._mobileQuery = null;
   }
 
   override documentTitle(): string {
@@ -118,8 +140,74 @@ export class GameView extends View {
     return templateFn(this._game, this._game.kind === 'grid' && Boolean(this._game.preview), this.options.length > 0);
   }
 
+  protected override onBeforeRender(): void {
+    const active = document.activeElement;
+    this._drawerFocus = active instanceof HTMLElement && this._drawer?.contains(active) ? active : null;
+  }
+
   protected override onAfterRender(): void {
+    this._panel = this.element.querySelector<HTMLElement>('.game__panel');
+    this._next = this.element.querySelector<HTMLElement>('.game__next');
+    if (this.isMobile) this.undockPanel();
     this.update();
+  }
+
+  protected override onBeforeDestroy(): void {
+    // Overlays live in <body>: nothing removes them with the view.
+    this._drawer?.remove();
+    this._drawer = null;
+  }
+
+  private get isMobile(): boolean {
+    return window.matchMedia?.(MOBILE_QUERY).matches ?? false;
+  }
+
+  private readonly _onLayoutChange = (event: MediaQueryListEvent): void => {
+    if (event.matches) this.undockPanel();
+    else this.dockPanel();
+  };
+
+  // Phones: the HUD panel goes into the drawer and Next above the board, so the board
+  // gets the whole screen. Runs after each render, which builds both anew in the view.
+  private undockPanel(): void {
+    const panel = this._panel;
+    if (!panel) return;
+    const drawer = this.drawer();
+    // The previous render's panel, emptied of its kept children.
+    drawer.querySelectorAll(':scope > .game__panel').forEach((old) => old !== panel && old.remove());
+    drawer.append(panel);
+    if (this._next) this.element.querySelector('.game__stage')?.prepend(this._next);
+    if (this._drawerFocus?.isConnected) this._drawerFocus.focus();
+    this._drawerFocus = null;
+  }
+
+  // Back to the side of the board, as on desktop.
+  private dockPanel(): void {
+    const panel = this._panel;
+    if (!panel) return;
+    if (this._drawer) this._drawer.open = false;
+    this.element.querySelector('.game__stage')?.after(panel);
+    if (this._next) panel.prepend(this._next);
+  }
+
+  private drawer(): DrawerElement {
+    if (this._drawer) return this._drawer;
+    // Loaded on first use. Until it's defined, the element stays hidden (a11y.css) and
+    // `open` is applied once it upgrades.
+    import('a11y-elements/overlays/drawer').catch(() => {});
+    const drawer = document.createElement('a11y-drawer') as DrawerElement;
+    drawer.id = 'game-hud';
+    drawer.setAttribute('edge', 'right');
+    drawer.setAttribute('dialog-label', 'Game info');
+    document.body.append(drawer);
+    return this._drawer = drawer;
+  }
+
+  // The drawer covers the board: the game pauses first.
+  private _openHud(): void {
+    this.pause();
+    this.update();
+    this.drawer().open = true;
   }
 
   // The saved game if there is a usable one, else a new game with the remembered options.
@@ -130,8 +218,10 @@ export class GameView extends View {
     if (save) {
       try {
         // Settings no longer valid (an option or choice removed): the state may not fit either.
+        // An option added since the save takes its default.
         const settings = validSettings(save.settings, options);
-        if (options.some(({ key }) => settings[key] !== save.settings[key])) throw new Error(`${id}'s saved options are outdated.`);
+        const outdated = options.some(({ key }) => key in save.settings && settings[key] !== save.settings[key]);
+        if (outdated) throw new Error(`${id}'s saved options are outdated.`);
         const game = this._definition.create(settings);
         if (!game.restore) throw new Error(`${id} can't restore a save.`);
         game.restore(save.state);
@@ -224,7 +314,11 @@ export class GameView extends View {
     this._started = true;
     this._restored = false;
     if (this._loop.isRunning) this.pause();
-    else this._loop.start();
+    else {
+      this._loop.start();
+      // Auto-fire is for touch screens only: keyboards fire as before.
+      if (isTouchDevice()) this._touch?.resume();
+    }
     this.update();
   }
 
@@ -253,6 +347,7 @@ export class GameView extends View {
     }
 
     this._play?.update(this.playState());
+    this._playToggle?.update({ running: this._loop.isRunning });
     this._stats?.update(this.statsConfig());
     this._options?.update(this.optionsConfig());
   }
@@ -309,7 +404,7 @@ export class GameView extends View {
 
   private statusText(): string {
     const touch = isTouchDevice();
-    const action = touch ? 'tap' : 'press Space';
+    const action = touch ? 'tap ▶' : 'press Space';
     if (this._game.isOver) {
       const highScore = this._rank === null ? '' : ` - New high score!`;
       return `Game over${highScore}`;
@@ -317,7 +412,7 @@ export class GameView extends View {
     if (this._loop.isRunning) return `Playing - ${action} to pause`;
     if (this._restored) return `${action} to resume`;
     if (this._started) return `Paused - ${action} to resume`;
-    return touch ? 'Tap to start' : 'Press Space to start';
+    return touch ? 'Tap ▶ to start' : 'Press Space to start';
   }
 
   private _goHome(): void {

@@ -15,7 +15,6 @@ describe('TouchControlsComponent', () => {
     controls = new TouchControlsComponent(host, layout, {
       press: (code) => calls.push(`press ${code}`),
       release: (code) => calls.push(`release ${code}`),
-      togglePlay: () => calls.push('togglePlay'),
     });
     controls.render();
   };
@@ -110,10 +109,64 @@ describe('TouchControlsComponent', () => {
     expect(calls).toEqual(['press ArrowRight', 'press ArrowUp', 'release ArrowUp']);
   });
 
-  it('toggles play with the ⏯ button', () => {
-    mount({ directions: ALL });
-    $('.touch-controls__pause').click();
-    expect(calls).toEqual(['togglePlay']);
+  it('fires on its own with auto-fire once the game resumes, the button holding fire', () => {
+    mount({ pad: 'stick', directions: ['left', 'right'], action: { label: 'Hold', code: 'ArrowUp' }, autoFire: true });
+    const action = $('.touch-controls__action');
+    expect(action.getAttribute('aria-label')).toBe('Hold fire');
+    expect(calls).toEqual([]);
+
+    controls.resume();
+    pointer(action, 'pointerdown', { id: 2 });
+    pointer(action, 'pointerup', { id: 2 });
+
+    expect(calls).toEqual(['press ArrowUp', 'release ArrowUp', 'press ArrowUp']);
+  });
+
+  it('stops auto-fire on reset, and resumes it unless the button is held', () => {
+    mount({ directions: ['left', 'right'], action: { label: 'Hold', code: 'ArrowUp' }, autoFire: true });
+    const action = $('.touch-controls__action');
+    controls.resume();
+
+    controls.reset();
+    controls.reset();
+    expect(calls).toEqual(['press ArrowUp', 'release ArrowUp']);
+
+    pointer(action, 'pointerdown', { id: 2 });
+    controls.resume();
+    expect(calls).toEqual(['press ArrowUp', 'release ArrowUp']);
+  });
+
+  it('does not fire on resume without auto-fire', () => {
+    mount({ directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
+    controls.resume();
+    expect(calls).toEqual([]);
+  });
+
+  it('puts an on-pad action in the D-pad\'s up slot, pressed once even with repeat, and centres the pad', () => {
+    useFakeTimers();
+    mount({ directions: ['left', 'right', 'down'], repeatMs: 120, action: { label: 'Rotate', code: 'ArrowUp', onPad: true } });
+    const rotate = $('.touch-controls__cross-button--up');
+
+    expect(rotate.textContent).toBe('Rotate');
+    expect(rotate.getAttribute('aria-label')).toBe('Rotate');
+    expect($('.touch-controls__action')).toBeFalsy();
+    expect($('.touch-controls').classList.contains('touch-controls--centred')).toBe(true);
+
+    pointer(rotate, 'pointerdown', { id: 1 });
+    advanceTimersByTime(360);
+    pointer(rotate, 'pointerup', { id: 1 });
+    expect(calls).toEqual(['press ArrowUp', 'release ArrowUp']);
+  });
+
+  it('centres the pad only when there is no right-thumb button', () => {
+    mount({ pad: 'stick', directions: ALL });
+    expect($('.touch-controls').classList.contains('touch-controls--centred')).toBe(true);
+    controls.destroy();
+    host = document.createElement('div');
+    document.body.append(host);
+
+    mount({ pad: 'stick', directions: ['left', 'right'], action: { label: 'Fire', code: 'ArrowUp' } });
+    expect($('.touch-controls').classList.contains('touch-controls--centred')).toBe(false);
   });
 
   it('lets go of everything on reset', () => {
