@@ -1,6 +1,6 @@
 import {
   applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, pickFields, samePoint, setCell,
-  type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot,
+  type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
 import {
@@ -115,6 +115,7 @@ export class Pacman implements GridGame {
   readonly kind = 'grid';
   readonly id = 'pacman';
   readonly title = 'Pacman';
+  readonly touch: TouchLayout = { pad: 'stick', directions: ['up', 'down', 'left', 'right'] };
   readonly maze: Maze;
   readonly width: number;
   readonly height: number;

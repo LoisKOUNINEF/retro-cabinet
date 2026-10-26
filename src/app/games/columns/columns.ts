@@ -51,7 +51,7 @@ export class Columns implements GridGame {
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
     repeatMs: 120,
-    action: { label: 'Cycle', code: 'ArrowUp' },
+    action: { label: 'Cycle', code: 'ArrowUp', onPad: true },
   };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },

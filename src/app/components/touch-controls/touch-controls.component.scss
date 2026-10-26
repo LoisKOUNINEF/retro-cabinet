@@ -1,3 +1,5 @@
+@use "mixins";
+
 // Shown only on touch devices: a finger as main pointer, or a touch seen during the visit.
 .touch-controls {
   display: none;
@@ -15,8 +17,7 @@
 
 .touch-controls__stick,
 .touch-controls__cross-button,
-.touch-controls__action,
-.touch-controls__pause {
+.touch-controls__action {
   position: fixed;
   z-index: 10;
   opacity: 0.45;
@@ -68,6 +69,12 @@
   &--down { bottom: 0; left: 48px; }
   &--left { top: 48px; left: 0; }
   &--right { top: 48px; right: 0; }
+
+  // The game's action in the up slot (Tetris's Rotate): a word in a 48px square.
+  &--action {
+    font-size: 0.6rem;
+    overflow: hidden;
+  }
 }
 
 .touch-controls__knob {
@@ -94,16 +101,14 @@
   }
 }
 
-.touch-controls__pause {
-  top: calc(0.75rem + env(safe-area-inset-top));
-  right: calc(0.75rem + env(safe-area-inset-right));
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  // Fully opaque, in the primary colour: the one control the player must always spot.
-  opacity: 1;
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--bg-app);
-  font-size: 1.75rem;
+// Pad alone (no right-thumb button): centred under the board on phones. `translate`, not
+// `transform`: the stick's knob is moved with its own transform.
+@include mixins.respond-to(medium) {
+  .touch-controls--centred {
+    .touch-controls__stick,
+    .touch-controls__cross {
+      left: 50%;
+      translate: -50% 0;
+    }
+  }
 }

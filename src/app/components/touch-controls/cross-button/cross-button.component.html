@@ -1,2 +1,2 @@
-<button type="button" class="touch-controls__cross-button touch-controls__cross-button--${button.direction}"
-  data-direction="${button.direction}" aria-label="${button.direction}">${ARROWS[button.direction]}</button>
+<button type="button" class="touch-controls__cross-button touch-controls__cross-button--${button.direction}${button.isAction ? ' touch-controls__cross-button--action' : ''}"
+  data-direction="${button.direction}" aria-label="${button.name}">${button.label}</button>

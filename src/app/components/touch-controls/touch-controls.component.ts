@@ -6,19 +6,25 @@ import { DIRECTION_CODES, STICK_RADIUS, capture, listenPointer, stickDirection }
 export interface TouchHandlers {
   press(code: string): void;
   release(code: string): void;
-  togglePlay(): void;
 }
 
-const templateFn = (layout: TouchLayout) => html`__TEMPLATE_PLACEHOLDER__`;
+const ARROWS: Record<StickDirection, string> = { up: '▲', down: '▼', left: '◀', right: '▶' };
 
-// A D-pad or a virtual stick (left thumb), an optional action button (right thumb) and a
-// play/pause button. They send the same key codes as the keyboard: games don't know the difference.
+// The right-thumb button: the game's action, unless it sits on the D-pad.
+const sideButton = (layout: TouchLayout) => (layout.action?.onPad ? undefined : layout.action);
+
+const templateFn = (layout: TouchLayout, button = sideButton(layout)) => html`__TEMPLATE_PLACEHOLDER__`;
+
+// A D-pad or a virtual stick (left thumb) and an optional action button (right thumb), or the
+// pad alone, centred. They send the same key codes as the keyboard: games don't know the difference.
 // Each control follows its own finger, so moving and firing work at the same time.
 export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> {
   private _stickPointer: number | null = null;
   private _direction: StickDirection | null = null;
   private _repeat: ReturnType<typeof setInterval> | null = null;
   private _actionPointer: number | null = null;
+  // Auto-fire is holding the action key down.
+  private _firing = false;
   // Keys the D-pad buttons hold down, so a pause can release them.
   private readonly _crossHeld = new Set<string>();
   // Held D-pad keys re-sent every repeatMs, when the game asks.
@@ -27,8 +33,10 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
   private readonly crossPress = (code: string): void => {
     this._crossHeld.add(code);
     this.handlers.press(code);
-    const { repeatMs } = this.config;
-    if (repeatMs && !this._crossRepeats.has(code)) {
+    // Only directions repeat: a held Rotate turns the piece once.
+    const { repeatMs, directions } = this.config;
+    const isDirection = directions.some((direction) => DIRECTION_CODES[direction] === code);
+    if (repeatMs && isDirection && !this._crossRepeats.has(code)) {
       this._crossRepeats.set(code, setInterval(() => this.handlers.press(code), repeatMs));
     }
   };
@@ -42,21 +50,38 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
     super({ templateFn, mountTarget, config: layout });
   }
 
+  // Called when the game starts or resumes: auto-fire starts firing, unless the button is held.
+  resume(): void {
+    const action = this.config.action;
+    if (!this.config.autoFire || !action || this._actionPointer !== null) return;
+    // Pressed again even if already firing: a press made while paused never reached the game.
+    this._firing = true;
+    this.handlers.press(action.code);
+  }
+
   // Lets go of everything: called when the game pauses, so no key stays held.
   reset(): void {
     this._stickPointer = null;
     this.setDirection(null);
     this.moveKnob(0, 0);
     this.releaseAction();
+    this.ceaseFire();
     this._crossRepeats.forEach((_, code) => this.stopCrossRepeat(code));
     this._crossHeld.forEach((code) => this.handlers.release(code));
     this._crossHeld.clear();
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    if (this.config.pad === 'stick') return [];
+    const { pad, directions, action } = this.config;
+    if (pad === 'stick') return [];
+    const buttons = directions.map((direction): CrossButton => ({
+      direction, code: DIRECTION_CODES[direction], label: ARROWS[direction], name: direction, press: this.crossPress, release: this.crossRelease,
+    }));
+    if (action?.onPad) buttons.push({
+      direction: 'up', code: action.code, label: action.label, name: action.label, isAction: true, press: this.crossPress, release: this.crossRelease,
+    });
     return this.createCatalogComponents({
-      items: this.config.directions.map((direction): CrossButton => ({ direction, press: this.crossPress, release: this.crossRelease })),
+      items: buttons,
       selector: 'cross',
       elementName: 'cross-button',
       component: CrossButtonComponent,
@@ -85,10 +110,6 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
   protected override onBeforeDestroy(): void {
     this.stopRepeat();
     this._crossRepeats.forEach((_, code) => this.stopCrossRepeat(code));
-  }
-
-  private _togglePlay(): void {
-    this.handlers.togglePlay();
   }
 
   private on(element: HTMLElement, type: string, handler: (event: PointerEvent) => void): void {
@@ -164,18 +185,30 @@ export class TouchControlsComponent extends Component<HTMLElement, TouchLayout> 
     this._actionPointer = event.pointerId;
     capture(event);
     (event.currentTarget as HTMLElement | null)?.classList.add('touch-controls__action--active');
-    this.handlers.press(action.code);
+    // With auto-fire, holding the button holds fire.
+    if (this.config.autoFire) this.ceaseFire();
+    else this.handlers.press(action.code);
   }
 
   private onActionUp(event: PointerEvent): void {
-    if (event.pointerId === this._actionPointer) this.releaseAction();
+    if (event.pointerId !== this._actionPointer) return;
+    this.releaseAction();
+    this.resume();
   }
 
+  // The finger leaves the button; without auto-fire, its key goes up with it.
   private releaseAction(): void {
     const action = this.config.action;
     if (!action || this._actionPointer === null) return;
     this._actionPointer = null;
     this.element.querySelector('.touch-controls__action')?.classList.remove('touch-controls__action--active');
+    if (!this.config.autoFire) this.handlers.release(action.code);
+  }
+
+  private ceaseFire(): void {
+    const action = this.config.action;
+    if (!action || !this._firing) return;
+    this._firing = false;
     this.handlers.release(action.code);
   }
 }

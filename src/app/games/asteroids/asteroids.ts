@@ -1,5 +1,5 @@
 import {
-  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
+  applyFields, autoFireOption, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, onOff, pick, pickFields, rotate, withSpeed, wrap,
   type CanvasGame, type GameDefinition, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawAsteroids } from './asteroids.draw.js';
@@ -45,6 +45,8 @@ export interface AsteroidsOptions {
   firstLevel?: number;
   saucers?: boolean;
   hyperspace?: boolean;
+  // Touch only: see TouchLayout.autoFire.
+  autoFire?: boolean;
   random?: Random;
 }
 
@@ -102,7 +104,8 @@ export class Asteroids implements CanvasGame {
     // On touch the stick turns and thrusts (up), and hyperspaces (down) if enabled.
     this.touch = {
       directions: options.hyperspace ? ['left', 'right', 'up', 'down'] : ['left', 'right', 'up'],
-      action: { label: 'Fire', code: FIRE_KEYS[0]! },
+      action: { label: options.autoFire ? 'Hold' : 'Fire', code: FIRE_KEYS[0]! },
+      ...(options.autoFire && { autoFire: true }),
     };
     this.keyHints = [
       { action: 'Turn', codes: ['ArrowLeft', 'ArrowRight'] },
@@ -427,10 +430,11 @@ const HYPERSPACE_OPTION = onOff('hyperspace', 'Hyperspace', true);
 
 export const asteroidsGame: GameDefinition = {
   id: 'asteroids',
-  options: [levelOption, SAUCERS_OPTION, HYPERSPACE_OPTION],
+  options: [levelOption, SAUCERS_OPTION, HYPERSPACE_OPTION, autoFireOption],
   create: (settings) => new Asteroids({
     firstLevel: levelFrom(settings),
     saucers: isOn(settings, SAUCERS_OPTION),
     hyperspace: isOn(settings, HYPERSPACE_OPTION),
+    autoFire: isOn(settings, autoFireOption),
   }),
 };

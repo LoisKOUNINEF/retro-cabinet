@@ -1,0 +1,25 @@
+// Shown only where the touch controls are (touch-controls.component.scss).
+.play-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  // Filled in the primary colour: the one control the player must always spot.
+  background: var(--primary);
+  color: var(--bg-app);
+  font: bold 1.5rem monospace;
+  line-height: 1;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .play-toggle {
+    display: block;
+  }
+}
+
+.touch .play-toggle {
+  display: block;
+}

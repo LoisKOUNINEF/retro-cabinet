@@ -75,7 +75,10 @@ export interface TouchLayout {
   directions: StickDirection[];
   // Re-sends the held direction every repeatMs, on either pad (e.g. Tetris sliding a piece).
   repeatMs?: number;
-  action?: { label: string; code: string };
+  // onPad: the button takes the D-pad's empty up slot (Tetris's Rotate) instead of the right thumb.
+  action?: { label: string; code: string; onPad?: boolean };
+  // The action key stays pressed while playing; holding the button lets go of it (cease fire).
+  autoFire?: boolean;
 }
 
 export const DEFAULT_TOUCH: TouchLayout = { directions: ['up', 'down', 'left', 'right'] };
@@ -189,6 +192,9 @@ export function onOff(key: string, label: string, defaultOn = false): OnOff {
 }
 
 export const isOn = (settings: Settings, option: OnOff) => choiceOf(settings, option) === 'on';
+
+// Shooters on touch screens: the action button fires on its own, held to cease fire (TouchLayout.autoFire).
+export const autoFireOption = onOff('autoFire', 'Auto-fire');
 
 // A game's saved state; versioned per game (GameDefinition.saveVersion).
 export type Snapshot = Record<string, unknown>;

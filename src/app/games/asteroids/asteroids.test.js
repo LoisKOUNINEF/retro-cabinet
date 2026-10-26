@@ -279,12 +279,19 @@ describe('Asteroids', () => {
     expect(copy.snapshot()).toEqual(game.snapshot());
   });
 
-  it('builds from its definition, saucers and hyperspace on by default', () => {
-    expect(asteroidsGame.options.map((o) => o.key)).toEqual(['level', 'saucers', 'hyperspace']);
-    expect(defaultSettings(asteroidsGame.options)).toEqual({ level: '1', saucers: 'on', hyperspace: 'on' });
+  it('builds from its definition, saucers and hyperspace on and auto-fire off by default', () => {
+    expect(asteroidsGame.options.map((o) => o.key)).toEqual(['level', 'saucers', 'hyperspace', 'autoFire']);
+    expect(defaultSettings(asteroidsGame.options)).toEqual({ level: '1', saucers: 'on', hyperspace: 'on', autoFire: 'off' });
 
     const game = asteroidsGame.create({ level: '2', saucers: 'off', hyperspace: 'off' });
     expect(game.level).toBe(2);
     expect(game.touch.directions).not.toContain('down');
+    expect(game.touch.autoFire).toBeUndefined();
+  });
+
+  it('turns the touch button into a hold-fire one with auto-fire', () => {
+    const { touch } = asteroidsGame.create({ autoFire: 'on' });
+    expect(touch.autoFire).toBe(true);
+    expect(touch.action).toEqual({ label: 'Hold', code: 'KeyZ' });
   });
 });

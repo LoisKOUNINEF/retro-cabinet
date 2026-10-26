@@ -4,9 +4,10 @@ import { Tetris } from '#root/dist/src/app/games/tetris/tetris.js';
 import { pacmanGame } from '#root/dist/src/app/games/pacman/pacman.js';
 import { froggerGame } from '#root/dist/src/app/games/frogger/frogger.js';
 import { Arkanoid, arkanoidGame } from '#root/dist/src/app/games/arkanoid/arkanoid.js';
-import { Invaders } from '#root/dist/src/app/games/invaders/invaders.js';
+import { Invaders, invadersGame } from '#root/dist/src/app/games/invaders/invaders.js';
+import { asteroidsGame } from '#root/dist/src/app/games/asteroids/asteroids.js';
 import { pongGame } from '#root/dist/src/app/games/pong/pong.js';
-import { levelOption } from '#root/dist/src/app/games/game.js';
+import { levelOption, onOff } from '#root/dist/src/app/games/game.js';
 import { Navigation, registerPipes } from '#root/dist/src/core/index.js';
 import { resetKeyLabels } from '#root/dist/src/app/components/key-labels.js';
 
@@ -33,6 +34,25 @@ const fakeCanvasContext = () => {
     ctx[name] = () => { ctx.drawn += 1; };
   });
   return ctx;
+};
+
+// Phone width (jsdom has no matchMedia): matches the view's mobile query until resize(false).
+const stubPhone = () => {
+  const listeners = [];
+  const phone = {
+    mobile: true,
+    resize(mobile) {
+      phone.mobile = mobile;
+      listeners.forEach((listener) => listener({ matches: mobile }));
+    },
+    restore: () => delete window.matchMedia,
+  };
+  window.matchMedia = (query) => ({
+    matches: query === '(max-width: 768px)' && phone.mobile,
+    addEventListener: (type, listener) => listeners.push(listener),
+    removeEventListener: (type, listener) => listeners.splice(listeners.indexOf(listener), 1),
+  });
+  return phone;
 };
 
 // Snake is 21 wide: (x, y) is cell y * 21 + x.
@@ -388,19 +408,37 @@ describe('GameView', () => {
     expect(localStorage.getItem(SNAKE_SAVE)).toBe(null);
   });
 
+  it('keeps a save from before an option was added, with that option at its default', () => {
+    const definition = { ...snakeDefinition, options: [levelOption] };
+    view = new GameView(definition);
+    view.render();
+    view.onEnter();
+    press('Space');
+    advanceTimersByTime(250);
+    press('Space');
+    view.onExit();
+    view.destroy();
+
+    view = new GameView({ ...definition, options: [levelOption, onOff('extra', 'Extra')] });
+    view.render();
+
+    expect($('.game__status').textContent).toBe('press Space to resume');
+    expect(localStorage.getItem(SNAKE_SAVE)).not.toBe(null);
+  });
+
   it('plays Snake with the touch stick', () => {
     const game = new Snake({ random: () => 0 });
     view = new GameView(definitionOf(game));
     view.render();
     view.onEnter();
 
-    $('.touch-controls__pause').click();
+    $('.play-toggle').click();
     stickPush('pointerdown', { y: -40 });
 
     expect(game.direction).toEqual({ x: 0, y: -1 });
   });
 
-  it('holds Arkanoid moves on the D-pad and launches with the action button', () => {
+  it('holds Arkanoid moves on the stick and launches with the action button', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
     const game = new Arkanoid();
     view = new GameView(definitionOf(game));
@@ -409,12 +447,12 @@ describe('GameView', () => {
     expect($('.touch-controls__action').textContent).toBe('Launch');
 
     press('Space');
-    crossPush('right')('pointerdown');
+    stickPush('pointerdown', { x: 40 });
     advanceTimersByTime(96);
     const moved = game.paddle.x;
     expect(moved).toBeGreaterThan(88);
 
-    crossPush('right')('pointerup');
+    stickPush('pointerup', { x: 40 });
     advanceTimersByTime(96);
     expect(game.paddle.x).toBe(moved);
 
@@ -444,7 +482,90 @@ describe('GameView', () => {
     getContext.restore();
   });
 
-  it('lets go of the D-pad when the game pauses', () => {
+  it('auto-fires on touch screens with the option, holding the button to cease fire', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    document.documentElement.classList.add('touch');
+    const game = new Invaders({ random: () => 0, autoFire: true });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    expect($('.touch-controls__action').textContent).toBe('Hold');
+
+    $('.play-toggle').click();
+    expect(game.shotsFired).toBe(1);
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+
+    actionPush('pointerdown');
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+
+    actionPush('pointerup');
+    expect(game.shotsFired).toBe(3);
+
+    // A pause stops it, the next resume starts it again.
+    $('.play-toggle').click();
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(3);
+    $('.play-toggle').click();
+    expect(game.shotsFired).toBe(4);
+    document.documentElement.classList.remove('touch');
+    getContext.restore();
+  });
+
+  it('rebuilds the touch controls when turning auto-fire on changes their layout', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    document.documentElement.classList.add('touch');
+    view = new GameView(invadersGame);
+    view.render();
+    view.onEnter();
+    expect($('.touch-controls__action').textContent).toBe('Fire');
+
+    const select = $('select[data-option="autoFire"]');
+    select.value = 'on';
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+    expect($('.touch-controls__action').textContent).toBe('Hold');
+
+    $('.play-toggle').click();
+    document.documentElement.classList.remove('touch');
+    getContext.restore();
+    expect(view._game.shotsFired).toBe(1);
+  });
+
+  it('follows the hyperspace option on the touch D-pad', () => {
+    // Asteroids draws paths: any drawing call does nothing.
+    const anyContext = new Proxy({}, { get: (target, key) => target[key] ?? (() => {}) });
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(anyContext);
+    view = new GameView(asteroidsGame);
+    view.render();
+    view.onEnter();
+    expect($('.touch-controls__cross-button--down')).toBeTruthy();
+
+    const select = $('select[data-option="hyperspace"]');
+    select.value = 'off';
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+
+    expect($('.touch-controls__cross-button--down')).toBeFalsy();
+    getContext.restore();
+  });
+
+  it('leaves the keyboard alone with auto-fire on', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    const game = new Invaders({ random: () => 0, autoFire: true });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+
+    press('Space');
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(0);
+    getContext.restore();
+  });
+
+  it('lets go of the stick when the game pauses', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
     const game = new Arkanoid();
     view = new GameView(definitionOf(game));
@@ -452,7 +573,7 @@ describe('GameView', () => {
     view.onEnter();
 
     press('Space');
-    crossPush('right')('pointerdown');
+    stickPush('pointerdown', { x: 40 });
     press('Space');
     press('Space');
     const x = game.paddle.x;
@@ -469,7 +590,7 @@ describe('GameView', () => {
     view.onEnter();
     expect($('.touch-controls__stick')).toBeFalsy();
 
-    $('.touch-controls__pause').click();
+    $('.play-toggle').click();
     const start = game.piece.x;
     crossPush('left')('pointerdown');
     advanceTimersByTime(240);
@@ -493,10 +614,10 @@ describe('GameView', () => {
     view.render();
     view.onEnter();
 
-    expect($('.game__status').textContent).toBe('Tap to start');
-    $('.touch-controls__pause').click();
-    $('.touch-controls__pause').click();
-    expect($('.game__status').textContent).toBe('Paused - tap to resume');
+    expect($('.game__status').textContent).toBe('Tap ▶ to start');
+    $('.play-toggle').click();
+    $('.play-toggle').click();
+    expect($('.game__status').textContent).toBe('Paused - tap ▶ to resume');
     document.documentElement.classList.remove('touch');
   });
 
@@ -507,7 +628,7 @@ describe('GameView', () => {
     view.onEnter();
     expect($('.touch-controls__stick')).toBeFalsy();
 
-    $('.touch-controls__pause').click();
+    $('.play-toggle').click();
     const up = $('.touch-controls__cross-button--up');
     [1, 2].forEach((id) => {
       up.dispatchEvent(new window.PointerEvent('pointerdown', { pointerId: id, bubbles: true }));
@@ -592,6 +713,21 @@ describe('GameView', () => {
     expect(toggle().textContent).toBe('⏸ Pause');
   });
 
+  it('shows the game\'s state on the header\'s play/pause button', () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    const toggle = () => $('.play-toggle');
+    expect(toggle().getAttribute('aria-label')).toBe('Play');
+
+    toggle().click();
+    expect(toggle().textContent).toBe('⏸');
+    expect(toggle().getAttribute('aria-label')).toBe('Pause');
+
+    press('Space');
+    expect(toggle().textContent).toBe('▶');
+  });
+
   it('leaves Space on a focused button to the button, so it toggles once', () => {
     view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
@@ -606,6 +742,82 @@ describe('GameView', () => {
     expect(toggle().textContent).toBe('⏸ Pause');
     // Still focused after the rebuild: Space keeps going to the button.
     expect(document.activeElement).toBe(toggle());
+  });
+
+  it('moves the HUD into a drawer on phones, and Next above the board', () => {
+    const phone = stubPhone();
+    view = new GameView(definitionOf(new Tetris({ random: () => 3 / 7 })));
+    view.render();
+    view.onEnter();
+
+    expect($('a11y-drawer#game-hud > .game__panel .game__stats')).toBeTruthy();
+    expect($('.game__layout .game__panel')).toBeFalsy();
+    expect($('.game__stage > .game__next + .game__screen .game-board')).toBeTruthy();
+    phone.restore();
+  });
+
+  it('pauses the game when the HUD drawer opens', () => {
+    const phone = stubPhone();
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    press('Space');
+
+    $('.game__hud-toggle').click();
+
+    expect($('#game-hud').open).toBe(true);
+    expect($('.game__hud-toggle').textContent).toBe('⚙');
+    expect($('.game__hud-toggle').getAttribute('aria-label')).toBe('Game menu');
+    expect($('.game__status').textContent).toBe('Paused - press Space to resume');
+    phone.restore();
+  });
+
+  it('keeps one panel in the drawer across a new game', () => {
+    const phone = stubPhone();
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    press('Space');
+    press('Space');
+
+    $('.game__new').click();
+
+    expect($$('#game-hud > .game__panel').length).toBe(1);
+    expect($('#game-hud .game__toggle').textContent).toBe('▶ Start');
+    expect($$('a11y-drawer').length).toBe(1);
+    phone.restore();
+  });
+
+  it('puts the HUD back beside the board when the screen gets wider', () => {
+    const phone = stubPhone();
+    view = new GameView(definitionOf(new Tetris({ random: () => 3 / 7 })));
+    view.render();
+    view.onEnter();
+
+    phone.resize(false);
+
+    expect($('.game__stage + .game__panel > .game__next')).toBeTruthy();
+    expect($('#game-hud .game__panel')).toBeFalsy();
+    phone.resize(true);
+    expect($('#game-hud > .game__panel > .game__next')).toBeFalsy();
+    expect($('.game__stage > .game__next')).toBeTruthy();
+    phone.restore();
+  });
+
+  it('removes the HUD drawer with the view, and keeps the panel in place on desktop', () => {
+    const phone = stubPhone();
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    view.onExit();
+    view.destroy();
+    phone.restore();
+
+    expect($('a11y-drawer')).toBeFalsy();
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    expect($('.game__layout > .game__panel')).toBeTruthy();
+    expect($('a11y-drawer')).toBeFalsy();
   });
 
   it('shows no Options box for games without options', () => {

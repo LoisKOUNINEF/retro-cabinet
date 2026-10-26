@@ -48,6 +48,10 @@ const stuck = (game) => {
 };
 
 describe('Pacman', () => {
+  it('moves on a 4-way touch stick', () => {
+    expect(new Pacman().touch).toEqual({ pad: 'stick', directions: ['up', 'down', 'left', 'right'] });
+  });
+
   it('starts with a full maze, Blinky out and the others in the house', () => {
     const game = new Pacman();
 

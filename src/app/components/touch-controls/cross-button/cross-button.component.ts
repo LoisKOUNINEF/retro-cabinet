@@ -1,14 +1,18 @@
 import { Component, html } from '../../../../core/index.js';
 import type { StickDirection } from '../../../games/game.js';
-import { DIRECTION_CODES, capture, listenPointer } from '../stick.js';
+import { capture, listenPointer } from '../stick.js';
 
+// A direction's arrow, or the game's action in an empty slot (Tetris's Rotate in the up one).
 export interface CrossButton {
   direction: StickDirection;
+  code: string;
+  label: string;
+  // Accessible name.
+  name: string;
+  isAction?: boolean;
   press: (code: string) => void;
   release: (code: string) => void;
 }
-
-const ARROWS: Record<StickDirection, string> = { up: '▲', down: '▼', left: '◀', right: '▶' };
 
 const templateFn = (button: CrossButton) => html`__TEMPLATE_PLACEHOLDER__`;
 
@@ -34,11 +38,11 @@ export class CrossButtonComponent extends Component<HTMLElement, CrossButton> {
     event.preventDefault();
     capture(event);
     this._pointers.add(event.pointerId);
-    this.config.press(DIRECTION_CODES[this.config.direction]);
+    this.config.press(this.config.code);
   }
 
   private up(event: PointerEvent): void {
     if (!this._pointers.delete(event.pointerId)) return;
-    this.config.release(DIRECTION_CODES[this.config.direction]);
+    this.config.release(this.config.code);
   }
 }

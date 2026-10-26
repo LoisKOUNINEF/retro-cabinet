@@ -55,7 +55,7 @@ export class Arkanoid implements CanvasGame {
   readonly title = 'Arkanoid';
   readonly width = WIDTH;
   readonly height = HEIGHT;
-  readonly touch: TouchLayout = { directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } };
+  readonly touch: TouchLayout = { pad: 'stick', directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
     { action: 'Launch', codes: ['ArrowUp', ...FIRE_KEYS] },

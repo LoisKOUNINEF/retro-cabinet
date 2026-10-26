@@ -271,7 +271,7 @@ describe('Arkanoid', () => {
   });
 
   it('moves on a left/right stick and launches with the touch button', () => {
-    expect(new Arkanoid().touch).toEqual({ directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } });
+    expect(new Arkanoid().touch).toEqual({ pad: 'stick', directions: ['left', 'right'], action: { label: 'Launch', code: 'ArrowUp' } });
   });
 
   it('also launches with the fire keys, Z or W', () => {
