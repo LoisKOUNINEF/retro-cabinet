@@ -15,8 +15,7 @@ export class OptionSelectComponent extends Component<HTMLElement, OptionSelect> 
     super({ templateFn, mountTarget, config: option });
   }
 
-  // Takes the select itself: Nutin's @value token doesn't read <select> elements.
-  private _change(select: HTMLSelectElement): void {
-    this.config.onChange(this.config.key, select.value);
+  private _change(value: string): void {
+    this.config.onChange(this.config.key, value);
   }
 }
