@@ -3,7 +3,13 @@
 replace_placeholders() {
   echo "Checking for missing image tags to update"
 
-  origin="prev-${SERVICE_NAME}-${STACK_NAME}.yml"
+  if [ "$PIPELINE" = "direct" ]; then
+    origin="prev-${SERVICE_NAME}-production.yml"
+  elif [ "$STACK_NAME" = "staging" ]; then
+    origin="prev-${SERVICE_NAME}-staging.yml"
+  else
+    origin="${SERVICE_NAME}-staging.yml"
+  fi
 
   patterns=$(grep ":image-placeholder" "${SERVICE_NAME}-${STACK_NAME}".yml | sed 's/:image-placeholder.*//')
 
@@ -13,7 +19,7 @@ replace_placeholders() {
   fi
 
   if [ ! -f "$origin" ]; then
-    echo "No previous stack file, nothing to update"
+    echo "No $origin file, nothing to update"
     return 0
   fi
 
