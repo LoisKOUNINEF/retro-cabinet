@@ -10,9 +10,11 @@ import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
 import { GameLoop } from '../../games/game-loop.js';
 import { isControlKey } from '../keyboard.js';
-import { DEFAULT_TOUCH, SAVE_VERSION, isFireKey, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
+import { DEFAULT_TOUCH, SAVE_VERSION, cryptoRandom, isFireKey, pick, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
 import { PersistenceService, validSettings } from '../../services/persistence/persistence.service.js';
+import { GAMES, gamePath } from '../../games/registry.js';
 import type { DrawerElement } from 'a11y-elements/overlays/drawer/element';
+import type { DropdownElement } from 'a11y-elements/overlays/dropdown/element';
 
 const templateFn = (game: Game, hasPreview: boolean, hasOptions: boolean) => html`__TEMPLATE_PLACEHOLDER__`;
 
@@ -42,6 +44,8 @@ export class GameView extends View {
   // Phones: the HUD drawer, created on first use, and the media query that moves the panel.
   private _drawer: DrawerElement | null = null;
   private _mobileQuery: MediaQueryList | null = null;
+  // The header's games menu, anchored to the "← Games" button of the current render.
+  private _gamesMenu: DropdownElement | null = null;
   // The current render's panel and Next box, wherever they were moved.
   private _panel: HTMLElement | null = null;
   private _next: HTMLElement | null = null;
@@ -152,6 +156,8 @@ export class GameView extends View {
     this._panel = this.element.querySelector<HTMLElement>('.game__panel');
     this._next = this.element.querySelector<HTMLElement>('.game__next');
     if (this.isMobile) this.undockPanel();
+    // A new render has a new button: the menu follows it.
+    this.gamesMenu().anchorElement = this.element.querySelector<HTMLElement>('#game-menu-button');
     this.update();
   }
 
@@ -159,6 +165,8 @@ export class GameView extends View {
     // Overlays live in <body>: nothing removes them with the view.
     this._drawer?.remove();
     this._drawer = null;
+    this._gamesMenu?.remove();
+    this._gamesMenu = null;
   }
 
   private get isMobile(): boolean {
@@ -205,6 +213,56 @@ export class GameView extends View {
     document.body.append(drawer);
     return this._drawer = drawer;
   }
+
+  // The header's games menu: home, every game (this one marked current), and a random other one.
+  // Built here rather than in the template: overlays move to <body>, out of reach of data-event.
+  // Created on the first render, so it's defined by the time the button is first clicked.
+  private gamesMenu(): DropdownElement {
+    if (this._gamesMenu) return this._gamesMenu;
+    import('a11y-elements/overlays/dropdown').catch(() => {});
+    const menu = document.createElement('a11y-dropdown') as DropdownElement;
+    menu.id = 'game-menu';
+    menu.setAttribute('placement', 'bottom-start');
+    const item = (label: string, path: string): HTMLAnchorElement => {
+      const link = document.createElement('a');
+      link.setAttribute('role', 'menuitem');
+      link.href = path;
+      link.textContent = label;
+      return link;
+    };
+    const home = item('All games', '/');
+    home.classList.add('game-menu__home');
+    const games = GAMES.map(({ id, title }) => {
+      const link = item(title, gamePath(id));
+      if (id === this._definition.id) link.setAttribute('aria-current', 'page');
+      return link;
+    });
+    const random = item('Random', '/');
+    random.classList.add('game-menu__random');
+    random.dataset['random'] = '';
+    menu.append(home, ...games, random);
+    // The menu covers the board: the game pauses first, as with the HUD drawer.
+    menu.addEventListener('a11y-overlay-open', () => {
+      this.pause();
+      this.update();
+    });
+    menu.addEventListener('click', this._onMenuClick);
+    document.body.append(menu);
+    return this._gamesMenu = menu;
+  }
+
+  // In-app navigation for plain clicks; ctrl/shift/middle clicks keep the links' default.
+  private readonly _onMenuClick = (event: MouseEvent): void => {
+    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('[role="menuitem"]');
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (link.getAttribute('aria-current') === 'page') return;
+    if (link.hasAttribute('data-random')) {
+      const others = GAMES.filter(({ id }) => id !== this._definition.id);
+      return Navigation.navigateTo(gamePath(pick(others, cryptoRandom).id));
+    }
+    Navigation.navigateTo(link.getAttribute('href') ?? '/');
+  };
 
   // The drawer covers the board: the game pauses first.
   private _openHud(): void {
@@ -446,9 +504,5 @@ export class GameView extends View {
     if (this._restored) return `${action} to resume`;
     if (this._started) return `Paused - ${action} to resume`;
     return touch ? 'Tap ▶ to start' : 'Press Space to start';
-  }
-
-  private _goHome(): void {
-    Navigation.navigateTo('/');
   }
 }

@@ -58,11 +58,33 @@ const stubPhone = () => {
 // Snake is 21 wide: (x, y) is cell y * 21 + x.
 const snakeCell = (x, y) => $$('.game-board__cell')[y * 21 + x];
 
+// The header's games menu.
+const menuItems = () => $$('#game-menu [role="menuitem"]');
+const item = (label) => menuItems().find((el) => el.textContent === label);
+const navigations = (fn) => {
+  const paths = [];
+  const stop = Navigation.onNavigate(({ path }) => paths.push(path));
+  fn();
+  stop();
+  return paths;
+};
+
+// The dropdown's bundle, as the view loads it: its element is then defined and upgraded.
+const defineMenu = () => import('a11y-elements/overlays/dropdown');
+
 describe('GameView', () => {
   let view;
 
   // The score table's date pipe; another test file may have registered them already.
-  beforeAll(() => silenceConsole('warn', () => registerPipes()));
+  // The overlays' open/close events: a CustomEvent from jsdom's realm (Node's own is rejected).
+  const nodeCustomEvent = global.CustomEvent;
+  beforeAll(() => {
+    silenceConsole('warn', () => registerPipes());
+    global.CustomEvent = window.CustomEvent;
+  });
+  afterAll(() => {
+    global.CustomEvent = nodeCustomEvent;
+  });
 
   beforeEach(() => {
     localStorage.clear();
@@ -914,15 +936,92 @@ describe('GameView', () => {
     expect($('.game__options')).toBeFalsy();
   });
 
-  it('goes back to the games from the header', () => {
+  it('games menu: opens from the header button, listing home, every game and Random', async () => {
     view = new GameView(definitionOf(new Snake({ random: () => 0 })));
     view.render();
-    const paths = [];
-    const stop = Navigation.onNavigate(({ path }) => paths.push(path));
+    await defineMenu();
 
-    $('.game__header .game__back').click();
+    const button = $('.game__header .game__back');
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.getAttribute('aria-haspopup')).toBe('menu');
+    expect(button.getAttribute('aria-controls')).toBe('game-menu');
+    button.click();
 
-    expect(paths).toEqual(['/']);
-    stop();
+    expect($('#game-menu').open).toBe(true);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(menuItems().map((el) => el.textContent)).toEqual([
+      'All games', 'Tetris', 'Pacman', 'Space Invaders', 'Snake', 'Arkanoid', 'Asteroids', 'Columns', 'Frogger', 'Pong', 'Random',
+    ]);
+    expect(menuItems().filter((el) => el.getAttribute('aria-current') === 'page')).toEqual([item('Snake')]);
+  });
+
+  it('games menu: navigates to the picked game, or home', () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+
+    expect(navigations(() => item('Pacman').click())).toEqual(['/games/pacman']);
+    expect(navigations(() => item('All games').click())).toEqual(['/']);
+    expect(navigations(() => item('Snake').click())).toEqual([]);
+  });
+
+  it('games menu: leaves modified clicks to the browser', () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+
+    expect(navigations(() => item('Pacman').dispatchEvent(event))).toEqual([]);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('games menu: opens a random game other than this one', () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+
+    for (let i = 0; i < 20; i++) {
+      const [path] = navigations(() => item('Random').click());
+      expect(path.startsWith('/games/')).toBe(true);
+      expect(path).not.toBe('/games/snake');
+    }
+  });
+
+  it('games menu: pauses the game when it opens', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    await defineMenu();
+    press('Space');
+
+    $('.game__back').click();
+
+    expect($('.game__status').textContent).toBe('Paused - press Space to resume');
+  });
+
+  it('games menu: leaves keys in the menu to it', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    await defineMenu();
+    $('.game__back').click();
+
+    const event = new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true, cancelable: true });
+    $('#game-menu').closest('[role="menu"]').dispatchEvent(event);
+
+    expect($('.game__status').textContent).toBe('Press Space to start');
+  });
+
+  it('games menu: keeps one menu across a new game, on the new button, and goes with the view', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    await defineMenu();
+    const first = $('.game__back');
+
+    $('.game__new').click();
+
+    expect($$('a11y-dropdown').length).toBe(1);
+    expect($('.game__back')).not.toBe(first);
+    expect($('#game-menu').anchorElement).toBe($('.game__back'));
+    expect($('.game__back').getAttribute('aria-controls')).toBe('game-menu');
+    view.destroy();
+    expect($('a11y-dropdown')).toBeFalsy();
   });
 });

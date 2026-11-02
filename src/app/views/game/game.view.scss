@@ -101,6 +101,11 @@
 
 .game__back {
   flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
   color: var(--text-secondary);
   white-space: nowrap;
   font-weight: bold;
@@ -255,6 +260,55 @@
   // Manaspace draws no ×.
   .a11y-modal-close-button {
     font-family: monospace;
+  }
+}
+
+// The header's games menu ("← Games"), in the page's colours: set on its wrapper, which
+// holds the menu element (both in <body>, out of .game).
+.a11y-dropdown-wrapper:has(#game-menu) {
+  --a11y-dropdown-color-background: var(--surface-elevated);
+  --a11y-dropdown-color-text: var(--text);
+  --a11y-dropdown-min-width: 12rem;
+  --a11y-dropdown-border-radius: 8px;
+  --a11y-dropdown-shadow-fade: 40%;
+  --a11y-dropdown-content-padding: 0.35rem 0;
+  --a11y-menu-item-color-text: var(--text);
+  --a11y-menu-item-color-secondary-hover: var(--secondary);
+  --a11y-menu-item-color-background: var(--bg-app);
+  --a11y-menu-item-padding: 0.55rem 1rem;
+  border: 2px solid var(--secondary);
+  // Above the touch controls and the board.
+  max-height: calc(100dvh - 5rem);
+  overflow-y: auto;
+
+  [role="menuitem"] {
+    display: block;
+    font-weight: bold;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  // The game being played: in the primary colour, pointed at.
+  [aria-current="page"] {
+    color: var(--primary);
+
+    &:hover,
+    &:focus-visible {
+      color: var(--bg-app);
+    }
+
+    &::before {
+      content: "▶ ";
+    }
+  }
+
+  // Home and Random frame the games.
+  .game-menu__home {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .game-menu__random {
+    border-top: 1px solid var(--border);
   }
 }
 
