@@ -16,15 +16,15 @@ describe('PersistenceService', () => {
   afterEach(() => storage.dispose());
 
   it('remembers settings per game', () => {
-    storage.saveSettings('frogger', { level: '4', time: 'on' });
+    storage.saveSettings('frog-crossing', { level: '4', time: 'on' });
 
-    expect(storage.settings('frogger', OPTIONS)).toEqual({ level: '4', time: 'on' });
+    expect(storage.settings('frog-crossing', OPTIONS)).toEqual({ level: '4', time: 'on' });
     expect(storage.settings('snake', OPTIONS)).toEqual({ level: '1', time: 'off' });
   });
 
   it('falls back to defaults for settings that are no longer valid', () => {
-    storage.saveSettings('frogger', { level: '99', time: 'maybe', removed: 'x' });
-    expect(storage.settings('frogger', OPTIONS)).toEqual({ level: '1', time: 'off' });
+    storage.saveSettings('frog-crossing', { level: '99', time: 'maybe', removed: 'x' });
+    expect(storage.settings('frog-crossing', OPTIONS)).toEqual({ level: '1', time: 'off' });
   });
 
   it('keeps the top 5 scores, best first, and says where a new one placed', () => {
@@ -47,20 +47,20 @@ describe('PersistenceService', () => {
   });
 
   it('saves, loads and deletes one game per id', () => {
-    storage.saveGame('tetris', save());
+    storage.saveGame('falling-blocks', save());
 
-    expect(storage.savedGame('tetris')).toEqual(save());
+    expect(storage.savedGame('falling-blocks')).toEqual(save());
     expect(storage.savedGame('snake')).toBe(null);
 
-    storage.deleteSave('tetris');
-    expect(storage.savedGame('tetris')).toBe(null);
+    storage.deleteSave('falling-blocks');
+    expect(storage.savedGame('falling-blocks')).toBe(null);
   });
 
   it('drops a save from another version', () => {
-    storage.saveGame('tetris', save(SAVE_VERSION + 1));
+    storage.saveGame('falling-blocks', save(SAVE_VERSION + 1));
 
-    expect(storage.savedGame('tetris')).toBe(null);
-    expect(localStorage.getItem('retro-cabinet:save:tetris')).toBe(null);
+    expect(storage.savedGame('falling-blocks')).toBe(null);
+    expect(localStorage.getItem('retro-cabinet:save:falling-blocks')).toBe(null);
   });
 
   it('reads corrupt data as nothing stored', () => {
@@ -90,8 +90,8 @@ describe('PersistenceService', () => {
   });
 
   it('ignores stored settings that are not strings', () => {
-    localStorage.setItem('retro-cabinet:settings:frogger', JSON.stringify({ level: 4, time: ['on'] }));
-    expect(storage.settings('frogger', OPTIONS)).toEqual({ level: '1', time: 'off' });
+    localStorage.setItem('retro-cabinet:settings:frog-crossing', JSON.stringify({ level: 4, time: ['on'] }));
+    expect(storage.settings('frog-crossing', OPTIONS)).toEqual({ level: '1', time: 'off' });
   });
 
   it('keeps working when storage is unavailable', () => {
@@ -100,11 +100,11 @@ describe('PersistenceService', () => {
     const setItem = spyOn(window.Storage.prototype, 'setItem').andCallFake(fail);
     const removeItem = spyOn(window.Storage.prototype, 'removeItem').andCallFake(fail);
 
-    expect(() => storage.saveGame('tetris', save())).not.toThrow();
-    expect(() => storage.deleteSave('tetris')).not.toThrow();
-    expect(storage.addScore('tetris', entry(100))).toBe(0);
-    expect(storage.savedGame('tetris')).toBe(null);
-    expect(storage.settings('tetris', OPTIONS)).toEqual({ level: '1', time: 'off' });
+    expect(() => storage.saveGame('falling-blocks', save())).not.toThrow();
+    expect(() => storage.deleteSave('falling-blocks')).not.toThrow();
+    expect(storage.addScore('falling-blocks', entry(100))).toBe(0);
+    expect(storage.savedGame('falling-blocks')).toBe(null);
+    expect(storage.settings('falling-blocks', OPTIONS)).toEqual({ level: '1', time: 'off' });
 
     getItem.restore();
     setItem.restore();
@@ -125,5 +125,43 @@ describe('PersistenceService', () => {
   it('uses an option\'s declared default over its first choice', () => {
     const option = { key: 'difficulty', label: 'Difficulty', choices: [{ value: 'easy' }, { value: 'medium' }], defaultValue: 'medium' };
     expect(storage.settings('secret', [option])).toEqual({ difficulty: 'medium' });
+  });
+
+  it('keeps the best (lowest) value per key', () => {
+    expect(storage.best('matching-pairs', '16-unlimited')).toBe(null);
+    expect(storage.recordBest('matching-pairs', '16-unlimited', 6)).toBe(6);
+    expect(storage.recordBest('matching-pairs', '16-unlimited', 9)).toBe(6);
+    expect(storage.recordBest('matching-pairs', '16-unlimited', 3)).toBe(3);
+    expect(storage.recordBest('matching-pairs', '24-10', 8)).toBe(8);
+    expect(storage.best('matching-pairs', '16-unlimited')).toBe(3);
+    expect(storage.best('matching-pairs', '24-10')).toBe(8);
+  });
+
+  it('reads a malformed best as none', () => {
+    localStorage.setItem('retro-cabinet:best:matching-pairs', JSON.stringify({ a: 'x', b: null }));
+    expect(storage.best('matching-pairs', 'a')).toBe(null);
+    expect(storage.best('matching-pairs', 'b')).toBe(null);
+    localStorage.setItem('retro-cabinet:best:matching-pairs', '[1]');
+    expect(storage.best('matching-pairs', '0')).toBe(null);
+  });
+
+  it('keeps the reward once obtained, under one key', () => {
+    expect(storage.reward()).toBe(null);
+
+    storage.saveReward('dedicated');
+
+    const reward = storage.reward();
+    expect(reward.obtained).toBe(true);
+    expect(reward.achievement).toBe('dedicated');
+    expect(typeof reward.date).toBe('string');
+    expect(JSON.parse(localStorage.getItem('retro-cabinet:reward:bonus')).achievement).toBe('dedicated');
+  });
+
+  it('treats a stored reward of the wrong shape as none', () => {
+    [{ obtained: false, achievement: 'explorer', date: 'x' }, { obtained: true, achievement: 'cheater', date: 'x' }, { obtained: true, achievement: 'explorer' }, 'yes']
+      .forEach((value) => {
+        localStorage.setItem('retro-cabinet:reward:bonus', JSON.stringify(value));
+        expect(storage.reward()).toBe(null);
+      });
   });
 });

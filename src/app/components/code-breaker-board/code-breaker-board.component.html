@@ -1,0 +1,19 @@
+<div class="code-breaker code-breaker--pegs-${config.pegs} code-breaker--tries-${config.tries}">
+  ${codeRow(config)}
+  <ol class="code-breaker__rows" aria-label="Your guesses" data-catalog="rows"></ol>
+  ${config.locked ? '' : html`
+    <div class="code-breaker__row code-breaker__row--current" role="group" aria-label="Guess ${config.guesses.length + 1}">
+      <span class="code-breaker__number" aria-hidden="true">${config.guesses.length + 1}</span>
+      <div class="code-breaker__holes" data-catalog="holes"></div>
+      <button
+        type="button"
+        class="code-breaker__check"
+        data-focus-key="check"
+        data-event="click:_check"
+        ${config.full ? '' : 'disabled'}
+      >Check</button>
+    </div>`}
+  <div class="code-breaker__future" aria-hidden="true">${futureRows(config)}</div>
+  <div class="code-breaker__palette" role="group" aria-label="Colours" data-catalog="palette"></div>
+  <p class="code-breaker__legend">${config.rules}.<br>Filled <span class="code-breaker__legend-key">${keyArt(1, 1, 0)}</span> right colour, right place; hollow <span class="code-breaker__legend-key">${keyArt(1, 0, 1)}</span> right colour, wrong place.</p>
+</div>

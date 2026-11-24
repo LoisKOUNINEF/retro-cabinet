@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="m4-board__column${column.cursor ? ' m4-board__column--cursor' : ''}"
+  data-index="${column.index}"
+  data-focus-key="column-${column.index}"
+  data-event="click:_drop"
+  aria-label="${column.label}"
+  ${column.disabled ? 'disabled' : ''}
+>${[...column.discs].map((disc, row) => html`<span class="${cellClass(column, disc, row)}" aria-hidden="true"></span>`)}</button>

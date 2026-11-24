@@ -18,7 +18,7 @@ export interface SavedGame {
   savedAt: string;
 }
 
-// Results of a turn-based game, e.g. per difficulty for the secret game.
+// Results of a turn-based game, e.g. per difficulty for a bonus game.
 export interface Tally {
   wins: number;
   draws: number;
@@ -27,7 +27,22 @@ export interface Tally {
 
 export type TallyResult = keyof Tally;
 
-type Kind = 'settings' | 'scores' | 'save' | 'tally';
+// How the bonus games were earned: by scores (dedicated, enthusiast) or found by the player (explorer).
+export const ACHIEVEMENTS = ['dedicated', 'enthusiast', 'explorer'] as const;
+export type Achievement = typeof ACHIEVEMENTS[number];
+
+// The one-time reward: the bonus games, kept once obtained.
+export interface Reward {
+  obtained: true;
+  achievement: Achievement;
+  // ISO date string.
+  date: string;
+}
+
+type Kind = 'settings' | 'scores' | 'save' | 'tally' | 'best' | 'reward';
+
+// The reward isn't per game: it's kept under this one id.
+const REWARD_ID = 'bonus';
 
 // Stored JSON is untrusted (older versions, hand edits, other code on the origin): every
 // reader checks the shape it gets and treats anything else as nothing stored.
@@ -39,6 +54,10 @@ const isScoreEntry = (value: unknown): value is ScoreEntry =>
 
 const isSavedGame = (value: unknown): value is SavedGame =>
   isRecord(value) && typeof value.version === 'number' && isRecord(value.settings) && isRecord(value.state);
+
+const isReward = (value: unknown): value is Reward =>
+  isRecord(value) && value.obtained === true && typeof value.date === 'string'
+  && ACHIEVEMENTS.some((achievement) => achievement === value.achievement);
 
 const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
@@ -53,7 +72,7 @@ export function validSettings(stored: unknown, options: GameOption[] = []): Sett
 }
 
 // Everything the app keeps between visits, per game: chosen options, the top-5 table
-// and one saved game. Plain JSON in localStorage; when storage is unavailable
+// and one saved game; and once, the reward. Plain JSON in localStorage; when storage is unavailable
 // (private mode, full quota), reads fall back to defaults and writes are skipped.
 export class PersistenceService extends Service<PersistenceService> {
   // The stored options, falling back to each option's default when missing or no longer valid.
@@ -119,6 +138,32 @@ export class PersistenceService extends Service<PersistenceService> {
     tally[result] += 1;
     this.write('tally', gameId, { ...all, [key]: tally });
     return tally;
+  }
+
+  // The best (lowest) value kept under `key`, e.g. fewest misses; null if none yet.
+  best(gameId: string, key: string): number | null {
+    const all = this.read('best', gameId);
+    const stored = isRecord(all) ? all[key] : undefined;
+    return typeof stored === 'number' && Number.isFinite(stored) ? stored : null;
+  }
+
+  // Keeps `value` under `key` if it beats (is lower than) the best so far: the best after it.
+  recordBest(gameId: string, key: string, value: number): number {
+    const current = this.best(gameId, key);
+    if (current !== null && current <= value) return current;
+    const stored = this.read('best', gameId);
+    this.write('best', gameId, { ...(isRecord(stored) ? stored : {}), [key]: value });
+    return value;
+  }
+
+  // The reward, if obtained.
+  reward(): Reward | null {
+    const reward = this.read('reward', REWARD_ID);
+    return isReward(reward) ? reward : null;
+  }
+
+  saveReward(achievement: Achievement): void {
+    this.write('reward', REWARD_ID, { obtained: true, achievement, date: new Date().toISOString() } satisfies Reward);
   }
 
   private key(kind: Kind, gameId: string): string {

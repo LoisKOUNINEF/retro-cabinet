@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="minefield__cell minefield__cell--${cell.view}${cell.view === 'open' && cell.count ? ' minefield__cell--count-' + cell.count : ''}${cell.cursor ? ' minefield__cell--cursor' : ''}"
+  data-index="${cell.index}"
+  data-focus-key="cell-${cell.index}"
+  data-event="click:_dig"
+  aria-label="${cell.label}"
+  ${cell.disabled ? 'disabled' : ''}
+>${content(cell)}</button>

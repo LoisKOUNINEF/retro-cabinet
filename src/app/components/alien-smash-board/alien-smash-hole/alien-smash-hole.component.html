@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="alien-smash-board__hole${hole.target ? ' alien-smash-board__hole--' + hole.state : ''}${hole.cursor ? ' alien-smash-board__hole--cursor' : ''}"
+  data-index="${hole.index}"
+  data-focus-key="hole-${hole.index}"
+  data-event="click:_select:@event"
+  aria-label="${hole.label}"
+  ${hole.disabled ? 'disabled' : ''}
+><span class="alien-smash-board__key" aria-hidden="true">${hole.key}</span>${holeContent(hole)}</button>

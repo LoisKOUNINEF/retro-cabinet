@@ -1,0 +1,27 @@
+<div class="game bonus-game bonus-game--${id}">
+  <header class="game__header">
+    <button type="button" class="game__back" id="game-menu-button">Games</button>
+    <h1 class="game__title">${title}</h1>
+  </header>
+  <div class="game__layout">
+    <div class="game__stage"><div data-component="board"></div></div>
+    <aside class="game__panel">
+      <section class="game__section" aria-labelledby="bonus-play-title">
+        <h2 class="game__section-title" id="bonus-play-title">Play</h2>
+        <div data-component="play"></div>
+      </section>
+      ${hasStats ? html`
+        <section class="game__section" aria-labelledby="bonus-stats-title">
+          <h2 class="game__section-title" id="bonus-stats-title">Stats</h2>
+          <div data-component="stats"></div>
+        </section>` : ''}
+      ${results === 'tally' ? html`
+        <section class="game__section" aria-labelledby="bonus-tally-title">
+          <h2 class="game__section-title" id="bonus-tally-title">Tally</h2>
+          <div data-component="tally"></div>
+        </section>` : ''}
+      <div data-component="options"></div>
+      ${results === 'scores' ? html`<section class="game__section"><div data-component="scores"></div></section>` : ''}
+    </aside>
+  </div>
+</div>

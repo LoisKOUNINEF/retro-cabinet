@@ -20,7 +20,7 @@ describe('stickDirection', () => {
     // Paddle and cannon games: left/right only.
     expect(stickDirection(5, -40, ['left', 'right'])).toBe(null);
     expect(stickDirection(25, -40, ['left', 'right'])).toBe('right');
-    // Tetris: no up.
+    // Falling Blocks: no up.
     expect(stickDirection(0, -40, ['left', 'right', 'down'])).toBe(null);
     expect(stickDirection(-30, -40, ['left', 'right', 'down'])).toBe('left');
   });

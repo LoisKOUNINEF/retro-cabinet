@@ -1,7 +1,8 @@
-import { GameCardComponent, iconPixels } from '#root/dist/src/app/components/game-card/game-card.component.js';
+import { GameCardComponent } from '#root/dist/src/app/components/game-card/game-card.component.js';
+import { iconPixels } from '#root/dist/src/app/components/pixel-art.js';
 import { Navigation } from '#root/dist/src/core/index.js';
 
-const card = { title: 'Tetris', path: '/games/tetris', icon: ['###', '.#.'] };
+const card = { title: 'Falling Blocks', path: '/games/falling-blocks', icon: ['###', '.#.'] };
 
 describe('GameCardComponent', () => {
   let host;
@@ -29,8 +30,8 @@ describe('GameCardComponent', () => {
 
   it('links to the game by its title', () => {
     const link = $('.game-card');
-    expect(link.getAttribute('href')).toBe('/games/tetris');
-    expect($('.game-card__title').textContent).toBe('Tetris');
+    expect(link.getAttribute('href')).toBe('/games/falling-blocks');
+    expect($('.game-card__title').textContent).toBe('Falling Blocks');
   });
 
   it('navigates in the app on click', () => {
@@ -39,7 +40,7 @@ describe('GameCardComponent', () => {
 
     $('.game-card').click();
 
-    expect(paths).toEqual(['/games/tetris']);
+    expect(paths).toEqual(['/games/falling-blocks']);
     stop();
   });
 
@@ -58,5 +59,18 @@ describe('GameCardComponent', () => {
     card.click();
     expect(selected).toBe(1);
     button.destroy();
+  });
+
+  it('is framed unless plain', () => {
+    expect($('.game-card').classList.contains('game-card--plain')).toBe(false);
+
+    component.destroy();
+    host = document.createElement('div');
+    document.body.append(host);
+    component = new GameCardComponent(host, { ...card, plain: true });
+    component.render();
+
+    expect($('.game-card').classList.contains('game-card--plain')).toBe(true);
+    expect($('.game-card__title').textContent).toBe('Falling Blocks');
   });
 });

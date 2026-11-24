@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="${classes(cell)}"
+  data-index="${cell.index}"
+  data-focus-key="${cell.action}-${cell.index}"
+  data-event="click:_select"
+  aria-label="${cell.label}"
+  ${cell.disabled ? 'disabled' : ''}
+><span class="naval__hover" data-event="pointerenter:_aim"></span>${mark(cell.shot)}</button>

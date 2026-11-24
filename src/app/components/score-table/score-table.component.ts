@@ -7,7 +7,7 @@ export interface ScoreTableConfig {
   entries: ScoreEntry[];
   // Index of the entry just added, shown highlighted.
   highlight: number | null;
-  // False for games without levels (e.g. Pong); shown by default.
+  // False for games without levels (e.g. Table Tennis); shown by default.
   showLevel?: boolean;
 }
 

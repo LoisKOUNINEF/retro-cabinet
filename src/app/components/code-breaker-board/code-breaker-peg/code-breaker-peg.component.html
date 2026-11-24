@@ -1,0 +1,8 @@
+<button
+  type="button"
+  class="code-breaker__button code-breaker__button--${item.action}${item.cursor ? ' code-breaker__button--cursor' : ''}"
+  data-focus-key="${item.action}-${item.index}"
+  data-event="click:_select"
+  aria-label="${item.label}"
+  ${item.disabled ? 'disabled' : ''}
+>${item.key === null ? '' : html`<span class="code-breaker__key" aria-hidden="true">${item.key}</span>`}${pegArt(item.peg)}</button>

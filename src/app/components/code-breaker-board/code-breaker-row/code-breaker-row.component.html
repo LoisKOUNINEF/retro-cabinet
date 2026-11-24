@@ -1,0 +1,5 @@
+<div class="code-breaker__row" role="img" aria-label="${row.label}">
+  <span class="code-breaker__number">${row.index + 1}</span>
+  ${row.pegs.map((peg) => html`<span class="code-breaker__hole">${pegArt(peg)}</span>`)}
+  <span class="code-breaker__keys">${keyArt(row.pegs.length, row.exact, row.misplaced)}</span>
+</div>

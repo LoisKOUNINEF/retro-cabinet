@@ -1,5 +1,5 @@
 import { html } from '../../../core/index.js';
-import type { Board } from '../../games/secret/tictactoe.js';
+import type { Board } from '../../games/bonus/noughts-and-crosses/tictactoe.js';
 import { UpdatableComponent } from '../updatable-component.js';
 import { TicTacToeCellComponent, type TicTacToeCell } from './tictactoe-cell/tictactoe-cell.component.js';
 

@@ -1,0 +1,11 @@
+${cell.kind === 'dot' ? html`<span class="dots-boxes__dot"></span>` : cell.kind === 'box' ? html`
+  <span class="dots-boxes__box${ownerClass('dots-boxes__box', cell.owner)}" role="img" aria-label="${cell.label}">${cell.owner ? pixelArt(MARKS[cell.owner], 'dots-boxes__mark') : ''}</span>` : html`
+  <button
+    type="button"
+    class="dots-boxes__line dots-boxes__line--${cell.kind}${ownerClass('dots-boxes__line', cell.owner)}${cell.last ? ' dots-boxes__line--last' : ''}${cell.cursor ? ' dots-boxes__line--cursor' : ''}"
+    data-index="${cell.line}"
+    data-focus-key="line-${cell.line}"
+    data-event="click:_select"
+    aria-label="${cell.label}"
+    ${cell.disabled ? 'disabled' : ''}
+  ></button>`}

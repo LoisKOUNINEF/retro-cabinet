@@ -1,0 +1,28 @@
+<div class="naval naval--${config.phase}">
+  ${config.phase === 'battle' ? html`
+    <section class="naval__sea naval__sea--enemy" aria-labelledby="naval-enemy-title">
+      <h3 class="naval__title" id="naval-enemy-title">Enemy waters</h3>
+      <div class="naval__chart">
+        <div class="naval__columns" aria-hidden="true">${columnLabels()}</div>
+        <div class="naval__rows" aria-hidden="true">${rowLabels()}</div>
+        <div class="naval__grid" role="group" aria-label="Enemy waters" data-catalog="enemy"></div>
+      </div>
+      <ul class="naval__ships" aria-label="Enemy ships">${shipList(config, 'ai')}</ul>
+    </section>` : ''}
+  <section class="naval__sea naval__sea--own" aria-labelledby="naval-own-title">
+    <h3 class="naval__title" id="naval-own-title">Your fleet</h3>
+    <div class="naval__chart">
+      <div class="naval__columns" aria-hidden="true">${columnLabels()}</div>
+      <div class="naval__rows" aria-hidden="true">${rowLabels()}</div>
+      <div class="naval__grid" role="group" aria-label="Your fleet" data-catalog="own"></div>
+    </div>
+    <ul class="naval__ships" aria-label="Your ships">${shipList(config, 'player')}</ul>
+    ${config.phase === 'placing' ? html`
+      <div class="naval__actions">
+        <button type="button" class="naval__action" data-action="rotate" data-focus-key="rotate" data-event="click:_action:@dataset:action">↻ Rotate (R)</button>
+        <button type="button" class="naval__action" data-action="random" data-focus-key="random" data-event="click:_action:@dataset:action">⚄ Random</button>
+        <button type="button" class="naval__action" data-action="clear" data-focus-key="clear" data-event="click:_action:@dataset:action" ${config.ownShips.length ? '' : 'disabled'}>✕ Clear</button>
+        <button type="button" class="naval__action naval__action--start" data-action="start" data-focus-key="start" data-event="click:_action:@dataset:action" ${config.ownShips.length === 5 ? '' : 'disabled'}>▶ Start</button>
+      </div>` : ''}
+  </section>
+</div>

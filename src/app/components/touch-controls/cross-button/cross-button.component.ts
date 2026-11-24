@@ -2,7 +2,7 @@ import { Component, html } from '../../../../core/index.js';
 import type { StickDirection } from '../../../games/game.js';
 import { capture, listenPointer } from '../stick.js';
 
-// A direction's arrow, or the game's action in an empty slot (Tetris's Rotate in the up one).
+// A direction's arrow, or the game's action in an empty slot (Falling Blocks' Rotate in the up one).
 export interface CrossButton {
   direction: StickDirection;
   code: string;

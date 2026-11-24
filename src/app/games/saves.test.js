@@ -1,15 +1,15 @@
 import { defaultSettings } from '#root/dist/src/app/games/game.js';
-import { arkanoidGame } from '#root/dist/src/app/games/arkanoid/arkanoid.js';
-import { asteroidsGame } from '#root/dist/src/app/games/asteroids/asteroids.js';
-import { columnsGame } from '#root/dist/src/app/games/columns/columns.js';
-import { froggerGame } from '#root/dist/src/app/games/frogger/frogger.js';
-import { invadersGame } from '#root/dist/src/app/games/invaders/invaders.js';
-import { pacmanGame } from '#root/dist/src/app/games/pacman/pacman.js';
-import { pongGame } from '#root/dist/src/app/games/pong/pong.js';
+import { brickBreakerGame } from '#root/dist/src/app/games/brick-breaker/brick-breaker.js';
+import { spaceRocksGame } from '#root/dist/src/app/games/space-rocks/space-rocks.js';
+import { jewelDropGame } from '#root/dist/src/app/games/jewel-drop/jewel-drop.js';
+import { frogCrossingGame } from '#root/dist/src/app/games/frog-crossing/frog-crossing.js';
+import { alienAttackGame } from '#root/dist/src/app/games/alien-attack/alien-attack.js';
+import { mazeChaseGame } from '#root/dist/src/app/games/maze-chase/maze-chase.js';
+import { tableTennisGame } from '#root/dist/src/app/games/table-tennis/table-tennis.js';
 import { snakeGame } from '#root/dist/src/app/games/snake/snake.js';
-import { tetrisGame } from '#root/dist/src/app/games/tetris/tetris.js';
+import { fallingBlocksGame } from '#root/dist/src/app/games/falling-blocks/falling-blocks.js';
 
-const DEFINITIONS = [arkanoidGame, asteroidsGame, columnsGame, froggerGame, invadersGame, pacmanGame, pongGame, snakeGame, tetrisGame];
+const DEFINITIONS = [brickBreakerGame, spaceRocksGame, jewelDropGame, frogCrossingGame, alienAttackGame, mazeChaseGame, tableTennisGame, snakeGame, fallingBlocksGame];
 
 // A game part-way through, so the save holds more than the starting state.
 const played = (definition) => {

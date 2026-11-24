@@ -1,4 +1,4 @@
-import { Navigation, View, html } from '../../../core/index.js';
+import { View, html } from '../../../core/index.js';
 import { GameBoardComponent } from '../../components/game-board/game-board.component.js';
 import { GameCanvasComponent } from '../../components/game-canvas/game-canvas.component.js';
 import { GameOptionsComponent, type GameOptionsConfig } from '../../components/game-options/game-options.component.js';
@@ -12,7 +12,10 @@ import { GameLoop } from '../../games/game-loop.js';
 import { isControlKey } from '../keyboard.js';
 import { DEFAULT_TOUCH, SAVE_VERSION, cryptoRandom, isFireKey, pick, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
 import { PersistenceService, validSettings } from '../../services/persistence/persistence.service.js';
-import { GAMES, gamePath } from '../../games/registry.js';
+import { GAMES, gamePath, type GameId } from '../../games/registry.js';
+import { createGamesMenu } from '../../components/games-menu/games-menu.js';
+import { showRewardBanner } from '../../components/reward-notices/reward-notices.js';
+import { checkScoreReward } from '../../services/reward/reward.js';
 import type { DrawerElement } from 'a11y-elements/overlays/drawer/element';
 import type { DropdownElement } from 'a11y-elements/overlays/dropdown/element';
 
@@ -215,54 +218,20 @@ export class GameView extends View {
   }
 
   // The header's games menu: home, every game (this one marked current), and a random other one.
-  // Built here rather than in the template: overlays move to <body>, out of reach of data-event.
   // Created on the first render, so it's defined by the time the button is first clicked.
   private gamesMenu(): DropdownElement {
-    if (this._gamesMenu) return this._gamesMenu;
-    import('a11y-elements/overlays/dropdown').catch(() => {});
-    const menu = document.createElement('a11y-dropdown') as DropdownElement;
-    menu.id = 'game-menu';
-    menu.setAttribute('placement', 'bottom-start');
-    const item = (label: string, path: string): HTMLAnchorElement => {
-      const link = document.createElement('a');
-      link.setAttribute('role', 'menuitem');
-      link.href = path;
-      link.textContent = label;
-      return link;
-    };
-    const home = item('All games', '/');
-    home.classList.add('game-menu__home');
-    const games = GAMES.map(({ id, title }) => {
-      const link = item(title, gamePath(id));
-      if (id === this._definition.id) link.setAttribute('aria-current', 'page');
-      return link;
+    return this._gamesMenu ??= createGamesMenu({
+      home: [{ label: 'All games', path: '/' }],
+      games: GAMES.map(({ id, title }) => ({ label: title, path: gamePath(id) })),
+      currentPath: gamePath(this._definition.id as GameId),
+      randomPath: () => gamePath(pick(GAMES.filter(({ id }) => id !== this._definition.id), cryptoRandom).id),
+      // The menu covers the board: the game pauses first, as with the HUD drawer.
+      onOpen: () => {
+        this.pause();
+        this.update();
+      },
     });
-    const random = item('Random', '/');
-    random.classList.add('game-menu__random');
-    random.dataset['random'] = '';
-    menu.append(home, ...games, random);
-    // The menu covers the board: the game pauses first, as with the HUD drawer.
-    menu.addEventListener('a11y-overlay-open', () => {
-      this.pause();
-      this.update();
-    });
-    menu.addEventListener('click', this._onMenuClick);
-    document.body.append(menu);
-    return this._gamesMenu = menu;
   }
-
-  // In-app navigation for plain clicks; ctrl/shift/middle clicks keep the links' default.
-  private readonly _onMenuClick = (event: MouseEvent): void => {
-    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('[role="menuitem"]');
-    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    if (link.getAttribute('aria-current') === 'page') return;
-    if (link.hasAttribute('data-random')) {
-      const others = GAMES.filter(({ id }) => id !== this._definition.id);
-      return Navigation.navigateTo(gamePath(pick(others, cryptoRandom).id));
-    }
-    Navigation.navigateTo(link.getAttribute('href') ?? '/');
-  };
 
   // The drawer covers the board: the game pauses first.
   private _openHud(): void {
@@ -326,7 +295,7 @@ export class GameView extends View {
     return touch?.autoFire ? touch.action?.code : undefined;
   }
 
-  // The action key and the shared fire keys, but not e.g. Asteroids' thrust.
+  // The action key and the shared fire keys, but not e.g. Space Rocks' thrust.
   private isHoldFireKey(code: string): boolean {
     return code === this.autoFireCode || isFireKey(code);
   }
@@ -413,7 +382,7 @@ export class GameView extends View {
     this.update();
   }
 
-  // Records the result once per game: the score table, and no save to come back to.
+  // Records the result once per game: the score table (and the reward it may earn), and no save to come back to.
   private finish(): void {
     const { id } = this._definition;
     this._finished = true;
@@ -424,6 +393,9 @@ export class GameView extends View {
       date: new Date().toISOString(),
     });
     this._scores?.update({ entries: this._storage.scores(id), highlight: this._rank, showLevel: this.showsLevel });
+    // A new score may earn the bonus games: the first time, a banner says so.
+    const achievement = this._rank === null ? null : checkScoreReward();
+    if (achievement) showRewardBanner(achievement).catch(() => {});
   }
 
   private update(): void {

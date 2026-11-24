@@ -1,0 +1,152 @@
+.dots-boxes {
+  --n: 5;
+  // A box is 6 units, a dot 1: the board is 7n + 1 units wide and high, fitting the stage.
+  --unit: calc(min(var(--stage-width, 100vw), var(--stage-height, 100vh), 36rem) / (7 * var(--n) + 1));
+  --dot: var(--unit);
+  --box: calc(6 * var(--unit));
+  --you: var(--primary);
+  --ai: #FFD54A;
+  display: grid;
+  grid-template-columns: repeat(var(--n), var(--dot) var(--box)) var(--dot);
+  grid-template-rows: repeat(var(--n), var(--dot) var(--box)) var(--dot);
+  width: max-content;
+
+  @each $n in 3, 4, 5, 6, 7 {
+    &--size-#{$n} {
+      --n: #{$n};
+    }
+  }
+}
+
+// The catalog's wrappers step aside: the cells are the grid's items.
+.dots-boxes > *,
+.dots-boxes__slot {
+  display: contents;
+}
+
+.dots-boxes__dot {
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.dots-boxes__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1px;
+  animation: dots-boxes-take 0.25s ease-out;
+
+  &--player {
+    background: color-mix(in srgb, var(--you) 22%, transparent);
+  }
+
+  &--ai {
+    background: color-mix(in srgb, var(--ai) 22%, transparent);
+  }
+}
+
+.dots-boxes__mark {
+  width: 40%;
+  height: 40%;
+
+  .dots-boxes__box--player & {
+    fill: var(--you);
+  }
+
+  .dots-boxes__box--ai & {
+    fill: var(--ai);
+  }
+}
+
+// A line: the cell is its hit area, the bar drawn inside it.
+.dots-boxes__line {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  // A bigger target than the thin bar, for fingers.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: calc(var(--unit) * -1);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    border-radius: 2px;
+    background: var(--border);
+    opacity: 0.35;
+  }
+
+  &--horizontal::before {
+    inset: 30% 0;
+  }
+
+  &--vertical::before {
+    inset: 0 30%;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:not(:disabled):hover::before {
+    background: var(--you);
+    opacity: 0.5;
+  }
+
+  &--player::before,
+  &--ai::before {
+    opacity: 1;
+  }
+
+  &--horizontal.dots-boxes__line--player::before,
+  &--horizontal.dots-boxes__line--ai::before {
+    inset: 15% 0;
+  }
+
+  &--vertical.dots-boxes__line--player::before,
+  &--vertical.dots-boxes__line--ai::before {
+    inset: 0 15%;
+  }
+
+  &--player::before {
+    background: var(--you);
+  }
+
+  &--ai::before {
+    background: var(--ai);
+  }
+
+  &--last::before {
+    animation: dots-boxes-last 0.8s ease-in-out 2;
+  }
+
+  &--cursor {
+    z-index: 1;
+    outline: 3px solid var(--text);
+    outline-offset: 1px;
+  }
+}
+
+@keyframes dots-boxes-last {
+  50% {
+    filter: brightness(1.8);
+  }
+}
+
+@keyframes dots-boxes-take {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots-boxes__line--last::before,
+  .dots-boxes__box {
+    animation: none;
+  }
+}

@@ -1,0 +1,8 @@
+<button
+  type="button"
+  class="rpsls-board__choice${hand.cursor ? ' rpsls-board__choice--cursor' : ''}"
+  data-index="${hand.index}"
+  data-focus-key="hand-${hand.index}"
+  data-event="click:_select"
+  ${hand.disabled ? 'disabled' : ''}
+><span class="rpsls-board__key" aria-hidden="true">${hand.key}</span>${art(hand.hand)}<span class="rpsls-board__choice-name">${name(hand.hand)}</span></button>

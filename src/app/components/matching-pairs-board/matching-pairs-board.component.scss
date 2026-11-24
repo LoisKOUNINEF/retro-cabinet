@@ -1,0 +1,104 @@
+.matching-pairs-board {
+  --columns: 4;
+  --rows: 4;
+  --gap: 0.5rem;
+  // Square cards filling the stage, with room for their gaps.
+  --card: min(
+    calc((var(--stage-width, 100vw) - (var(--columns) + 1) * var(--gap)) / var(--columns)),
+    calc((var(--stage-height, 100vh) - (var(--rows) + 1) * var(--gap)) / var(--rows)),
+    7rem
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--columns), var(--card));
+  grid-auto-rows: var(--card);
+  gap: var(--gap);
+  width: max-content;
+
+  @each $n in 4, 5, 6 {
+    &--cols-#{$n} {
+      --columns: #{$n};
+    }
+  }
+
+  @each $n in 3, 4 {
+    &--rows-#{$n} {
+      --rows: #{$n};
+    }
+  }
+}
+
+// The catalog's wrappers step aside: the cards' buttons are the grid's items.
+.matching-pairs-board > *,
+.matching-pairs-board__slot {
+  display: contents;
+}
+
+.matching-pairs-board__card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18%;
+  border: 3px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+  cursor: pointer;
+  // A card turning over: it shrinks to its edge and opens on its other side.
+  animation: matching-pairs-turn 0.25s ease-out;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    border-color: var(--text-secondary);
+  }
+
+  &--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: 2px;
+  }
+
+  &--shown,
+  &--revealed {
+    background: #000;
+    border-color: var(--text-secondary);
+  }
+
+  &--found {
+    background: #000;
+    border-color: var(--primary);
+
+    .matching-pairs-board__face {
+      fill: var(--primary);
+    }
+  }
+
+  // Where the pairs were, once the round is lost.
+  &--revealed {
+    opacity: 0.55;
+  }
+}
+
+.matching-pairs-board__face,
+.matching-pairs-board__back {
+  width: 100%;
+  height: 100%;
+  fill: var(--text);
+}
+
+.matching-pairs-board__back {
+  width: 45%;
+  fill: var(--text-secondary);
+}
+
+@keyframes matching-pairs-turn {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matching-pairs-board__card {
+    animation: none;
+  }
+}
