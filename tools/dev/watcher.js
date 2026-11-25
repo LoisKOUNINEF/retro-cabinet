@@ -3,6 +3,12 @@ import { exec } from 'child_process';
 import path from 'path';
 import { print } from '../utils/index.js'
 
+// The builds run below inherit these: NUTIN_WATCH drops the one-off hints of a manual build (the
+// builder's "For production" line), FORCE_COLOR keeps their colours, captured by exec() but printed
+// to this terminal.
+process.env.NUTIN_WATCH = '1';
+if (process.stdout.isTTY) process.env.FORCE_COLOR ??= '1';
+
 // config/, nutin.config.js and public/ are copied into the build too.
 const watcher = chokidar.watch(['src', 'config', 'public', 'nutin.config.js'], {
   ignored: /(^|[/\\])\../,
@@ -33,8 +39,8 @@ function runBuild() {
   pendingRebuild = false;
 
   console.clear();
-  print.boldInfo(`\n🔄 File changed: ${path.relative(process.cwd(), lastChangedPath)}\n`);
-  print.info('\nRebuilding...');
+  print.boldInfo(`\n🔄 File changed: ${path.relative(process.cwd(), lastChangedPath)}`);
+  print.info('Rebuilding...');
 
   const command = 'npm run build --silent';
 

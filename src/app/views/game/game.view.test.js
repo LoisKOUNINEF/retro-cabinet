@@ -379,42 +379,39 @@ describe('GameView', () => {
     expect(localStorage.getItem(SNAKE_SAVE)).toBe(null);
   });
 
-  // Fails in the full run: a11y-elements is cached from the first test file's jsdom window,
-  // so its banner element belongs to another window. Passes when this file runs alone.
-  it.todo('grants the bonus games with a banner the first time a score earns them');
-  // it('grants the bonus games with a banner the first time a score earns them', async () => {
-  //   await import('a11y-elements/overlays/notification-banner');
-  //   const banners = () => $$('.a11y-notification-banner').map((banner) => banner.querySelector('.a11y-notification-banner__message').textContent);
-  //   // 11 scores so far (5 + 5 + 1): the next one is the 12th.
-  //   const storage = PersistenceService.getInstance();
-  //   [10, 20, 30, 40, 50].forEach((score) => storage.addScore('falling-blocks', { score, level: 1, date: '2026-11-24T10:00:00.000Z' }));
-  //   [10, 20, 30, 40, 50].forEach((score) => storage.addScore('table-tennis', { score, level: 1, date: '2026-11-24T10:00:00.000Z' }));
-  //   storage.addScore('frog-crossing', { score: 10, level: 1, date: '2026-11-24T10:00:00.000Z' });
-  //   const endGame = async () => {
-  //     const game = new Snake({ random: () => 0 });
-  //     view = new GameView(definitionOf(game));
-  //     view.render();
-  //     view.onEnter();
-  //     press('Space');
-  //     game.score = 50;
-  //     game.body = [{ x: 20, y: 10 }];
-  //     advanceTimersByTime(250);
-  //     await flushPromises();
-  //   };
+  it('grants the bonus games with a banner the first time a score earns them', async () => {
+    await import('a11y-elements/overlays/notification-banner');
+    const banners = () => $$('.a11y-notification-banner').map((banner) => banner.querySelector('.a11y-notification-banner__message').textContent);
+    // 11 scores so far (5 + 5 + 1): the next one is the 12th.
+    const storage = PersistenceService.getInstance();
+    [10, 20, 30, 40, 50].forEach((score) => storage.addScore('falling-blocks', { score, level: 1, date: '2026-11-24T10:00:00.000Z' }));
+    [10, 20, 30, 40, 50].forEach((score) => storage.addScore('table-tennis', { score, level: 1, date: '2026-11-24T10:00:00.000Z' }));
+    storage.addScore('frog-crossing', { score: 10, level: 1, date: '2026-11-24T10:00:00.000Z' });
+    const endGame = async () => {
+      const game = new Snake({ random: () => 0 });
+      view = new GameView(definitionOf(game));
+      view.render();
+      view.onEnter();
+      press('Space');
+      game.score = 50;
+      game.body = [{ x: 20, y: 10 }];
+      advanceTimersByTime(250);
+      await flushPromises();
+    };
 
-  //   await endGame();
-  //   expect(storage.reward().achievement).toBe('dedicated');
-  //   expect(banners()).toEqual(['Congrats for having 12 high scores across the games! A gift is waiting for you on the home page.']);
+    await endGame();
+    expect(storage.reward().achievement).toBe('dedicated');
+    expect(banners()).toEqual(['Congrats for having 12 high scores across the games! A gift is waiting for you on the home page.']);
 
-  //   const paths = navigations(() => $('.a11y-notification-banner__action').click());
-  //   expect(paths).toEqual(['/']);
-  //   expect(banners()).toEqual([]);
+    const paths = navigations(() => $('.a11y-notification-banner__action').click());
+    expect(paths).toEqual(['/']);
+    expect(banners()).toEqual([]);
 
-  //   view.onExit();
-  //   view.destroy();
-  //   await endGame();
-  //   expect(banners()).toEqual([]);
-  // });
+    view.onExit();
+    view.destroy();
+    await endGame();
+    expect(banners()).toEqual([]);
+  });
 
   it('starts over with New game, dropping the save', () => {
     view = new GameView(snakeDefinition);
@@ -974,27 +971,24 @@ describe('GameView', () => {
     expect($('.game__options')).toBeFalsy();
   });
 
-  // Fails in the full run: a11y-elements is cached from the first test file's jsdom window,
-  // so its dropdown element belongs to another window. Passes when this file runs alone.
-  it.todo('games menu: opens from the header button, listing home, every game and Random');
-  // it('games menu: opens from the header button, listing home, every game and Random', async () => {
-  //   view = new GameView(definitionOf(new Snake({ random: () => 0 })));
-  //   view.render();
-  //   await defineMenu();
+  it('games menu: opens from the header button, listing home, every game and Random', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    await defineMenu();
 
-  //   const button = $('.game__header .game__back');
-  //   expect(button.tagName).toBe('BUTTON');
-  //   expect(button.getAttribute('aria-haspopup')).toBe('menu');
-  //   expect(button.getAttribute('aria-controls')).toBe('game-menu');
-  //   button.click();
+    const button = $('.game__header .game__back');
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.getAttribute('aria-haspopup')).toBe('menu');
+    expect(button.getAttribute('aria-controls')).toBe('game-menu');
+    button.click();
 
-  //   expect($('#game-menu').open).toBe(true);
-  //   expect(button.getAttribute('aria-expanded')).toBe('true');
-  //   expect(menuItems().map((el) => el.textContent)).toEqual([
-  //     'All games', 'Falling Blocks', 'Maze Chase', 'Alien Attack', 'Snake', 'Brick Breaker', 'Space Rocks', 'Jewel Drop', 'Frog Crossing', 'Table Tennis', 'Random',
-  //   ]);
-  //   expect(menuItems().filter((el) => el.getAttribute('aria-current') === 'page')).toEqual([item('Snake')]);
-  // });
+    expect($('#game-menu').open).toBe(true);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(menuItems().map((el) => el.textContent)).toEqual([
+      'All games', 'Falling Blocks', 'Maze Chase', 'Alien Attack', 'Snake', 'Brick Breaker', 'Space Rocks', 'Jewel Drop', 'Frog Crossing', 'Table Tennis', 'Random',
+    ]);
+    expect(menuItems().filter((el) => el.getAttribute('aria-current') === 'page')).toEqual([item('Snake')]);
+  });
 
   it('games menu: navigates to the picked game, or home', () => {
     view = new GameView(definitionOf(new Snake({ random: () => 0 })));
@@ -1025,53 +1019,44 @@ describe('GameView', () => {
     }
   });
 
-  // Fails in the full run: a11y-elements is cached from the first test file's jsdom window,
-  // so its dropdown element belongs to another window. Passes when this file runs alone.
-  it.todo('games menu: pauses the game when it opens');
-  // it('games menu: pauses the game when it opens', async () => {
-  //   view = new GameView(definitionOf(new Snake({ random: () => 0 })));
-  //   view.render();
-  //   view.onEnter();
-  //   await defineMenu();
-  //   press('Space');
+  it('games menu: pauses the game when it opens', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    await defineMenu();
+    press('Space');
 
-  //   $('.game__back').click();
+    $('.game__back').click();
 
-  //   expect($('.game__status').textContent).toBe('Paused - press Space to resume');
-  // });
+    expect($('.game__status').textContent).toBe('Paused - press Space to resume');
+  });
 
-  // Fails in the full run: a11y-elements is cached from the first test file's jsdom window,
-  // so its dropdown element belongs to another window. Passes when this file runs alone.
-  it.todo('games menu: leaves keys in the menu to it');
-  // it('games menu: leaves keys in the menu to it', async () => {
-  //   view = new GameView(definitionOf(new Snake({ random: () => 0 })));
-  //   view.render();
-  //   view.onEnter();
-  //   await defineMenu();
-  //   $('.game__back').click();
+  it('games menu: leaves keys in the menu to it', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    view.onEnter();
+    await defineMenu();
+    $('.game__back').click();
 
-  //   const event = new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true, cancelable: true });
-  //   $('#game-menu').closest('[role="menu"]').dispatchEvent(event);
+    const event = new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true, cancelable: true });
+    $('#game-menu').closest('[role="menu"]').dispatchEvent(event);
 
-  //   expect($('.game__status').textContent).toBe('Press Space to start');
-  // });
+    expect($('.game__status').textContent).toBe('Press Space to start');
+  });
 
-  // Fails in the full run: a11y-elements is cached from the first test file's jsdom window,
-  // so its dropdown element belongs to another window. Passes when this file runs alone.
-  it.todo('games menu: keeps one menu across a new game, on the new button, and goes with the view');
-  // it('games menu: keeps one menu across a new game, on the new button, and goes with the view', async () => {
-  //   view = new GameView(definitionOf(new Snake({ random: () => 0 })));
-  //   view.render();
-  //   await defineMenu();
-  //   const first = $('.game__back');
+  it('games menu: keeps one menu across a new game, on the new button, and goes with the view', async () => {
+    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+    view.render();
+    await defineMenu();
+    const first = $('.game__back');
 
-  //   $('.game__new').click();
+    $('.game__new').click();
 
-  //   expect($$('a11y-dropdown').length).toBe(1);
-  //   expect($('.game__back')).not.toBe(first);
-  //   expect($('#game-menu').anchorElement).toBe($('.game__back'));
-  //   expect($('.game__back').getAttribute('aria-controls')).toBe('game-menu');
-  //   view.destroy();
-  //   expect($('a11y-dropdown')).toBeFalsy();
-  // });
+    expect($$('a11y-dropdown').length).toBe(1);
+    expect($('.game__back')).not.toBe(first);
+    expect($('#game-menu').anchorElement).toBe($('.game__back'));
+    expect($('.game__back').getAttribute('aria-controls')).toBe('game-menu');
+    view.destroy();
+    expect($('a11y-dropdown')).toBeFalsy();
+  });
 });

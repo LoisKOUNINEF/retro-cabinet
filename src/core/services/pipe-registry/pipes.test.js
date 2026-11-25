@@ -117,14 +117,15 @@ describe('pipes (registerPipes)', () => {
   });
 
   it('date warns and returns the raw stringified value for an invalid date', () => {
-    const warnSpy = spyOn(console, 'warn');
-    warnSpy.andCallFake(() => {});
+    const warnSpy = spyOn(console, 'warn').andCallFake(() => {});
+    try {
+      const result = AppPipeRegistry.apply('date', 'not-a-date', ['en-US']);
 
-    const result = AppPipeRegistry.apply('date', 'not-a-date', ['en-US']);
-
-    expect(result).toBe('not-a-date');
-    expect(warnSpy.callCount).toBe(1);
-    warnSpy.restore();
+      expect(result).toBe('not-a-date');
+      expect(warnSpy.callCount).toBe(1);
+    } finally {
+      warnSpy.restore();
+    }
   });
 
   it('number defaults to 0 decimal places', () => {

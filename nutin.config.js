@@ -1,7 +1,7 @@
 export default {
   // Nutin options
   tailwind: false,         // Enable Tailwind CSS v4
-  i18n: false,             // Enable i18n; configure languages in config/languages.json
+  i18n: [],                // Supported languages, default first (`['en', 'fr']`). `[]` means disabled.
   generateSEOFiles: true, // Generate per-route HTML, robots.txt and sitemap.xml; configure SEO data in config/seo.json
 
   // Nutin features
@@ -30,6 +30,10 @@ export default {
     includeFramework: false,  // Test Nutin source - src/core
     includeTools: false,     // Test tools/ (builder, testin-nutin, etc.)
     includeApp: true,        // Include application tests
+    isolate: [               // Test files (path substrings) that each run in their own worker and jsdom window, e.g. for custom elements
+      'views/bonus/',
+      'views/game/',
+    ],
 
     coverage: {
       enabled: false,        // Include coverage in the normal test command

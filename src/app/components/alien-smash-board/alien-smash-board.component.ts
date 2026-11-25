@@ -1,8 +1,7 @@
-import { html } from '../../../core/index.js';
+import { Component, html } from '../../../core/index.js';
 import { ALIEN_SPRITES, UFO } from '../../games/alien-attack/sprites.js';
 import { HOLE_KEYS, type HoleState, type Target } from '../../games/bonus/alien-smash/alien-smash.js';
 import type { Sprite } from '../../games/sprites.js';
-import { UpdatableComponent } from '../updatable-component.js';
 import { AlienSmashHoleComponent, type AlienSmashHole } from './alien-smash-hole/alien-smash-hole.component.js';
 
 export interface AlienSmashBoardConfig {
@@ -25,12 +24,20 @@ function holeLabel(index: number, target: Target | null, state: HoleState, point
   return state === 'leaving' ? `${name}: ${NAMES[target]} going back down` : `${name}: ${NAMES[target]}, ${points} points`;
 }
 
+// One mount point per hole, each replaced by its AlienSmashHoleComponent.
+// Built at render: alien-smash.js (HOLE_KEYS) imports this module too.
+const holePlaceholders = () => HOLE_KEYS.map((_, index) => html`<div data-component="hole-${index}"></div>`);
+
 const templateFn = () => html`__TEMPLATE_PLACEHOLDER__`;
 
-// Nine holes, kept by index: an alien popping up or getting smashed only rebuilds its hole.
+// Nine holes, rendered once and kept: update() hands each hole its own config, and a hole only
+// rebuilds when its alien changes. The board itself never re-renders, so no hole is ever moved
+// (moving a node restarts its CSS animations where Element.moveBefore() is missing, e.g. Safari).
 // A smash counts on the press (pointerdown), not the release: an alien leaving between the two
 // rebuilds its hole, and a click whose pressed button is gone never fires.
-export class AlienSmashBoardComponent extends UpdatableComponent<AlienSmashBoardConfig> {
+export class AlienSmashBoardComponent extends Component<HTMLElement, AlienSmashBoardConfig> {
+  private readonly _holes: AlienSmashHoleComponent[] = [];
+
   constructor(
     mountTarget: HTMLElement,
     config: AlienSmashBoardConfig,
@@ -55,25 +62,34 @@ export class AlienSmashBoardComponent extends UpdatableComponent<AlienSmashBoard
     this.onSelect(Number(hole.dataset['index']));
   };
 
+  update(config: AlienSmashBoardConfig): void {
+    this.config = config;
+    this._holes.forEach((hole, index) => hole.update(this.holeConfig(index)));
+  }
+
   override registerChildren(): Nutin.ComponentConfig[] {
+    return HOLE_KEYS.map((_, index) => ({
+      selector: `hole-${index}`,
+      keep: index,
+      factory: (el: HTMLElement) => (this._holes[index] = new AlienSmashHoleComponent(el, this.holeConfig(index))),
+    }));
+  }
+
+  private holeConfig(index: number): AlienSmashHole {
     const { holes, cursor, active } = this.config;
-    return this.createCatalogComponents({
-      items: holes.map(({ target, state, points }, index): AlienSmashHole => ({
-        key: HOLE_KEYS[index] ?? index + 1,
-        target,
-        // The same frames every time: a shallow compare sees an unchanged hole as equal.
-        frames: target ? FRAMES[target] : null,
-        state,
-        points,
-        label: holeLabel(index, target, state, points),
-        cursor: index === cursor,
-        disabled: !active,
-        onSelect: this.onSelect,
-      })),
-      selector: 'holes',
-      elementName: 'alien-smash-hole',
-      component: AlienSmashHoleComponent,
-      keepBy: (_hole: AlienSmashHole, index: number) => index,
-    });
+    const { target, state, points } = holes[index]!;
+    return {
+      index,
+      key: HOLE_KEYS[index] ?? index + 1,
+      target,
+      // The same frames every time: an unchanged hole stays equal.
+      frames: target ? FRAMES[target] : null,
+      state,
+      points,
+      label: holeLabel(index, target, state, points),
+      cursor: index === cursor,
+      disabled: !active,
+      onSelect: this.onSelect,
+    };
   }
 }

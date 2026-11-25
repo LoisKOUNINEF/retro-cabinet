@@ -80,6 +80,42 @@ describe('AlienSmashBoardComponent', () => {
     expect(hole(1)).toBe(untouched);
   });
 
+  // A moved or rebuilt node restarts its CSS animations: the alien would rise out of its hole again.
+  it('leaves an alien already up alone when another hole changes', () => {
+    const holes = empty();
+    holes[0] = { target: 'squid', state: 'up', points: 30 };
+    board.update(config({ holes }));
+    const alien = hole(0).querySelector('.alien-smash-board__target');
+    const popped = empty();
+    popped[0] = holes[0];
+    popped[5] = { target: 'crab', state: 'up', points: 20 };
+    board.update(config({ holes: popped }));
+    expect(hole(0).querySelector('.alien-smash-board__target')).toBe(alien);
+    expect(hole(5).querySelector('.alien-smash-board__target--crab')).toBeTruthy();
+  });
+
+  it('moves the cursor without rebuilding any hole', () => {
+    const holes = empty();
+    holes[4] = { target: 'crab', state: 'leaving', points: 20 };
+    board.update(config({ holes }));
+    const [from, to] = [hole(4), hole(0)];
+    const alien = from.querySelector('.alien-smash-board__target');
+    board.update(config({ holes, cursor: 0 }));
+    expect(hole(4)).toBe(from);
+    expect(hole(0)).toBe(to);
+    expect(from.querySelector('.alien-smash-board__target')).toBe(alien);
+    expect(from.classList.contains('alien-smash-board__hole--cursor')).toBeFalsy();
+    expect(to.classList.contains('alien-smash-board__hole--cursor')).toBeTruthy();
+  });
+
+  it('pauses and resumes without rebuilding any hole', () => {
+    const before = $$('.alien-smash-board__hole');
+    board.update(config({ active: false }));
+    board.update(config({ active: true }));
+    expect($$('.alien-smash-board__hole')).toEqual(before);
+    expect(before.some((button) => button.disabled)).toBeFalsy();
+  });
+
   it('disables the holes while the clock is stopped', () => {
     board.update(config({ active: false }));
     expect($$('.alien-smash-board__hole').every((button) => button.disabled)).toBeTruthy();

@@ -1,4 +1,4 @@
-import { AppRouter, Navigation, I18nService } from '#root/dist/src/core/services/index.js';
+import { AppEventBus, AppRouter, Navigation, I18nService } from '#root/dist/src/core/services/index.js';
 import { CONFIG } from '#root/dist/src/core/config.js';
 
 function makeView(name) {
@@ -258,18 +258,78 @@ describe('Router', () => {
     expect(router.getQueryParams()).toEqual({});
   });
 
+  it('keeps the unknown URL, query and hash included, on a first load of the /404 route', async () => {
+    const notFound = makeView('not-found');
+    window.history.pushState({}, '', '/nope?x=1#y');
+    const history = trackHistory();
+
+    router = AppRouter({ '/': () => makeView('home'), '/404': () => notFound });
+    await flushPromises();
+    history.restore();
+
+    expect(notFound.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(history.pushed).toEqual([]);
+    expect(history.replaced).toEqual([]);
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe('/nope?x=1#y');
+  });
+
+  it('navigate() pushes the unknown URL, query and hash included, when rendering the /404 route', async () => {
+    router = AppRouter({ '/': () => makeView('home'), '/404': () => makeView('not-found') });
+    await flushPromises();
+    const history = trackHistory();
+
+    await router.navigate('/nope?x=1#y');
+    history.restore();
+
+    expect(history.pushed).toEqual(['/nope?x=1#y']);
+    expect(history.replaced).toEqual([]);
+  });
+
+  it('replaces the URL it rewrites on the first load instead of adding an entry', async () => {
+    const about = makeView('about');
+    window.history.pushState({}, '', '/about/');
+    const history = trackHistory();
+
+    router = AppRouter({ '/': () => makeView('home'), '/about': () => about });
+    await flushPromises();
+    history.restore();
+
+    expect(about.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(history.pushed).toEqual([]);
+    expect(history.replaced).toEqual(['/about']);
+  });
+
+  it('replaces an unprefixed URL with its localized one on the first load', async () => {
+    CONFIG.i18n = true;
+    I18nService['_LANGUAGES'] = ['en', 'fr'];
+    I18nService['_currentLanguage'] = 'en';
+    window.history.pushState({}, '', '/about');
+    const history = trackHistory();
+
+    router = AppRouter({ '/': () => makeView('home'), '/about': () => makeView('about') });
+    await flushPromises();
+    history.restore();
+
+    expect(history.pushed).toEqual([]);
+    expect(history.replaced).toEqual(['/en/about']);
+  });
+
   it('navigate() logs an error and renders nothing when no route matches and there is no /404 route', async () => {
     const home = makeView('home');
     router = AppRouter({ '/': () => home });
     await flushPromises();
 
-    const errSpy = spyOn(console, 'error');
-    errSpy.andCallFake(() => {});
+    const errSpy = spyOn(console, 'error').andCallFake(() => {});
+    try {
+      await router.navigate('/nope');
 
-    await router.navigate('/nope');
-
-    expect(errSpy.callCount).toBe(1);
-    errSpy.restore();
+      expect(errSpy.callCount).toBe(1);
+      // Names the path and what to do.
+      expect(errSpy.lastCall[0]).toContain('No route matches "/nope"');
+      expect(errSpy.lastCall[0]).toContain("'/404' route");
+    } finally {
+      errSpy.restore();
+    }
   });
 
   it('navigate() blocks navigation when a guard returns false', async () => {
@@ -360,6 +420,120 @@ describe('Router', () => {
     expect(history.pushed).toEqual([]);
     expect(history.replaced).toEqual(['/login']);
     expect(window.location.pathname).toBe('/login');
+  });
+
+  it('marks the /404 view noindex, and drops the tag on the next matched route', async () => {
+    const noIndex = () => document.head.querySelector('meta[data-nutin-noindex]');
+    router = AppRouter({
+      '/': () => makeView('home'),
+      '/404': () => makeView('not-found'),
+      '/docs/:slug': { view: () => makeView('doc'), guards: [() => '/404'] },
+    });
+    await flushPromises();
+    expect(noIndex()).toBe(null);
+
+    await router.navigate('/nope');
+    expect(noIndex()?.getAttribute('content')).toBe('noindex');
+
+    await router.navigate('/');
+    expect(noIndex()).toBe(null);
+
+    await router.navigate('/docs/missing');
+    expect(noIndex()?.getAttribute('content')).toBe('noindex');
+
+    await router.navigate('/');
+    expect(noIndex()).toBe(null);
+  });
+
+  it("renders the /404 view at the guarded URL on first load when a guard returns '/404'", async () => {
+    const notFound = makeView('not-found');
+    const doc = makeView('doc');
+    window.history.pushState({}, '', '/docs/missing?x=1#y');
+    const history = trackHistory();
+
+    router = AppRouter({
+      '/404': () => notFound,
+      '/docs/:slug': { view: () => doc, guards: [() => '/404'] },
+    });
+    await flushPromises();
+    history.restore();
+
+    expect(notFound.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(doc.calls.length).toBe(0);
+    expect(history.pushed).toEqual([]);
+    expect(history.replaced).toEqual([]);
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe('/docs/missing?x=1#y');
+  });
+
+  it("navigate() pushes the guarded URL, not /404, when a guard returns '/404'", async () => {
+    const notFound = makeView('not-found');
+    router = AppRouter({
+      '/': () => makeView('home'),
+      '/404': () => notFound,
+      '/docs/:slug': { view: () => makeView('doc'), guards: [() => '/404'] },
+    });
+    await flushPromises();
+    const history = trackHistory();
+
+    await router.navigate('/docs/missing');
+    history.restore();
+
+    expect(notFound.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(history.pushed).toEqual(['/docs/missing']);
+    expect(history.replaced).toEqual([]);
+  });
+
+  it("leaves history alone on popstate when a guard returns '/404'", async () => {
+    const notFound = makeView('not-found');
+    router = AppRouter({
+      '/': () => makeView('home'),
+      '/404': () => notFound,
+      '/docs/:slug': { view: () => makeView('doc'), guards: [() => '/404'] },
+    });
+    await flushPromises();
+
+    window.history.pushState({}, '', '/docs/missing');
+    const history = trackHistory();
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    await flushPromises();
+    history.restore();
+
+    expect(notFound.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(history.pushed).toEqual([]);
+    expect(history.replaced).toEqual([]);
+    expect(window.location.pathname).toBe('/docs/missing');
+  });
+
+  it("treats a guard's localized '/en/404' as the /404 view, at the guarded URL", async () => {
+    CONFIG.i18n = true;
+    I18nService['_LANGUAGES'] = ['en', 'fr'];
+    I18nService['_currentLanguage'] = 'en';
+    window.history.pushState({}, '', '/en');
+    const notFound = makeView('not-found');
+    router = AppRouter({
+      '/': () => makeView('home'),
+      '/404': () => notFound,
+      '/docs/:slug': { view: () => makeView('doc'), guards: [() => '/en/404'] },
+    });
+    await flushPromises();
+    const history = trackHistory();
+
+    await router.navigate('/docs/missing');
+    history.restore();
+
+    expect(notFound.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(history.pushed).toEqual(['/en/docs/missing']);
+  });
+
+  it('still renders /404 when navigated to directly', async () => {
+    const notFound = makeView('not-found');
+    router = AppRouter({ '/': () => makeView('home'), '/404': () => notFound });
+    await flushPromises();
+
+    await router.navigate('/404');
+
+    expect(notFound.calls.some(c => c[0] === 'render')).toBe(true);
+    expect(window.location.pathname).toBe('/404');
   });
 
   it('replaces the guarded URL with the redirect target on popstate', async () => {
@@ -465,6 +639,68 @@ describe('Router', () => {
     expect(setLangSpy).toHaveBeenCalledWith('fr');
 
     setLangSpy.restore();
+    I18nService['_currentLanguage'] = 'en';
+  });
+
+  it('leaves a popstate that only changes the hash to the browser: no re-render, focus kept', async () => {
+    const home = makeFocusableView('home');
+    router = AppRouter({ '/': () => home });
+    await flushPromises();
+    const renders = () => home.calls.filter((c) => c[0] === 'render').length;
+    const before = renders();
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+
+    window.history.pushState({}, '', '/#section');
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    await flushPromises();
+    window.history.pushState({}, '', '/');
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    await flushPromises();
+
+    expect(renders()).toBe(before);
+    expect(document.activeElement).toBe(button);
+    button.remove();
+    home.cleanup();
+  });
+
+  it('still re-renders on a popstate that changes the query string of the same path', async () => {
+    const home = makeView('home');
+    router = AppRouter({ '/': () => home });
+    await flushPromises();
+    const renders = () => home.calls.filter((c) => c[0] === 'render').length;
+    const before = renders();
+
+    window.history.pushState({}, '', '/?tab=2#section');
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    await flushPromises();
+
+    expect(renders()).toBe(before + 1);
+    expect(home.query).toEqual({ tab: '2' });
+  });
+
+  it('leaves a hash-only popstate to the browser after a language change moved the URL to the new locale', async () => {
+    CONFIG.i18n = true;
+    I18nService['_LANGUAGES'] = ['en', 'fr'];
+    I18nService['_currentLanguage'] = 'en';
+    window.history.pushState({}, '', '/en');
+
+    const home = makeView('home');
+    router = AppRouter({ '/': () => home });
+    await flushPromises();
+    const renders = () => home.calls.filter((c) => c[0] === 'render').length;
+    const before = renders();
+
+    I18nService['_currentLanguage'] = 'fr';
+    AppEventBus.emit('language-changed', { lang: 'fr' });
+    expect(window.location.pathname).toBe('/fr');
+
+    window.history.pushState({}, '', '/fr#section');
+    window.dispatchEvent(new window.PopStateEvent('popstate'));
+    await flushPromises();
+
+    expect(renders()).toBe(before);
     I18nService['_currentLanguage'] = 'en';
   });
 
@@ -696,6 +932,41 @@ describe('Router', () => {
     expect(slow.calls.map((c) => c[0])).toEqual(['destroy']);
     expect(fast.calls.some((c) => c[0] === 'render')).toBe(true);
     expect(window.location.pathname).toBe('/fast');
+  });
+
+  it('reloads the current URL once when an uncaught import() fails to load one of the app\'s chunks, and only for that', async () => {
+    // As above: the sessionStorage record shows the full page load was attempted, and for which URL.
+    sessionStorage.clear();
+    const record = () => JSON.parse(sessionStorage.getItem('nutin:failed-view-load') ?? 'null');
+    const reject = (reason) => {
+      const event = new window.Event('unhandledrejection');
+      event.reason = reason;
+      window.dispatchEvent(event);
+    };
+    try {
+      router = AppRouter({ '/': () => makeView('home') });
+      await flushPromises();
+      window.history.pushState({}, '', '/?tab=2#top');
+
+      await silenceConsole('error', async () => {
+        reject(new Error('not a module load'));
+        reject(new TypeError('x is not a function'));
+        // A third-party module that failed to load: left to the console, no reload.
+        reject(new TypeError('Failed to fetch dynamically imported module: https://cdn.example.com/widget.js'));
+        expect(record()).toBe(null);
+
+        reject(new TypeError(`Failed to fetch dynamically imported module: ${window.location.origin}/chunks/a-1.js`));
+        expect(record().url).toBe('/?tab=2#top');
+
+        // Removed with the router's other listeners.
+        sessionStorage.clear();
+        router.removeEventListeners();
+        reject(new TypeError('Importing a module script failed.'));
+        expect(record()).toBe(null);
+      });
+    } finally {
+      sessionStorage.clear();
+    }
   });
 
   it('falls back to a full page load of the target URL when a lazy view fails to load', async () => {

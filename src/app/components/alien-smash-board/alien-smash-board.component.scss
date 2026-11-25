@@ -9,8 +9,7 @@
   width: max-content;
 }
 
-// The catalog's wrappers step aside: the holes' buttons are the grid's items.
-.alien-smash-board > *,
+// The holes' roots step aside: their buttons are the grid's items.
 .alien-smash-board__slot {
   display: contents;
 }

@@ -46,7 +46,7 @@ export async function writeRouteHtml({ template, lang, title, description, pageU
   let html = applySubstitutions(template, lang, title, description, pageUrl, ogImage, hreflangLinks);
 
   if (html === template) {
-    errorExit(`Failed to apply any changes for ${routePath} (lang "${lang}") — index.html may be missing a </head> tag`, 'generate-seo-html');
+    errorExit(`Failed to apply any changes for ${routePath} (lang "${lang}").`, 'generate-seo-html');
   }
 
   // Any element can be the #app mount (validate-html.js only checks for id="app"), and
@@ -76,7 +76,7 @@ export async function warnForRoutesMissingSeoConfig(bundleUrl, seoRoutes, defaul
     if (builderConfig.WELL_KNOWN_NON_SEO_ROUTES.includes(path)) {
       continue;
     } else {
-      print.error(`[generate-seo-html] Route "${path}" has no matching entry in config/seo.json; consider adding it so this route gets SEO HTML, sitemap, and meta tags.`);
+      print.warn(`[generate-seo-html] Route "${path}" has no matching entry in config/seo.json; consider adding it so this route gets SEO HTML, sitemap, and meta tags.`);
     }
   }
 }

@@ -2,7 +2,7 @@ import { parseHTML } from 'linkedom';
 import path from 'path';
 import { PATHS } from '../../app/paths.js';
 import { installGlobals } from './ssr-polyfills.js';
-import { print } from '../../../../utils/index.js';
+import { print, UserError } from '../../../../utils/index.js';
 
 let renderIndex = 0;
 
@@ -49,7 +49,7 @@ export async function renderRoute({ bundleUrl, appRoutesKey, mockParams, mockFet
 
     const routeConfig = appRoutes[appRoutesKey];
     if (!routeConfig) {
-      throw new Error(
+      throw new UserError(
         `No appRoutes entry found for "${appRoutesKey}" — check that config/seo.json's route "path" ` +
         `matches a real key in src/app/routes.ts.`
       );
@@ -85,7 +85,9 @@ export async function renderRoute({ bundleUrl, appRoutesKey, mockParams, mockFet
 
     return { html: element.outerHTML };
   } catch (err) {
-    throw new Error(
+    // A configuration problem (UserError) stays one: no stack. Anything the view threw keeps it.
+    const Wrapped = err instanceof UserError ? UserError : Error;
+    throw new Wrapped(
       `[ssr] Failed to render route "${appRoutesKey}" (lang "${lang}", view "${constructorName}"): ${err.message}${hintForError(err)}`,
       { cause: err }
     );

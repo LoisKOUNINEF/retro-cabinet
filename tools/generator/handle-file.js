@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { print } from '../utils/index.js';
-// Imported directly, not via the utils barrel: it reads config/languages.json on load.
+// Imported directly, not via the utils barrel: it reads nutin.config.js "i18n" on load.
 import { LANGUAGES } from '../utils/languages.js';
 import { localeTemplate } from './templates/index.js';
 
@@ -16,7 +16,7 @@ export function generateFile({
   const filePath = `${targetPath}/${name.kebab}.${suffix}.${extension}`;
 
   if (fs.existsSync(filePath)) {
-    print.boldError('A file with this name already exists');
+    print.boldError(`\nThe file already exists: ${filePath}.`);
     process.exit(1);
   }
 

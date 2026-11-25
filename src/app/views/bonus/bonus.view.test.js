@@ -79,23 +79,20 @@ describe('BonusView', () => {
     expect(paths).toEqual(['/']);
   });
 
-  // Fails in the full run: a11y-elements is cached from the first test file's jsdom window,
-  // so its snackbar element belongs to another window. Passes when this file runs alone.
-  it.todo('grants the reward to a player who found it, with an Explorer toast');
-  // it('grants the reward to a player who found it, with an Explorer toast', async () => {
-  //   await import('a11y-elements/overlays/snackbar');
-  //   view.onEnter();
-  //   await flushPromises();
+  it('grants the reward to a player who found it, with an Explorer toast', async () => {
+    await import('a11y-elements/overlays/snackbar');
+    view.onEnter();
+    await flushPromises();
 
-  //   expect(PersistenceService.getInstance().reward().achievement).toBe('explorer');
-  //   expect(toasts()).toContain('Achievement unlocked: Explorer');
+    expect(PersistenceService.getInstance().reward().achievement).toBe('explorer');
+    expect(toasts()).toContain('Achievement unlocked: Explorer');
 
-  //   // Coming back says nothing more.
-  //   removeToasts();
-  //   view.onEnter();
-  //   await flushPromises();
-  //   expect(toasts()).toEqual([]);
-  // });
+    // Coming back says nothing more.
+    removeToasts();
+    view.onEnter();
+    await flushPromises();
+    expect(toasts()).toEqual([]);
+  });
 
   it('shows no toast when the reward was already earned by scores', async () => {
     await import('a11y-elements/overlays/snackbar');

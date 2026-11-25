@@ -1,6 +1,7 @@
 import { BonusGameView } from '#root/dist/src/app/views/bonus/bonus-game/bonus-game.view.js';
 import { TICK_MS, alienSmashGame } from '#root/dist/src/app/games/bonus/alien-smash/alien-smash.js';
 import { PersistenceService } from '#root/dist/src/app/services/persistence/persistence.service.js';
+import { registerPipes } from '#root/dist/src/core/index.js';
 
 const status = () => $('.game__status').textContent;
 const toggle = () => $('.game__toggle');
@@ -18,6 +19,11 @@ describe('BonusGameView (Alien Smash)', () => {
     view.render();
     view.onEnter();
   };
+
+  // The score table's date pipe; another test file may have registered them already.
+  beforeAll(() => {
+    silenceConsole('warn', () => registerPipes());
+  });
 
   beforeEach(() => {
     localStorage.clear();
