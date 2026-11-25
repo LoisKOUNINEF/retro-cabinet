@@ -11,6 +11,9 @@ export interface MatchingPairsCardItem {
   // Under the keyboard cursor.
   cursor: boolean;
   disabled: boolean;
+  // Turned on this render: plays the turn animation. False on later renders, so a card
+  // rebuilt or put back in the page (Safari has no moveBefore()) doesn't play it again.
+  turning: boolean;
   onSelect: (index: number) => void;
 }
 

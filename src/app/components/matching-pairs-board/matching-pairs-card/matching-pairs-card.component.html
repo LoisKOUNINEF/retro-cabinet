@@ -1,6 +1,6 @@
 <button
   type="button"
-  class="matching-pairs-board__card matching-pairs-board__card--${card.state}${card.cursor ? ' matching-pairs-board__card--cursor' : ''}"
+  class="matching-pairs-board__card matching-pairs-board__card--${card.state}${card.cursor ? ' matching-pairs-board__card--cursor' : ''}${card.turning ? ' matching-pairs-board__card--turning' : ''}"
   data-index="${card.index}"
   data-focus-key="card-${card.index}"
   data-event="click:_select"

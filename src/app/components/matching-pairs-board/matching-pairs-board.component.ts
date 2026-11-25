@@ -34,8 +34,13 @@ export class MatchingPairsBoardComponent extends UpdatableComponent<MatchingPair
     super({ templateFn, mountTarget, config });
   }
 
+  // The cards' states at the last render, to tell which ones just turned; null before the deal.
+  private _lastStates: CardState[] | null = null;
+
   override registerChildren(): Nutin.ComponentConfig[] {
     const { cards, cursor, locked } = this.config;
+    const lastStates = this._lastStates;
+    this._lastStates = cards.map(({ state }) => state);
     return this.createCatalogComponents({
       items: cards.map(({ face, state }, index): MatchingPairsCardItem => ({
         // The same sprite array every time: a shallow compare sees an unchanged card as equal.
@@ -44,6 +49,8 @@ export class MatchingPairsBoardComponent extends UpdatableComponent<MatchingPair
         label: cardLabel(index, face, state),
         cursor: index === cursor,
         disabled: locked || state !== 'hidden',
+        // Every card on the deal, then only those whose state changed.
+        turning: lastStates === null || lastStates[index] !== state,
         onSelect: this.onSelect,
       })),
       selector: 'cards',
