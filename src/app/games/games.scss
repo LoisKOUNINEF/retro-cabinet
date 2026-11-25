@@ -53,7 +53,8 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
 
   &--snake,
   &[class*='--snake-head-'],
-  &--food {
+  &--food,
+  &[class*='--bonus-'] {
     position: relative;
     z-index: 1;
   }
@@ -88,6 +89,25 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
     &::after { box-shadow: 0 0 calc(var(--cell-size) / 5) rgba(227, 78, 78, 0.45); }
   }
 
+  // Bonus food: a golden apple, and a smaller purple berry. Both blink before they go.
+  $shine: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.7) 0 10%, transparent 14%);
+  &--bonus-golden,
+  &--bonus-golden-ending {
+    @include mixins.shape(($shine, rgb(255, 200, 40)), 50%);
+
+    &::after { box-shadow: 0 0 calc(var(--cell-size) / 4) rgba(255, 200, 40, 0.6); }
+  }
+
+  &--bonus-shrink,
+  &--bonus-shrink-ending {
+    @include mixins.shape((radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.7) 0 8%, transparent 12%),
+      radial-gradient(circle, rgb(170, 90, 230) 0 55%, transparent 60%)), 50%);
+
+    &::after { box-shadow: 0 0 calc(var(--cell-size) / 5) rgba(170, 90, 230, 0.45); }
+  }
+
+  &[class*='--bonus-'][class$='-ending']::after { animation: bonus-blink 0.4s steps(1) infinite; }
+
   // Maze Chase
   &--wall { background: rgb(33, 33, 222); }
   &--door { background: linear-gradient(transparent 40%, rgb(255, 184, 222) 40% 60%, transparent 60%), #000; }
@@ -118,6 +138,10 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
 
 @keyframes ghost-flash {
   50% { background: $frightened-flash; }
+}
+
+@keyframes bonus-blink {
+  50% { opacity: 0.25; }
 }
 
 // A falling block, bevelled like the Game Boy's: lit top-left edge, shaded bottom-right
@@ -240,9 +264,13 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
   .game-board__cell[class*='-flash'],
   .game-board__cell[class*='-flash']::after,
   .game-board__cell--jewel-magic::after,
-  .game-board__cell--ghost-frightened-ending::after {
+  .game-board__cell--ghost-frightened-ending::after,
+  .game-board__cell[class*='--bonus-'][class$='-ending']::after {
     animation: none;
   }
+
+  // An ending bonus fades instead of blinking.
+  .game-board__cell[class*='--bonus-'][class$='-ending']::after { opacity: 0.5; }
 
   .game-board__cell[class*='-flash'] {
     outline: 2px solid #fff;
