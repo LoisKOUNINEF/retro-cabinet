@@ -1,0 +1,270 @@
+@use "mixins";
+
+.naval {
+  // Two grids side by side (each 10 cells plus its labels), or one while placing.
+  --cell: min(calc(var(--stage-width, 100vw) / 24), calc((var(--stage-height, 100vh) - 7rem) / 11), 2.2rem);
+  --label: calc(var(--cell) * 0.7);
+  --sea: #0b2a44;
+  --ship: #9aa7b4;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.5rem;
+
+  &--placing {
+    --cell: min(calc(var(--stage-width, 100vw) / 12), calc((var(--stage-height, 100vh) - 9rem) / 11), 2.4rem);
+  }
+
+  // Phones: the grids one under the other.
+  @include mixins.respond-to(medium) {
+    --cell: min(calc(var(--stage-width, 100vw) / 11.5), 2.2rem);
+  }
+}
+
+.naval__sea {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+}
+
+.naval__title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+
+  .naval__sea--enemy & {
+    color: var(--secondary);
+  }
+}
+
+// The grid with its letters down the side and numbers along the top.
+.naval__chart {
+  display: grid;
+  grid-template-columns: var(--label) auto;
+  grid-template-rows: var(--label) auto;
+}
+
+.naval__columns,
+.naval__rows {
+  display: grid;
+  color: var(--text-secondary);
+  font-size: calc(var(--label) * 0.6);
+  text-align: center;
+  place-items: center;
+}
+
+.naval__columns {
+  grid-column: 2;
+  grid-template-columns: repeat(10, var(--cell));
+}
+
+.naval__rows {
+  grid-column: 1;
+  grid-row: 2;
+  grid-template-rows: repeat(10, var(--cell));
+}
+
+.naval__grid {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(10, var(--cell));
+  grid-auto-rows: var(--cell);
+  gap: 1px;
+  border: 2px solid var(--border);
+  background: color-mix(in srgb, var(--sea) 60%, var(--border));
+}
+
+// The catalog's wrappers step aside: the cells' buttons are the grid's items.
+.naval__grid > *,
+.naval__slot {
+  display: contents;
+}
+
+.naval__cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: var(--sea);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  .naval__sea--enemy &:not(:disabled):hover {
+    background: color-mix(in srgb, var(--sea) 70%, var(--secondary));
+  }
+
+  // A ship: a hull across its cells, rounded at bow and stern.
+  &--ship::before {
+    content: '';
+    position: absolute;
+    inset: 12%;
+    background: var(--ship);
+  }
+
+  &--h-start::before,
+  &--h-mid::before {
+    right: -1px;
+  }
+
+  &--h-mid::before,
+  &--h-end::before {
+    left: 0;
+  }
+
+  &--v-start::before,
+  &--v-mid::before {
+    bottom: -1px;
+  }
+
+  &--v-mid::before,
+  &--v-end::before {
+    top: 0;
+  }
+
+  &--h-start::before {
+    border-radius: 50% 0 0 50%;
+  }
+
+  &--h-end::before {
+    border-radius: 0 50% 50% 0;
+  }
+
+  &--v-start::before {
+    border-radius: 50% 50% 0 0;
+  }
+
+  &--v-end::before {
+    border-radius: 0 0 50% 50%;
+  }
+
+  &--sunk::before {
+    background: color-mix(in srgb, var(--ship) 40%, var(--error));
+    opacity: 0.6;
+  }
+
+  // The next ship under the cursor while placing.
+  &--preview-fits {
+    background: color-mix(in srgb, var(--sea) 40%, var(--primary));
+  }
+
+  &--preview-blocked {
+    background: color-mix(in srgb, var(--sea) 40%, var(--error));
+  }
+
+  &--last {
+    animation: naval-last 0.6s ease-out 2;
+  }
+
+  &--cursor {
+    z-index: 1;
+    outline: 3px solid var(--secondary);
+    outline-offset: -2px;
+  }
+}
+
+// Hovering aims: an area over the whole cell, under the marks.
+.naval__hover {
+  position: absolute;
+  inset: 0;
+}
+
+.naval__mark {
+  position: relative;
+  width: 70%;
+  height: 70%;
+  pointer-events: none;
+
+  &--hit {
+    fill: var(--error);
+  }
+
+  &--miss {
+    width: 45%;
+    height: 45%;
+    fill: var(--text-secondary);
+  }
+}
+
+.naval__ships {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem 0.8rem;
+  max-width: calc(var(--cell) * 11);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.naval__ship-size {
+  color: var(--text-secondary);
+}
+
+.naval__ship--sunk {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.naval__ship--next {
+  color: var(--primary);
+  font-weight: bold;
+}
+
+.naval__ship--placed,
+.naval__ship--waiting {
+  color: var(--text-secondary);
+}
+
+.naval__ship-state {
+  color: var(--text-secondary);
+}
+
+.naval__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.naval__action {
+  padding: 0.3rem 0.7rem;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:disabled {
+    color: var(--text-secondary);
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &--start:not(:disabled) {
+    border-color: var(--primary);
+  }
+}
+
+@keyframes naval-last {
+  50% {
+    filter: brightness(1.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .naval__cell--last {
+    animation: none;
+  }
+}

@@ -15,7 +15,7 @@
   list-style: none;
 }
 
-// Without levels (e.g. Pong): rank, score and date.
+// Without levels (e.g. Table Tennis): rank, score and date.
 .score-table__list--no-level {
   grid-template-columns: auto minmax(0, 1fr) auto;
 }

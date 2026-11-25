@@ -5,6 +5,9 @@ import { print, resolvePort, runCommand } from '../utils/index.js';
 
 const isWindows = process.platform === 'win32';
 
+// Inherited by the first build and by watcher.js's (see there).
+process.env.NUTIN_WATCH = '1';
+
 async function startDev() {
   console.clear();
   print.blue('🚀 Starting Dev Environment...\n');

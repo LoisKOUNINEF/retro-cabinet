@@ -1,0 +1,31 @@
+// The reward's banner and the Explorer toast, in the page's colours. Their base styles come
+// from a11y.css (loaded with views/game/game.view.scss). Both regions live in <body>.
+
+// The reward earned by scores: across the top of the page.
+.a11y-notification-banner--success {
+  background: var(--surface-elevated);
+  color: var(--text);
+  border-bottom: 3px solid var(--primary);
+  box-sizing: border-box;
+
+  .a11y-notification-banner__action {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+}
+
+// Achievement toasts sit in the bottom-right corner, as on a game launcher.
+.a11y-snackbar-region__bottom {
+  left: auto;
+  right: var(--a11y-snackbar-offset, 1rem);
+  transform: none;
+  --a11y-snackbar-container-width: 18rem;
+}
+
+.a11y-snackbar--success {
+  justify-content: flex-start;
+  background: var(--surface-elevated);
+  color: var(--text);
+  border-left: 4px solid var(--primary);
+  font-weight: bold;
+}

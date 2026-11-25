@@ -1,4 +1,4 @@
-// A cell holds a CSS modifier (e.g. 'tetris-I', 'snake-head'), or null when empty.
+// A cell holds a CSS modifier (e.g. 'blocks-I', 'snake-head'), or null when empty.
 export type Cell = string | null;
 export type Grid = Cell[][];
 export type Random = () => number;
@@ -73,9 +73,9 @@ export interface TouchLayout {
   // for steering (Snake).
   pad?: 'stick' | 'cross';
   directions: StickDirection[];
-  // Re-sends the held direction every repeatMs, on either pad (e.g. Tetris sliding a piece).
+  // Re-sends the held direction every repeatMs, on either pad (e.g. Falling Blocks sliding a piece).
   repeatMs?: number;
-  // onPad: the button takes the D-pad's empty up slot (Tetris's Rotate) instead of the right thumb.
+  // onPad: the button takes the D-pad's empty up slot (Falling Blocks' Rotate) instead of the right thumb.
   action?: { label: string; code: string; onPad?: boolean };
   // The action key stays pressed while playing; holding the button, or a fire key on the
   // keyboard (GameView), lets go of it (cease fire).
@@ -94,7 +94,7 @@ interface BaseGame {
   readonly score: number;
   readonly level: number;
   readonly isOver: boolean;
-  // False for games without levels (e.g. Pong): the HUD and score table leave the level out.
+  // False for games without levels (e.g. Table Tennis): the HUD and score table leave the level out.
   readonly showsLevel?: boolean;
 
   // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
@@ -106,7 +106,7 @@ interface BaseGame {
   // dt: ms elapsed since the previous tick (most grid games ignore it).
   tick(dt: number): void;
   handleKey?(code: string): void;
-  // For keys held down, e.g. Arkanoid's paddle.
+  // For keys held down, e.g. Brick Breaker's paddle.
   handleKeyUp?(code: string): void;
   // Called when the game pauses, so no key stays held down.
   releaseKeys?(): void;
@@ -117,17 +117,17 @@ interface BaseGame {
   stats?(): Record<string, number>;
 }
 
-// Drawn as a grid of cells, ticking every speed() ms (e.g. Tetris).
+// Drawn as a grid of cells, ticking every speed() ms (e.g. Falling Blocks).
 export interface GridGame extends BaseGame {
   readonly kind: 'grid';
   // ms to wait before the next tick, read again before every tick.
   speed(): number;
   cells(): Grid;
-  // Small side grid, e.g. Tetris's next piece.
+  // Small side grid, e.g. Falling Blocks' next piece.
   preview?(): Grid;
 }
 
-// Drawn on a canvas, ticking on every animation frame (e.g. Arkanoid's physics).
+// Drawn on a canvas, ticking on every animation frame (e.g. Brick Breaker's physics).
 export interface CanvasGame extends BaseGame {
   readonly kind: 'canvas';
   draw(ctx: CanvasRenderingContext2D): void;
@@ -135,7 +135,7 @@ export interface CanvasGame extends BaseGame {
 
 export type Game = GridGame | CanvasGame;
 
-// A user-selectable setting shown in the HUD, e.g. Pacman's maze. The default is
+// A user-selectable setting shown in the HUD, e.g. Maze Chase's maze. The default is
 // `defaultValue`, else the first choice. T narrows the values, read back with choiceOf().
 export interface GameOption<T extends string = string> {
   key: string;

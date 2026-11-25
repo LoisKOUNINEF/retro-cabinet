@@ -1,0 +1,151 @@
+.minefield {
+  --rows: 9;
+  --columns: 9;
+  // Square cells filling the stage, under the Dig/Flag toggle.
+  --cell: min(
+    calc(var(--stage-width, 100vw) / var(--columns)),
+    calc((var(--stage-height, 100vh) - 3rem) / var(--rows)),
+    2.4rem
+  );
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+
+  &--9x9 {
+    --rows: 9;
+    --columns: 9;
+  }
+
+  &--16x16 {
+    --rows: 16;
+    --columns: 16;
+  }
+
+  &--16x30 {
+    --rows: 16;
+    --columns: 30;
+
+    // On a portrait screen the wide board turns: the same cells, laid out column by column.
+    @media (orientation: portrait) {
+      --rows: 30;
+      --columns: 16;
+
+      .minefield__grid {
+        grid-auto-flow: column;
+      }
+    }
+  }
+}
+
+.minefield__modes {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.minefield__mode {
+  padding: 0.3rem 0.8rem;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &[aria-pressed='true'] {
+    border-color: var(--primary);
+    color: var(--text);
+  }
+}
+
+.minefield__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), var(--cell));
+  grid-template-rows: repeat(var(--rows), var(--cell));
+  border: 2px solid var(--border);
+  background: var(--border);
+  gap: 1px;
+}
+
+// The catalog's wrappers step aside: the cells' buttons are the grid's items.
+.minefield__grid > *,
+.minefield__slot {
+  display: contents;
+}
+
+.minefield__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18%;
+  border: none;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+  font-weight: bold;
+  font-size: calc(var(--cell) * 0.55);
+  line-height: 1;
+  cursor: pointer;
+  // A long press flags: no callout, no text selection, no double-tap zoom.
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &--hidden,
+  &--flag,
+  &--question {
+    box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.12), inset -2px -2px 0 rgba(0, 0, 0, 0.35);
+
+    &:not(:disabled):hover {
+      background: color-mix(in srgb, var(--surface-elevated) 80%, var(--text));
+    }
+  }
+
+  &--open,
+  &--mine,
+  &--wrong {
+    background: #000;
+  }
+
+  &--exploded {
+    background: var(--error);
+  }
+
+  &--cursor {
+    z-index: 1;
+    outline: 3px solid var(--secondary);
+    outline-offset: -1px;
+  }
+
+  // The numbers in their classic colours, brightened for a dark board.
+  &--count-1 { color: #5b9bff; }
+  &--count-2 { color: #4cd964; }
+  &--count-3 { color: #ff5b5b; }
+  &--count-4 { color: #b07bff; }
+  &--count-5 { color: #ff9f43; }
+  &--count-6 { color: #3ad6d6; }
+  &--count-7 { color: var(--text); }
+  &--count-8 { color: var(--text-secondary); }
+}
+
+.minefield__art {
+  width: 100%;
+  height: 100%;
+  fill: var(--text);
+
+  &--flag {
+    fill: var(--error);
+  }
+
+  &--mine {
+    fill: var(--text);
+  }
+
+  &--wrong {
+    fill: var(--error);
+  }
+}

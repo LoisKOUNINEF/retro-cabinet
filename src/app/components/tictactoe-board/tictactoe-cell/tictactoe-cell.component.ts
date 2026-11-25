@@ -1,5 +1,5 @@
 import { Component, html } from '../../../../core/index.js';
-import type { Mark } from '../../../games/secret/tictactoe.js';
+import type { Mark } from '../../../games/bonus/noughts-and-crosses/tictactoe.js';
 
 export interface TicTacToeCell {
   mark: Mark | null;

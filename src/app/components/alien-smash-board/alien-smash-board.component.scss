@@ -1,0 +1,168 @@
+.alien-smash-board {
+  // Three holes a row, filling the stage.
+  --hole: min(calc(var(--stage-width, 100vw) / 3.4), calc(var(--stage-height, 100vh) / 3.4), 11rem);
+  --gap: calc(var(--hole) / 10);
+  display: grid;
+  grid-template-columns: repeat(3, var(--hole));
+  grid-auto-rows: var(--hole);
+  gap: var(--gap);
+  width: max-content;
+}
+
+// The holes' roots step aside: their buttons are the grid's items.
+.alien-smash-board__slot {
+  display: contents;
+}
+
+.alien-smash-board__hole {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 3px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: crosshair;
+  touch-action: manipulation;
+
+  // The hole itself: a dark pit the aliens come out of.
+  &::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 8%;
+    height: 18%;
+    border-radius: 50%;
+    background: #000;
+    box-shadow: inset 0 4px 0 var(--surface-elevated);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: 2px;
+  }
+}
+
+// Its number key, small in the corner.
+.alien-smash-board__key {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+// The space above the pit, cut off at its middle: aliens rise out of the pit and sink back into it.
+.alien-smash-board__well {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 17%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.alien-smash-board__target {
+  display: grid;
+  width: 58%;
+  // Its feet just inside the pit.
+  margin-bottom: 4%;
+  animation: smash-rise 0.15s ease-out;
+
+  // Missed: back down into the pit, so the player sees it go (LEAVE_MS in the game).
+  &--leaving {
+    animation: smash-sink 0.25s ease-in forwards;
+  }
+}
+
+.alien-smash-board__frame {
+  grid-area: 1 / 1;
+  width: 100%;
+  fill: var(--text);
+  // The two frames take turns, as the aliens march in the arcade game.
+  animation: smash-frame 0.5s steps(1) infinite;
+
+  &--second {
+    animation-delay: -0.25s;
+  }
+}
+
+.alien-smash-board__target--ufo .alien-smash-board__frame {
+  fill: var(--error);
+}
+
+.alien-smash-board__target--squid .alien-smash-board__frame {
+  fill: var(--secondary);
+}
+
+.alien-smash-board__explosion {
+  width: 58%;
+  margin-bottom: 12%;
+  fill: var(--primary);
+}
+
+.alien-smash-board__points {
+  position: absolute;
+  z-index: 1;
+  top: 12%;
+  color: var(--primary);
+  font-weight: bold;
+  animation: smash-points 0.3s ease-out;
+}
+
+@keyframes smash-rise {
+  from {
+    transform: translateY(105%);
+  }
+}
+
+@keyframes smash-sink {
+  to {
+    transform: translateY(105%);
+  }
+}
+
+@keyframes smash-frame {
+  0% {
+    visibility: visible;
+  }
+
+  50% {
+    visibility: hidden;
+  }
+}
+
+@keyframes smash-points {
+  from {
+    transform: translateY(40%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alien-smash-board__target,
+  .alien-smash-board__points {
+    animation: none;
+  }
+
+  // Without the sinking: dimmed while it's going back down.
+  .alien-smash-board__target--leaving {
+    opacity: 0.4;
+  }
+
+  .alien-smash-board__frame--second {
+    display: none;
+  }
+
+  .alien-smash-board__frame {
+    animation: none;
+  }
+}

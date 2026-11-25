@@ -1,0 +1,214 @@
+.code-breaker {
+  --pegs: 4;
+  --tries: 10;
+  --gap: 0.3rem;
+  // Rows of pegs filling the stage: the code, the tries, the colours, and the legend's room.
+  --peg: min(
+    calc(var(--stage-width, 100vw) / (var(--pegs) + 4)),
+    calc((var(--stage-height, 100vh) - 4rem) / (var(--tries) + 2.5) - var(--gap) - 0.3rem),
+    2.6rem
+  );
+  display: grid;
+  justify-items: center;
+  gap: var(--gap);
+
+  @each $n in 4, 5 {
+    &--pegs-#{$n} {
+      --pegs: #{$n};
+    }
+  }
+
+  @each $n in 8, 10, 12 {
+    &--tries-#{$n} {
+      --tries: #{$n};
+    }
+  }
+}
+
+.code-breaker__rows,
+.code-breaker__future {
+  display: grid;
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// A row: its number, its holes, its feedback (or the Check button).
+.code-breaker__row {
+  display: grid;
+  grid-template-columns: 1.6rem repeat(var(--pegs), var(--peg)) calc(var(--peg) * 1.5);
+  align-items: center;
+  gap: calc(var(--peg) / 6);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: #000;
+
+  &--code {
+    margin-bottom: 0.3rem;
+    border: 2px solid var(--border);
+  }
+
+  &--current {
+    outline: 2px solid var(--text-secondary);
+  }
+
+  &--future {
+    opacity: 0.45;
+  }
+}
+
+// The catalog's wrappers step aside: the holes' buttons are the row's items.
+.code-breaker__holes,
+.code-breaker__holes > *,
+.code-breaker__slot,
+.code-breaker__rows > li,
+.code-breaker__row-item {
+  display: contents;
+}
+
+.code-breaker__number {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.code-breaker__hole {
+  display: flex;
+  width: var(--peg);
+  height: var(--peg);
+}
+
+.code-breaker__peg {
+  width: 100%;
+  height: 100%;
+
+  &--red { fill: #ef4444; }
+  &--orange { fill: #f97316; }
+  &--yellow { fill: #facc15; }
+  &--green { fill: #22c55e; }
+  &--cyan { fill: #22d3ee; }
+  &--blue { fill: #3b82f6; }
+  &--purple { fill: #a855f7; }
+  &--pink { fill: #f9a8d4; }
+  &--empty { fill: var(--text-secondary); }
+
+  &--hole {
+    fill: var(--text-secondary);
+  }
+
+  &--secret {
+    padding: 15%;
+    fill: var(--text-secondary);
+  }
+}
+
+// The feedback: up to three small pegs a line.
+.code-breaker__keys {
+  display: grid;
+  grid-template-columns: repeat(2, calc(var(--peg) * 0.38));
+  gap: calc(var(--peg) / 12);
+  justify-content: center;
+
+  .code-breaker--pegs-5 & {
+    grid-template-columns: repeat(3, calc(var(--peg) * 0.38));
+  }
+}
+
+.code-breaker__key-peg {
+  width: 100%;
+  aspect-ratio: 1;
+  fill: var(--text-secondary);
+
+  &--exact,
+  &--misplaced {
+    fill: var(--text);
+  }
+}
+
+.code-breaker__button {
+  position: relative;
+  display: flex;
+  width: var(--peg);
+  height: var(--peg);
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    border-color: var(--text-secondary);
+  }
+
+  &--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: 1px;
+  }
+
+  // The palette's colours: a little bigger, their number key above.
+  &--colour {
+    width: calc(var(--peg) * 1.15);
+    height: calc(var(--peg) * 1.15);
+
+    &:disabled {
+      opacity: 0.25;
+    }
+  }
+}
+
+.code-breaker__check {
+  padding: 0.25rem 0.2rem;
+  border: 2px solid var(--primary);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: min(0.8rem, calc(var(--peg) / 3));
+  cursor: pointer;
+
+  &:disabled {
+    border-color: var(--border);
+    color: var(--text-secondary);
+    cursor: default;
+  }
+}
+
+.code-breaker__palette {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(var(--peg) / 4);
+  margin-top: 0.6rem;
+  padding-top: 0.7rem;
+}
+
+.code-breaker__key {
+  position: absolute;
+  top: -0.95rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+}
+
+.code-breaker__legend {
+  margin: 0.3rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.code-breaker__legend-key {
+  display: inline-flex;
+  width: 0.7rem;
+  vertical-align: middle;
+
+  .code-breaker__key-peg {
+    fill: var(--text);
+  }
+}

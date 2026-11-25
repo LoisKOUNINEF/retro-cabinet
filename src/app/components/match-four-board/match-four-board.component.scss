@@ -1,0 +1,90 @@
+
+$rows: 6;
+
+.m4-board {
+  // Fits the stage: 7 columns and 6 rows, plus their gaps and the frame.
+  --cell: min(calc(var(--stage-width, 100vw) / 8.2), calc(var(--stage-height, 100vh) / 7.2), 4.5rem);
+  --gap: calc(var(--cell) / 8);
+  --red: var(--error);
+  --yellow: #FFD54A;
+  display: grid;
+  grid-template-columns: repeat(7, auto);
+  gap: 0;
+  padding: var(--gap);
+  background: var(--border);
+  border-radius: 10px;
+  width: max-content;
+  // Falling discs start above the frame: hidden until they enter it.
+  overflow: hidden;
+}
+
+// The catalog's wrappers step aside: the columns' buttons are the grid's items.
+.m4-board > *,
+.m4-board__slot {
+  display: contents;
+}
+
+.m4-board__column {
+  display: grid;
+  grid-template-rows: repeat($rows, var(--cell));
+  gap: var(--gap);
+  padding: 0 calc(var(--gap) / 2);
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:not(:disabled):hover,
+  &--cursor {
+    background: color-mix(in srgb, var(--secondary) 25%, transparent);
+  }
+
+  &--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: -3px;
+  }
+}
+
+.m4-board__cell {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 50%;
+  background: #000;
+
+  &--red {
+    background: var(--red);
+  }
+
+  &--yellow {
+    background: var(--yellow);
+  }
+
+  // The winning line glows, in the theme's accent.
+  &--win {
+    box-shadow: 0 0 0 calc(var(--cell) / 12) var(--primary), 0 0 calc(var(--cell) / 3) var(--primary);
+  }
+}
+
+// The disc just dropped falls from above the board to its row.
+@for $row from 0 through $rows - 1 {
+  .m4-board__cell--dropped-#{$row} {
+    animation: m4-drop #{80 + 40 * $row}ms ease-in;
+    --fall: calc(-1 * (#{$row + 1}) * (var(--cell) + var(--gap)));
+  }
+}
+
+@keyframes m4-drop {
+  from {
+    transform: translateY(var(--fall));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="m4-board__cell--dropped"] {
+    animation: none;
+  }
+}

@@ -34,6 +34,21 @@
   }
 }
 
+// Plain: no frame, only the icon, with the same title reveal. The hover outline would frame
+// it again: keyboard focus keeps it.
+.game-card--plain {
+  border-color: transparent;
+  background: transparent;
+
+  &:hover:not(:focus-visible) {
+    outline: none;
+  }
+
+  .game-card__icon {
+    height: 2.5rem;
+  }
+}
+
 // Only the icon, centred; on hover (or keyboard focus) the title slides in from the card's
 // bottom edge and opens to its height, and the icon rises as the pair re-centres: a
 // two-line title lifts it further. The title stays in the DOM: it's the card's accessible name.

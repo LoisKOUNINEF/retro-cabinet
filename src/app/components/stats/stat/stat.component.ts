@@ -3,7 +3,8 @@ import { Component, html } from '../../../../core/index.js';
 export interface Stat {
   key: string;
   label: string;
-  value: number;
+  // A count, or text such as "3/8" or "—".
+  value: number | string;
 }
 
 const templateFn = (stat: Stat) => html`__TEMPLATE_PLACEHOLDER__`;

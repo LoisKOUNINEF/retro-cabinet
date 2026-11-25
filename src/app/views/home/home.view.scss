@@ -20,6 +20,11 @@
   font-size: 2.5rem;
 }
 
+.home__bonus {
+  // Closer to the title it sits above than the page's gap.
+  margin-bottom: -1rem;
+}
+
 .home__games {
   display: grid;
   grid-template-columns: repeat(3, auto);

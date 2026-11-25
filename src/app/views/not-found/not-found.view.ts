@@ -16,7 +16,7 @@ export class NotFoundView extends View {
   }
 
   // Dopefish lives!
-  private _openSecret(): void {
-    Navigation.navigateTo('/secret');
+  private _openBonus(): void {
+    Navigation.navigateTo('/bonus');
   }
 }

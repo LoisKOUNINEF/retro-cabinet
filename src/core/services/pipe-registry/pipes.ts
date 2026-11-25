@@ -6,6 +6,8 @@ const pageLocale = (): string => document.documentElement.lang || 'en';
 
 const DATE_TOKENS = /YYYY|YY|MM|DD/g;
 const HAS_DATE_TOKEN = /YYYY|YY|MM|DD/;
+// Hour and minute in the locale's format.
+const TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 const pad = (n: number): string => String(n).padStart(2, '0');
 
 // 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD.MM.YY'...: each token is replaced, the rest is kept.
@@ -41,32 +43,30 @@ export const registerPipes = (): void => {
     pattern?: string,
   ) => {
     const date = new Date(value);
-    const dateLocale = locale || pageLocale();
-    // '' is not a valid Intl.DateTimeFormatOptions value for hour/minute; omit those keys entirely rather than setting them when time is false.
-    // From a template the flag arrives as a string ("false" is truthy).
-    const withTime = time === true || time === 'true';
-    const timeOptions: Intl.DateTimeFormatOptions = withTime ? { hour: '2-digit', minute: '2-digit' } : {};
-    const formats = {
-      short: { year: '2-digit', month: 'numeric', day: 'numeric', ...timeOptions } as Intl.DateTimeFormatOptions,
-      long: { year: 'numeric', month: 'long', day: 'numeric', ...timeOptions } as Intl.DateTimeFormatOptions,
-      numeric: { year: 'numeric', month: '2-digit', day: '2-digit', ...timeOptions } as Intl.DateTimeFormatOptions,
-      time: { hour: '2-digit', minute: '2-digit' } as Intl.DateTimeFormatOptions
-    };
-
-    const validFormat = (format in formats ? format : 'long') as keyof typeof formats;
-
     if (isNaN(date.getTime())) {
       console.warn('Invalid date value in pipe:', value);
       return String(value);
     }
 
+    const dateLocale = locale || pageLocale();
+    if (format === 'time') return date.toLocaleString(dateLocale, TIME);
+
+    // From a template the flag arrives as a string ("false" is truthy).
+    const withTime = time === true || time === 'true';
     // A pattern without any token; the locale's numeric order is used instead.
-    if (validFormat === 'numeric' && pattern && HAS_DATE_TOKEN.test(pattern)) {
+    if (format === 'numeric' && pattern && HAS_DATE_TOKEN.test(pattern)) {
       const day = formatDatePattern(date, pattern);
-      return withTime ? `${day}, ${date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}` : day;
+      return withTime ? `${day}, ${date.toLocaleTimeString(dateLocale, TIME)}` : day;
     }
 
-    return date.toLocaleString(dateLocale, formats[validFormat]);
+    // short / long / numeric; any other name is "long".
+    const month = format === 'short' ? 'numeric' : format === 'numeric' ? '2-digit' : 'long';
+    return date.toLocaleString(dateLocale, {
+      year: format === 'short' ? '2-digit' : 'numeric',
+      month,
+      day: format === 'numeric' ? '2-digit' : 'numeric',
+      ...(withTime ? TIME : {}),
+    });
   });
 
   // number (toFixed)

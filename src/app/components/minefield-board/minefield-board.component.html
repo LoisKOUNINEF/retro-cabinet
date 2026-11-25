@@ -1,0 +1,21 @@
+<div class="minefield minefield--${state.rows}x${state.columns}">
+  <div class="minefield__modes" role="group" aria-label="A tap or click">
+    <button
+      type="button"
+      class="minefield__mode"
+      data-mode="dig"
+      data-focus-key="mode-dig"
+      data-event="click:_setMode:@dataset:mode"
+      aria-pressed="${state.mode !== 'flag'}"
+    >⛏ Dig</button>
+    <button
+      type="button"
+      class="minefield__mode"
+      data-mode="flag"
+      data-focus-key="mode-flag"
+      data-event="click:_setMode:@dataset:mode"
+      aria-pressed="${state.mode === 'flag'}"
+    >⚑ Flag</button>
+  </div>
+  <div class="minefield__grid" role="group" aria-label="Minefield" data-catalog="cells"></div>
+</div>

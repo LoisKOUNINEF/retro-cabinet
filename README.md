@@ -1,16 +1,16 @@
 # Retro Cabinet - a classic games platform
 
-## Classic games clones
+## Classic-style games
 
-- Tetris
-- Pacman
-- Space Invaders
+- Falling Blocks
+- Maze Chase
+- Alien Attack
 - Snake
-- Arkanoid
-- Asteroids
-- Columns
-- Frogger
-- Pong
+- Brick Breaker
+- Space Rocks
+- Jewel Drop
+- Frog Crossing
+- Table Tennis
 
 ## Quality of life
 
