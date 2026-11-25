@@ -1,5 +1,6 @@
 import {
-  applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, LEFT, levelFrom, levelOption, livesFrom, livesOption, pickFields, samePoint, setCell,
+  applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, LEFT, levelFrom, levelOption, livesFrom, livesOption, onOff,
+  pickFields, samePoint, SAVE_VERSION, setCell,
   type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
@@ -23,6 +24,34 @@ const POWER_PAUSE = 48;
 const EYES_SPEED = 150;
 // Each flash at the end of frightened time.
 const FLASH_MS = 400;
+
+// Bonus prizes (when the option is on): one appears below the ghost house after 70 and 170
+// of the arcade maze's 244 pellets are eaten (the same share of a smaller maze), and stays
+// 9⅓ to 10 s. Levels 1, 2, 3-4, 5-6, 7-8, 9-10, 11-12, 13+.
+export type PrizeKind = 'cherry' | 'strawberry' | 'orange' | 'apple' | 'melon' | 'ship' | 'bell' | 'key';
+
+export const PRIZES: { kind: PrizeKind; points: number }[] = [
+  { kind: 'cherry', points: 100 },
+  { kind: 'strawberry', points: 300 },
+  { kind: 'orange', points: 500 },
+  { kind: 'apple', points: 700 },
+  { kind: 'melon', points: 1000 },
+  { kind: 'ship', points: 2000 },
+  { kind: 'bell', points: 3000 },
+  { kind: 'key', points: 5000 },
+];
+
+export const prizeFor = (level: number) => PRIZES[level <= 2 ? level - 1 : Math.min(Math.floor((level + 1) / 2), 7)]!;
+
+const PRIZE_AT = [70 / 244, 170 / 244];
+const PRIZE_MIN_MS = 9333;
+const PRIZE_MAX_MS = 10_000;
+
+export interface Prize {
+  kind: PrizeKind;
+  // Time left before it goes.
+  ms: number;
+}
 
 // Speeds in % of 100%: each tick, a mover adds its speed to its budget and takes a step per 100.
 interface Speeds {
@@ -100,7 +129,7 @@ export interface RunnerMover {
 
 // What a save keeps (held keys and the random source never are).
 const SAVED_FIELDS = [
-  'pellets', 'runner', 'wanted', 'ghosts', 'frightenedMs', 'score', 'level', 'lives', 'isOver', 'waiting',
+  'pellets', 'runner', 'wanted', 'ghosts', 'frightenedMs', 'prize', 'score', 'level', 'lives', 'isOver', 'waiting',
   '_modeIndex', '_modeMs', '_ghostsEaten', '_pelletsEaten', '_idleMs', '_lostLife', '_extraLife',
 ];
 
@@ -109,6 +138,7 @@ export interface MazeChaseOptions {
   layout?: string[];
   firstLevel?: number;
   lives?: number;
+  prizes?: boolean;
   random?: Random;
 }
 
@@ -131,6 +161,7 @@ export class MazeChase implements GridGame {
   wanted: Point | null = null;
   ghosts: Ghost[] = [];
   frightenedMs = 0;
+  prize: Prize | null = null;
   // Before the first arrow (at start and after a lost life): everything holds still.
   waiting = true;
   private _modeIndex = 0;
@@ -145,12 +176,21 @@ export class MazeChase implements GridGame {
   private readonly random: Random;
   private readonly firstLevel: number;
   private readonly startLives: number;
+  private readonly prizes: boolean;
+  private readonly totalPellets: number;
+  // Pellets eaten on a level when each prize appears.
+  private readonly prizeAt: number[];
 
-  constructor({ layout = COMPACT, firstLevel = 1, lives = LIVES, random = cryptoRandom }: MazeChaseOptions = {}) {
+  constructor({
+    layout = COMPACT, firstLevel = 1, lives = LIVES, prizes = false, random = cryptoRandom,
+  }: MazeChaseOptions = {}) {
     this.random = random;
     this.firstLevel = firstLevel;
     this.startLives = lives;
+    this.prizes = prizes;
     this.maze = parseMaze(layout);
+    this.totalPellets = this.maze.pellets.flat().filter(Boolean).length;
+    this.prizeAt = PRIZE_AT.map((share) => Math.round(this.totalPellets * share));
     this.width = this.maze.width;
     this.height = this.maze.height;
     this.reset();
@@ -184,6 +224,7 @@ export class MazeChase implements GridGame {
     if (this.isOver || this.waiting) return;
     this.updateMode(dt);
     this.releaseGhosts(dt);
+    this.agePrize(dt);
 
     const runnerBefore = this.runner.position;
     const ghostsBefore = this.ghosts.map((ghost) => ghost.position);
@@ -233,6 +274,7 @@ export class MazeChase implements GridGame {
       if (tile === 'wall' || tile === 'door') return tile;
       return this.pellets[y]?.[x] ?? null;
     }));
+    if (this.prize) setCell(grid, this.maze.prizeSpot.x, this.maze.prizeSpot.y, `prize-${this.prize.kind}`);
     setCell(grid, this.runner.position.x, this.runner.position.y, `runner-${directionName(this.runner.direction)}`);
     this.ghosts.forEach((ghost) => setCell(grid, ghost.position.x, ghost.position.y, this.ghostCell(ghost)));
     return grid;
@@ -264,6 +306,7 @@ export class MazeChase implements GridGame {
       frightened: false,
     }));
     this.frightenedMs = 0;
+    this.prize = null;
     this._modeIndex = 0;
     this._modeMs = 0;
     this._pelletsEaten = 0;
@@ -324,6 +367,7 @@ export class MazeChase implements GridGame {
       const position = stepFrom(this.maze, this.runner.position, this.runner.direction);
       this.runner.position = position;
       this.eat(position);
+      this.eatPrize(position);
     }
   }
 
@@ -336,6 +380,25 @@ export class MazeChase implements GridGame {
     this.runner.budget = (this.runner.budget ?? 0) - (pellet === 'power' ? POWER_PAUSE : PELLET_PAUSE);
     this.addScore(pellet === 'power' ? POWER_POINTS : PELLET_POINTS);
     if (pellet === 'power') this.frighten();
+    this.maybeShowPrize();
+  }
+
+  private maybeShowPrize(): void {
+    if (!this.prizes || !this.prizeAt.includes(this.totalPellets - this.pelletsLeft)) return;
+    const ms = PRIZE_MIN_MS + this.random() * (PRIZE_MAX_MS - PRIZE_MIN_MS);
+    this.prize = { kind: prizeFor(this.level).kind, ms };
+  }
+
+  private eatPrize(position: Point): void {
+    if (!this.prize || !samePoint(position, this.maze.prizeSpot)) return;
+    this.addScore(prizeFor(this.level).points);
+    this.prize = null;
+  }
+
+  private agePrize(dt: number): void {
+    if (!this.prize) return;
+    this.prize.ms -= dt;
+    if (this.prize.ms <= 0) this.prize = null;
   }
 
   private addScore(points: number): void {
@@ -419,6 +482,8 @@ export class MazeChase implements GridGame {
 
 const MAZES = { compact: COMPACT, arcade: ARCADE };
 
+const PRIZE_OPTION = onOff('prizes', 'Bonus prizes', true);
+
 const MAZE_OPTION: GameOption<keyof typeof MAZES> = {
   key: 'maze',
   label: 'Maze',
@@ -427,10 +492,13 @@ const MAZE_OPTION: GameOption<keyof typeof MAZES> = {
 
 export const mazeChaseGame: GameDefinition = {
   id: 'maze-chase',
-  options: [MAZE_OPTION, levelOption, livesOption(LIVES)],
+  // Saves gained the prize field.
+  saveVersion: SAVE_VERSION + 1,
+  options: [MAZE_OPTION, levelOption, livesOption(LIVES), PRIZE_OPTION],
   create: (settings) => new MazeChase({
     layout: MAZES[choiceOf(settings, MAZE_OPTION)],
     firstLevel: levelFrom(settings),
     lives: livesFrom(settings, LIVES),
+    prizes: isOn(settings, PRIZE_OPTION),
   }),
 };

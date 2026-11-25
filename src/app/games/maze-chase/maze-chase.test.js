@@ -1,4 +1,4 @@
-import { MazeChase, mazeChaseGame, TICK_MS } from '#root/dist/src/app/games/maze-chase/maze-chase.js';
+import { MazeChase, mazeChaseGame, prizeFor, TICK_MS } from '#root/dist/src/app/games/maze-chase/maze-chase.js';
 import { COMPACT } from '#root/dist/src/app/games/maze-chase/mazes.js';
 
 const UP = { x: 0, y: -1 };
@@ -366,8 +366,8 @@ describe('Maze Chase', () => {
     expect(TICK_MS).toBe(106);
   });
 
-  it('combines the maze and level options', () => {
-    expect(mazeChaseGame.options.map((o) => o.key)).toEqual(['maze', 'level', 'lives']);
+  it('combines the maze, level, lives and prize options', () => {
+    expect(mazeChaseGame.options.map((o) => o.key)).toEqual(['maze', 'level', 'lives', 'prizes']);
     const game = mazeChaseGame.create({ maze: 'arcade', level: '2' });
     expect(game.width).toBe(28);
     expect(game.lives).toBe(3);
@@ -393,5 +393,104 @@ describe('Maze Chase', () => {
     for (let i = 0; i < 30; i++) { game.tick(); copy.tick(); }
     expect(copy.snapshot()).toEqual(game.snapshot());
     expect(copy.mode).toBe(game.mode);
+  });
+
+  describe('bonus prizes', () => {
+    // Compact maze: the prize spot is (9, 11), just below the house; one pellet sits at (1, 1).
+    const SPOT = { x: 9, y: 11 };
+
+    // Leaves `left` pellets, the last one (1, 1) in front of the runner.
+    const withPellets = (game, left) => {
+      game.ghosts = [];
+      let keep = left;
+      game.pellets = game.pellets.map((row, y) => row.map((pellet, x) => {
+        if (!pellet || (x === 1 && y === 1)) return pellet;
+        if (keep > 1) { keep -= 1; return pellet; }
+        return null;
+      }));
+      game.runner = { position: { x: 2, y: 1 }, direction: LEFT };
+      return game;
+    };
+    const prizeGame = (options = {}) => playing({ layout: COMPACT, random: () => 0, prizes: true, ...options });
+
+    it('gives the arcade prize for each level', () => {
+      expect([1, 2, 3, 4, 5, 7, 9, 11, 13, 20].map((level) => prizeFor(level).kind)).toEqual([
+        'cherry', 'strawberry', 'orange', 'orange', 'apple', 'melon', 'ship', 'bell', 'key', 'key',
+      ]);
+      expect([1, 2, 3, 5, 7, 9, 11, 13].map((level) => prizeFor(level).points)).toEqual([
+        100, 300, 500, 700, 1000, 2000, 3000, 5000,
+      ]);
+    });
+
+    it('appears below the house after the 43rd and the 105th pellet of the compact maze', () => {
+      [43, 105].forEach((eaten) => {
+        const game = withPellets(prizeGame(), 150 - eaten + 1);
+        stepOnce(game);
+        expect(game.pelletsLeft).toBe(150 - eaten);
+        expect(game.prize.kind).toBe('cherry');
+        expect(game.cells()[SPOT.y][SPOT.x]).toBe('prize-cherry');
+      });
+
+      const early = withPellets(prizeGame(), 150 - 42 + 1);
+      stepOnce(early);
+      expect(early.prize).toBe(null);
+    });
+
+    it('never appears with the option off', () => {
+      const game = withPellets(playing({ layout: COMPACT, random: () => 0 }), 150 - 43 + 1);
+      stepOnce(game);
+      expect(game.prize).toBe(null);
+    });
+
+    it("is worth the level's points when the runner steps on it", () => {
+      const game = prizeGame({ firstLevel: 9 });
+      game.ghosts = [];
+      game.prize = { kind: 'ship', ms: 5000 };
+      game.runner = { position: { x: 8, y: 11 }, direction: RIGHT };
+      stepOnce(game);
+
+      expect(game.runner.position).toEqual(SPOT);
+      expect(game.score).toBe(2000);
+      expect(game.prize).toBe(null);
+    });
+
+    it('goes after 9⅓ to 10 seconds', () => {
+      const game = prizeGame();
+      stuck(game);
+      game.ghosts = [];
+      game.prize = { kind: 'cherry', ms: 9333 };
+      game.tick(9000);
+      expect(game.prize).not.toBe(null);
+      game.tick(400);
+      expect(game.prize).toBe(null);
+    });
+
+    it('goes when a life is lost', () => {
+      const game = prizeGame();
+      game.prize = { kind: 'cherry', ms: 9333 };
+      game.ghosts = [ghost('chaser', { x: 1, y: 1 }, RIGHT)];
+      stuck(game);
+      game.tick();
+      expect(game.lives).toBe(2);
+      expect(game.prize).toBe(null);
+    });
+
+    it('is kept by saves, which are newer than the ones without it', () => {
+      const game = prizeGame();
+      game.prize = { kind: 'cherry', ms: 4000 };
+      const copy = prizeGame();
+      copy.restore(JSON.parse(JSON.stringify(game.snapshot())));
+      expect(copy.prize).toEqual(game.prize);
+      expect(mazeChaseGame.saveVersion).toBeGreaterThan(7);
+    });
+
+    it('is on by default', () => {
+      expect(mazeChaseGame.options.find((o) => o.key === 'prizes').defaultValue).toBe('on');
+      const game = withPellets(mazeChaseGame.create({}), 150 - 43 + 1);
+      game.waiting = false;
+      stepOnce(game);
+      expect(game.prize).not.toBe(null);
+      expect(withPellets(mazeChaseGame.create({ prizes: 'off' }), 2).prizes).toBeFalsy();
+    });
   });
 });

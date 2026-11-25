@@ -181,7 +181,7 @@ export class Snake implements GridGame {
   // One bonus at a time; none when there's no room for it.
   private maybeSpawnBonus(): void {
     if (!this.bonuses || this.bonus || this.random() >= BONUS_CHANCE) return;
-    const shrinkBerry = this.random() <= BONUS_CHANCE;
+    const shrinkBerry = this.random() < BONUS_CHANCE;
     const kind = shrinkBerry ? 'shrink' : 'golden';
     const cell = this.freeCell();
     if (cell) this.bonus = { ...cell, kind, ticksLeft: BONUS_TICKS };
@@ -205,7 +205,7 @@ export class Snake implements GridGame {
   }
 }
 
-const BONUS_OPTION = onOff('bonuses', 'Bonus food');
+const BONUS_OPTION = onOff('bonuses', 'Bonus food', true);
 
 export const snakeGame: GameDefinition = {
   id: 'snake',

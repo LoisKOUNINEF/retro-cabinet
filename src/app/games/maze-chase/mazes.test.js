@@ -38,6 +38,14 @@ describe('Maze Chase mazes', () => {
       GHOST_NAMES.forEach((ghost) => expect(maze.ghostStarts[ghost]).toBeDefined());
     });
 
+    it(`${name}: has one prize spot, on floor below the ghost house`, () => {
+      expect(count(layout, 'F')).toBe(1);
+      const maze = parseMaze(layout);
+      expect(isWalkable(maze, maze.prizeSpot)).toBeTruthy();
+      expect(maze.pellets[maze.prizeSpot.y][maze.prizeSpot.x]).toBe(null);
+      expect(maze.prizeSpot.y).toBeGreaterThan(maze.ghostStarts.chaser.y + 2);
+    });
+
     it(`${name}: every pellet and the ghost exit are reachable`, () => {
       const maze = parseMaze(layout);
       const seen = reachable(maze);
@@ -46,6 +54,7 @@ describe('Maze Chase mazes', () => {
         if (pellet) expect(seen.has(key({ x, y }))).toBeTruthy();
       }));
       expect(seen.has(key(maze.ghostStarts.chaser))).toBeTruthy();
+      expect(seen.has(key(maze.prizeSpot))).toBeTruthy();
     });
   });
 

@@ -315,7 +315,7 @@ export class BrickBreaker implements CanvasGame {
   }
 }
 
-const POWER_UPS_OPTION = onOff('powerups', 'Power-ups');
+const POWER_UPS_OPTION = onOff('powerups', 'Power-ups', true);
 
 export const brickBreakerGame: GameDefinition = {
   id: 'brick-breaker',
