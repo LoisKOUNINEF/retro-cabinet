@@ -11,7 +11,7 @@ const views = (game) => minefieldGame.board.config(game, true).cells.map(({ view
 describe('Minefield', () => {
   it('keeps the first dig and its neighbours clear, so it always opens an area', () => {
     for (let i = 0; i < 20; i++) {
-      const game = new Minefield({ ...SIZES.beginner, random: Math.random });
+      const game = new Minefield({ ...SIZES.easy, random: Math.random });
       game.select(40);
       expect(game.cells.filter((cell) => cell.mine).length).toBe(10);
       [40, ...game.neighbours(40)].forEach((index) => expect(game.cells[index].mine).toBe(false));
@@ -109,8 +109,8 @@ describe('Minefield', () => {
 
   it('keeps a tally per size, without draws', () => {
     const { results } = minefieldGame;
-    expect(results.key({})).toBe('beginner');
-    expect(results.key({ size: 'expert' })).toBe('expert');
+    expect(results.key({})).toBe('easy');
+    expect(results.key({ size: 'hard' })).toBe('hard');
     expect(results.draws).toBe(false);
   });
 });

@@ -25,13 +25,24 @@ export const TRIES_OPTION: GameOption<'unlimited' | '5' | '10' | '15' | '20'> = 
   ],
 };
 
-export const MATCHING_PAIRS_OPTIONS: GameOption[] = [CARDS_OPTION, TRIES_OPTION];
+// How long two different cards stay face up before turning back, in ms; 'click': until a card is picked.
+export const REVEAL_OPTION: GameOption<'500' | '1000' | '2000' | '3000' | 'click'> = {
+  key: 'reveal',
+  label: 'Reveal time',
+  choices: [
+    { value: '500', label: '0.5 s' },
+    { value: '1000', label: '1 s' },
+    { value: '2000', label: '2 s' },
+    { value: '3000', label: '3 s' },
+    { value: 'click', label: 'Until click' },
+  ],
+  defaultValue: '1000',
+};
+
+export const MATCHING_PAIRS_OPTIONS: GameOption[] = [CARDS_OPTION, TRIES_OPTION, REVEAL_OPTION];
 
 // Cards per row, per deck size: 4×3, 4×4, 5×4, 6×4.
 export const GRID_COLUMNS: Record<number, number> = { 12: 4, 16: 4, 20: 5, 24: 6 };
-
-// How long two different cards stay face up before turning back (a click turns them back sooner).
-export const MISMATCH_MS = 900;
 
 // 'revealed': face up once the round is lost, to show where the pairs were.
 export type CardState = 'hidden' | 'shown' | 'found' | 'revealed';
@@ -46,6 +57,8 @@ export interface MatchingPairsOptions {
   cards: number;
   // Misses allowed; null for unlimited.
   tries: number | null;
+  // How long a mismatched pair stays face up, in ms; null until a card is picked.
+  revealMs: number | null;
   random: Random;
 }
 
@@ -55,6 +68,7 @@ export class MatchingPairs implements BonusGame {
   readonly cards: MatchingPairsCard[];
   readonly columns: number;
   readonly tries: number | null;
+  readonly revealMs: number | null;
   cursor = 0;
   misses = 0;
   pairsFound = 0;
@@ -63,11 +77,12 @@ export class MatchingPairs implements BonusGame {
   // Time left before a mismatched pair turns back.
   private _hideIn: number | null = null;
 
-  constructor({ cards, tries, random }: MatchingPairsOptions) {
+  constructor({ cards, tries, revealMs, random }: MatchingPairsOptions) {
     const pairs = shuffle(FACES.map((_, face) => face), random).slice(0, cards / 2);
     this.cards = shuffle([...pairs, ...pairs], random).map((face) => ({ face, state: 'hidden' as CardState }));
     this.columns = GRID_COLUMNS[cards] ?? 4;
     this.tries = tries;
+    this.revealMs = revealMs;
   }
 
   get pairs(): number {
@@ -76,6 +91,11 @@ export class MatchingPairs implements BonusGame {
 
   get triesLeft(): number | null {
     return this.tries === null ? null : Math.max(this.tries - this.misses, 0);
+  }
+
+  // A mismatched pair is face up: the next pick only turns it back.
+  get turningBack(): boolean {
+    return this._turned.length === 2;
   }
 
   get isOver(): boolean {
@@ -92,7 +112,7 @@ export class MatchingPairs implements BonusGame {
     const outcome = this.outcome;
     if (outcome === 'wins') return `You found every pair, with ${this.misses} ${this.misses === 1 ? 'miss' : 'misses'}!${again}`;
     if (outcome === 'losses') return `Out of tries.${again}`;
-    if (this._hideIn !== null) return 'No match.';
+    if (this.turningBack) return this.revealMs === null ? 'No match. Pick any card to turn them back.' : 'No match.';
     return this._turned.length === 1 ? 'Find its pair.' : 'Find the pairs.';
   }
 
@@ -107,10 +127,14 @@ export class MatchingPairs implements BonusGame {
   }
 
   select(index: number): void {
+    if (this.outcome) return;
+    // A mismatched pair still showing: any pick only turns it back.
+    if (this.turningBack) {
+      this.turnBack();
+      return;
+    }
     const card = this.cards[index];
-    if (this.outcome || !card || card.state !== 'hidden') return;
-    // A mismatched pair still showing turns back first.
-    if (this._turned.length === 2) this.turnBack();
+    if (!card || card.state !== 'hidden') return;
     card.state = 'shown';
     this.cursor = index;
     this._turned.push(index);
@@ -159,7 +183,7 @@ export class MatchingPairs implements BonusGame {
       this._turned = [];
       return;
     }
-    this._hideIn = MISMATCH_MS;
+    this._hideIn = this.revealMs;
   }
 
   private turnBack(): void {
@@ -177,7 +201,13 @@ export const matchingPairsGame: BonusGameDefinition<MatchingPairs, MatchingPairs
   options: MATCHING_PAIRS_OPTIONS,
   create: (settings: Settings, random: Random) => {
     const tries = choiceOf(settings, TRIES_OPTION);
-    return new MatchingPairs({ cards: Number(choiceOf(settings, CARDS_OPTION)), tries: tries === 'unlimited' ? null : Number(tries), random });
+    const reveal = choiceOf(settings, REVEAL_OPTION);
+    return new MatchingPairs({
+      cards: Number(choiceOf(settings, CARDS_OPTION)),
+      tries: tries === 'unlimited' ? null : Number(tries),
+      revealMs: reveal === 'click' ? null : Number(reveal),
+      random,
+    });
   },
   board: {
     create: (el, config, onSelect) => new MatchingPairsBoardComponent(el, config, onSelect),
@@ -185,6 +215,7 @@ export const matchingPairsGame: BonusGameDefinition<MatchingPairs, MatchingPairs
       cards: game.cards.map(({ face, state }) => ({ face, state })),
       columns: game.columns,
       cursor: game.cursor,
+      turningBack: game.turningBack,
       locked: game.outcome !== null,
     }),
   },

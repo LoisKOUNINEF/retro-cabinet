@@ -2,7 +2,7 @@ import { BONUS_ENDING_TICKS, BONUS_TICKS, Snake, snakeGame } from '#root/dist/sr
 
 // random() = 0 always picks the first free cell, (0, 0) on an empty board.
 const newSnake = () => new Snake({ random: () => 0 });
-// …and, with bonuses on, always spawns one after an apple: a golden one (the first kind).
+// …and, with bonuses on, always spawns one after an apple: a shrink berry (random() < BONUS_CHANCE).
 const bonusSnake = () => new Snake({ random: () => 0, bonuses: true });
 
 describe('Snake', () => {
@@ -142,7 +142,7 @@ describe('Snake', () => {
   });
 
   describe('bonus food', () => {
-    it('is off by default and turned on by the option', () => {
+    it('is on by default and turned off by the option', () => {
       // Real random source: a bonus follows 1 apple in 4, so eat up to 100 of them.
       const bonusAfterApples = (game) => {
         for (let i = 0; i < 100 && !game.bonus; i++) {
@@ -152,9 +152,9 @@ describe('Snake', () => {
         }
         return game.bonus;
       };
-      expect(snakeGame.options.find((o) => o.key === 'bonuses').defaultValue).toBe('off');
-      expect(bonusAfterApples(snakeGame.create({}))).toBe(null);
-      expect(bonusAfterApples(snakeGame.create({ bonuses: 'on' }))).not.toBe(null);
+      expect(snakeGame.options.find((o) => o.key === 'bonuses').defaultValue).toBe('on');
+      expect(bonusAfterApples(snakeGame.create({}))).not.toBe(null);
+      expect(bonusAfterApples(snakeGame.create({ bonuses: 'off' }))).toBe(null);
     });
 
     it('never appears when off', () => {
@@ -172,8 +172,8 @@ describe('Snake', () => {
       game.tick();
 
       expect(game.food).toEqual({ x: 0, y: 0 });
-      expect(game.bonus).toEqual({ x: 1, y: 0, kind: 'golden', ticksLeft: BONUS_TICKS });
-      expect(game.cells()[0][1]).toBe('bonus-golden');
+      expect(game.bonus).toEqual({ x: 1, y: 0, kind: 'shrink', ticksLeft: BONUS_TICKS });
+      expect(game.cells()[0][1]).toBe('bonus-shrink');
     });
 
     it('golden apple: grows the snake and is worth 5 apples, the apple staying put', () => {

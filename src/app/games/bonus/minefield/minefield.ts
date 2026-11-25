@@ -4,15 +4,15 @@ import type { TallyResult } from '../../../services/persistence/persistence.serv
 import { ARROW_DIRECTIONS, choiceOf, shuffle, type GameOption, type Random, type Settings } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 
-export const SIZE_OPTION: GameOption<'beginner' | 'intermediate' | 'expert'> = {
+export const SIZE_OPTION: GameOption<'easy' | 'medium' | 'hard'> = {
   key: 'size',
   label: 'Size',
   choices: [
-    { value: 'beginner', label: 'Beginner: 9×9, 10 mines' },
-    { value: 'intermediate', label: 'Intermediate: 16×16, 40 mines' },
-    { value: 'expert', label: 'Expert: 30×16, 99 mines' },
+    { value: 'easy', label: 'Easy: 9x9, 10 Mines' },
+    { value: 'medium', label: 'Medium: 16x16, 40 Mines' },
+    { value: 'hard', label: 'Hard: 30x16, 99 Mines' },
   ],
-  defaultValue: 'beginner',
+  defaultValue: 'easy',
 };
 
 export const MINEFIELD_OPTIONS: GameOption[] = [SIZE_OPTION];
@@ -26,9 +26,9 @@ export interface Field {
 }
 
 export const SIZES: Record<Size, Field> = {
-  beginner: { rows: 9, columns: 9, mines: 10 },
-  intermediate: { rows: 16, columns: 16, mines: 40 },
-  expert: { rows: 16, columns: 30, mines: 99 },
+  easy: { rows: 9, columns: 9, mines: 10 },
+  medium: { rows: 16, columns: 16, mines: 40 },
+  hard: { rows: 16, columns: 30, mines: 99 },
 };
 
 // hidden → flag → question → hidden, with the flag action; open once dug.

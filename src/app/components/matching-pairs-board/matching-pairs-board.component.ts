@@ -10,6 +10,8 @@ export interface MatchingPairsBoardConfig {
   columns: number;
   // The keyboard cursor's card.
   cursor: number;
+  // A mismatched pair is face up: any card, face-up ones included, turns it back.
+  turningBack: boolean;
   // No turns allowed (the round is over).
   locked: boolean;
 }
@@ -38,7 +40,7 @@ export class MatchingPairsBoardComponent extends UpdatableComponent<MatchingPair
   private _lastStates: CardState[] | null = null;
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    const { cards, cursor, locked } = this.config;
+    const { cards, cursor, turningBack, locked } = this.config;
     const lastStates = this._lastStates;
     this._lastStates = cards.map(({ state }) => state);
     return this.createCatalogComponents({
@@ -48,7 +50,7 @@ export class MatchingPairsBoardComponent extends UpdatableComponent<MatchingPair
         state,
         label: cardLabel(index, face, state),
         cursor: index === cursor,
-        disabled: locked || state !== 'hidden',
+        disabled: locked || (!turningBack && state !== 'hidden'),
         // Every card on the deal, then only those whose state changed.
         turning: lastStates === null || lastStates[index] !== state,
         onSelect: this.onSelect,
