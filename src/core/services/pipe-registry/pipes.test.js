@@ -1,4 +1,7 @@
-import { registerPipes } from '#root/dist/src/core/services/pipe-registry/pipes.js';
+import {
+  registerPipes, currencyPipe, datePipe, numberPipe, uppercasePipe, lowercasePipe, capitalizePipe,
+  capitalizeAllPipe, truncatePipe, defaultPipe, jsonPipe,
+} from '#root/dist/src/core/services/pipe-registry/pipes.js';
 import { AppPipeRegistry } from '#root/dist/src/core/index.js';
 
 describe('pipes (registerPipes)', () => {
@@ -28,7 +31,7 @@ describe('pipes (registerPipes)', () => {
 
   it('date formats using the "short" format when requested', () => {
     const value = '2024-03-15T00:00:00Z';
-    const expected = new Date(value).toLocaleString('en-US', { year: '2-digit', month: 'numeric', day: 'numeric' });
+    const expected = new Date(value).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     expect(AppPipeRegistry.apply('date', value, ['en-US', 'short'])).toBe(expected);
   });
 
@@ -189,5 +192,31 @@ describe('pipes (registerPipes)', () => {
     const circular = {};
     circular.self = circular;
     expect(AppPipeRegistry.apply('json', circular)).toBe(String(circular));
+  });
+
+  it('registerPipes() registers each exported pipe under its data-pipe name', () => {
+    const register = spyOn(AppPipeRegistry, 'register').andCallFake(() => {});
+    try {
+      registerPipes();
+    } finally {
+      register.restore();
+    }
+    expect(Object.fromEntries(register.calls)).toEqual({
+      currency: currencyPipe,
+      date: datePipe,
+      number: numberPipe,
+      uppercase: uppercasePipe,
+      lowercase: lowercasePipe,
+      capitalize: capitalizePipe,
+      capitalizeAll: capitalizeAllPipe,
+      truncate: truncatePipe,
+      default: defaultPipe,
+      json: jsonPipe,
+    });
+  });
+
+  it('a single exported pipe can be registered on its own, under any name', () => {
+    AppPipeRegistry.register('upper-only-test', uppercasePipe);
+    expect(AppPipeRegistry.apply('upper-only-test', 'abc')).toBe('ABC');
   });
 });

@@ -10,8 +10,8 @@ export function generateFile({
   templateFn,
   suffix,
   extension = 'ts',
+  dryRun = false,
 }) {
-  fs.mkdirSync(targetPath, { recursive: true });
   const template = templateFn(name, targetPath, suffix);
   const filePath = `${targetPath}/${name.kebab}.${suffix}.${extension}`;
 
@@ -20,11 +20,19 @@ export function generateFile({
     process.exit(1);
   }
 
-  fs.writeFileSync(filePath, template);
+  // --dry-run: the same checks, nothing written.
+  if (!dryRun) {
+    fs.mkdirSync(targetPath, { recursive: true });
+    fs.writeFileSync(filePath, template);
+  }
+  return filePath;
 }
 
-export function generateLocalesJson({ targetPath, name, isView }) {
+export function generateLocalesJson({ targetPath, name, isView, dryRun = false }) {
   const localesDir = `${targetPath}/locales`;
+  const filePaths = LANGUAGES.map((lang) => `${localesDir}/${lang}.json`);
+  if (dryRun) return filePaths;
+
   fs.mkdirSync(localesDir, { recursive: true });
 
   const template = localeTemplate(name, isView);
@@ -42,4 +50,5 @@ export function generateLocalesJson({ targetPath, name, isView }) {
   if (failedLangs.length) {
     throw new Error(`Failed to generate locale file(s) for: ${failedLangs.join(', ')}`);
   }
+  return filePaths;
 }

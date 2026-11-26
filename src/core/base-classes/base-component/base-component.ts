@@ -11,7 +11,9 @@ import * as SecurityHelper from './helpers/security.helper.js';
 
 export * as SecurityHelper from './helpers/security.helper.js';
 export * as TokenHelper from './helpers/token.helper.js';
-export { html, raw, trustedRaw, SafeHtml } from './helpers/html.helper.js';
+export { html, raw, trustedRaw, nutinIf, nutinFor, SafeHtml } from './helpers/html.helper.js';
+export { getCatalogComponents } from './helpers/catalog.helper.js';
+export { getChildComponents } from './helpers/children.helper.js';
 
 export abstract class BaseComponent<T extends HTMLElement = HTMLElement> {
   #children: ChildRegistry = ChildrenHelper.createRegistry();
@@ -29,7 +31,7 @@ export abstract class BaseComponent<T extends HTMLElement = HTMLElement> {
   }: Nutin.BaseComponentOptions) {
     this.trustLevel = trustLevel;
     this.element = DomHelper.createElement<T>(tagName, '', trustLevel);
-    DomHelper.markComponentRoot(this.element);
+    DomHelper.markComponentRoot(this.element, this);
     DomHelper.mountElement(this.element, mountTarget);
   }
 

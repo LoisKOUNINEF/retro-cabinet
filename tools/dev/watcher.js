@@ -3,9 +3,8 @@ import { exec } from 'child_process';
 import path from 'path';
 import { print } from '../utils/index.js'
 
-// The builds run below inherit these: NUTIN_WATCH drops the one-off hints of a manual build (the
-// builder's "For production" line), FORCE_COLOR keeps their colours, captured by exec() but printed
-// to this terminal.
+// The builds run below inherit these: NUTIN_WATCH drops the one-off hints of a manual build
+// FORCE_COLOR keeps their colours, captured by exec() but printed to this terminal.
 process.env.NUTIN_WATCH = '1';
 if (process.stdout.isTTY) process.env.FORCE_COLOR ??= '1';
 
@@ -60,9 +59,8 @@ function runBuild() {
     }
     isBuilding = false;
 
-    // A change arrived while this build was running — it was never picked up by
-    // any debounce timer (isBuilding used to make those just silently return,
-    // dropping the change for good), so build again now instead of missing it.
+    // A change arrived while this build was running: it was never picked up by
+    // any debounce timer, so build again now instead of missing it.
     if (pendingRebuild) runBuild();
   });
 }

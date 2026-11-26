@@ -69,7 +69,7 @@ export class HttpClient extends Service<HttpClient> {
       const url = HttpBuilder.resolveUrl(this.#baseUrl, endpoint, this.#trustedAPIs);
       HttpBuilder.appendQueryParams(url, config.queryParams);
 
-      // Without a base URL, the client's default headers only go to the page's own origin;
+      // Without a base URL, the client's default headers only go to the page's own origin:
       // per-call headers are sent wherever the call goes.
       const sendDefaults = this.#baseUrl !== '' || url.origin === window.location.origin;
       const headers = HttpBuilder.mergeHeaders(sendDefaults ? this.#defaultHeaders : undefined, config.headers);

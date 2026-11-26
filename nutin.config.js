@@ -27,13 +27,16 @@ export default {
   // Testing toolkit
   // `npm run testin-nutin`
   testinNutin: {
-    includeFramework: false,  // Test Nutin source - src/core
+    includeFramework: false, // Test Nutin source: src/core
     includeTools: false,     // Test tools/ (builder, testin-nutin, etc.)
-    includeApp: true,        // Include application tests
-    isolate: [               // Test files (path substrings) that each run in their own worker and jsdom window, e.g. for custom elements
-      'views/bonus/',
-      'views/game/',
-    ],
+    includeApp: true,        // Include application tests: src/app
+    isolate: {
+      loadTimeout: 30,       // Seconds each isolated file may take to load before it's reported as failed
+      files: [               // Test files (path substrings) that each run in their own worker and jsdom window
+        'views/bonus/',
+        'views/game/',
+      ],
+    },
 
     coverage: {
       enabled: false,        // Include coverage in the normal test command

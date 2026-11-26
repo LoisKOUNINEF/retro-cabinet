@@ -1,5 +1,5 @@
 import { ScoreTableComponent } from '#root/dist/src/app/components/score-table/score-table.component.js';
-import { registerPipes } from '#root/dist/src/core/index.js';
+import { AppPipeRegistry, datePipe } from '#root/dist/src/core/index.js';
 
 const entry = (score, level) => ({ score, level, date: '2026-10-16T10:00:00.000Z' });
 
@@ -8,7 +8,7 @@ describe('ScoreTableComponent', () => {
   let table;
 
   // Pipes may already be registered by another test file: that only warns.
-  beforeAll(() => silenceConsole('warn', () => registerPipes()));
+  beforeAll(() => silenceConsole('warn', () => AppPipeRegistry.register('date', datePipe)));
 
   beforeEach(() => {
     host = document.createElement('div');

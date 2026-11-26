@@ -55,11 +55,11 @@ export class Globals extends Service<Globals> {
 
 /**
  * Mounts components outside the router's render target (`<main id="app">`),
- * e.g. a header/footer that should persist across every route. Each entry's
- * `component` is constructed internally and its rendered root element is given the
- * entry's `id`, so `hideGlobals(ids)`/`revealGlobals(ids)` can target it
- * later by that same id. Registering an `id` that's already registered logs
- * a `console.warn` and skips it.
+ * e.g. a header/footer that should persist across every route.
+ * Each entry's `component` is constructed internally.
+ * Its rendered root element is given the entry's `id`, so `hideGlobals(ids)`/`revealGlobals(ids)`
+ * can target it later by that same id.
+ * Registering an `id` that's already registered logs a `console.warn` and skips it.
  */
 export const registerGlobals = (options: Nutin.RegisterGlobalsOptions): void => {
   Globals.getInstance().register(options);
@@ -71,8 +71,9 @@ export const hideGlobals = (globalIds: string[]): void => {
 };
 
 /**
- * Reveal the elements with the given ids (as registered via `registerGlobals`), restoring
- * each element's display value as captured by `hideGlobals` — pass `display` to override.
+ * Reveal the elements with the given ids (as registered via `registerGlobals`),
+ * restoring each element's display value as captured by `hideGlobals`.
+ * Pass `display` to override.
  */
 export const revealGlobals = (globalIds: string[], display?: string): void => {
   Globals.getInstance().reveal(globalIds, display);

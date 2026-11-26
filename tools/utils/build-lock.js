@@ -4,10 +4,10 @@ import { print } from './print.js';
 import { errorExit } from './error-exit.js';
 
 // Guards the whole build pipeline against concurrent invocations — e.g. a manual
-// `npm run build` running alongside the dev watcher's auto-rebuild, or (as actually
-// happened) multiple orphaned watcher.js processes each kicking off their own build.
-// copy-static.js starts every run by wiping and recreating dist-build; two builds
-// doing that at once corrupt each other's output (missing/non-empty dist-build,
+// `npm run build` running alongside the dev watcher's auto-rebuild,
+// or multiple orphaned watcher.js processes each kicking off their own build.
+// copy-static.js starts every run by wiping and recreating dist-build;
+// two builds doing that at once corrupt each other's output (missing/non-empty dist-build,
 // merge-templates.js "has both an inline and external template" conflicts, etc).
 const LOCK_DIR = path.resolve('.build-lock');
 const STALE_MS = 5 * 60 * 1000; // a full build takes seconds — anything older is a dead leftover
@@ -36,7 +36,7 @@ function isStale() {
   return isHolderDead();
 }
 
-// A build killed hard (kill -9, a crash) never releases — free the lock right away
+// A build killed hard (kill -9, a crash) never releases: free the lock right away
 // when the pid that wrote it is gone instead of waiting out STALE_MS.
 function isHolderDead() {
   let pid;
@@ -92,8 +92,8 @@ export async function acquireBuildLock() {
   }
 
   process.on('exit', release);
-  // 'exit' doesn't fire when a signal terminates the process (Ctrl-C, dev-serve's
-  // group kill), so release explicitly there too, then exit the way the signal would have.
+  // 'exit' doesn't fire when a signal terminates the process (Ctrl-C, dev-serve's group kill),
+  // so release explicitly there too, then exit the way the signal would have.
   for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) {
     process.once(signal, () => {
       release();

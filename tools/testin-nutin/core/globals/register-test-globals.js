@@ -14,8 +14,8 @@ export function registerTestGlobals() {
   let currentSuiteMode = 'normal';
 
   const defineSuite = (name, fn, mode) => {
-    // A describe() nested in a .skip or .only one keeps its parent's mode (skip wins over
-    // only), and the parent's mode is back for its tests after the nested one.
+    // A describe() nested in a .skip or .only one keeps its parent's mode (skip wins over only),
+    // and the parent's mode is back for its tests after the nested one.
     const parentMode = currentSuiteMode;
     currentSuite = name;
     currentSuiteMode = [parentMode, mode].includes('skip') ? 'skip'
@@ -39,8 +39,8 @@ export function registerTestGlobals() {
   global.describe.skip = (name, fn) => defineSuite(name, fn, 'skip');
   global.describe.only = (name, fn) => defineSuite(name, fn, 'only');
 
-  // The suite's hooks object is shared by reference (read when the queue runs), so a hook
-  // registered after some it() calls in the same describe() still applies to them.
+  // The suite's hooks object is shared by reference (read when the queue runs),
+  // so a hook registered after some it() calls in the same describe() still applies to them.
   const addSuiteTest = (name, fn, { only = false } = {}) => {
     const isSkipped = currentSuiteMode === 'skip';
     addTest({
@@ -87,8 +87,8 @@ export function registerTestGlobals() {
   global.$ = (selector) => document.querySelector(selector);
   global.$$ = (selector) => [...document.querySelectorAll(selector)];
 
-  // cancelable: true matches a real browser's native click event, so code
-  // under test that calls preventDefault() actually sees defaultPrevented.
+  // cancelable: true matches a real browser's native click event,
+  // so code under test that calls preventDefault() actually sees defaultPrevented.
   global.click = (el) => el.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }));
   global.type = (el, text) => { el.value = text; el.dispatchEvent(new window.InputEvent("input", { bubbles: true })); };
 

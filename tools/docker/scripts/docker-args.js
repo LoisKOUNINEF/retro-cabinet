@@ -1,8 +1,8 @@
 import { parseArgs } from 'util';
 
-// The flags docker:build and docker:run accept, turned into a docker command line. Ports are
-// never one of them: they come from nutin.config.js "dockerPorts" (see docker-ports.js), the
-// same list nginx listens on and the Dockerfile exposes.
+// The flags docker:build and docker:run accept, turned into a docker command line.
+// Ports are never one of them: they come from nutin.config.js "dockerPorts" (see docker-ports.js),
+// the same list nginx listens on and the Dockerfile exposes.
 
 const TAG = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/;
 const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
@@ -20,6 +20,7 @@ const platform = {
   description: 'Target platform, e.g. linux/amd64 for a server when building on Apple silicon',
 };
 const help = { type: 'boolean', short: 'h', description: 'Show this help' };
+const dryRun = { type: 'boolean', description: 'Print the docker command without running it' };
 
 export const BUILD_FLAGS = {
   'no-cache': { type: 'boolean', description: 'Build without the layer cache' },
@@ -37,6 +38,7 @@ export const BUILD_FLAGS = {
     type: 'string', value: '<mode>', check: (value) => (PROGRESS.includes(value) ? null : PROGRESS.join(', ')),
     description: `Build output: ${PROGRESS.join(', ')}`,
   },
+  'dry-run': dryRun,
   help,
 };
 
@@ -56,6 +58,7 @@ export const RUN_FLAGS = {
     description: 'Image tag to run (default: latest)',
   },
   platform: { ...platform, description: 'Platform of the image to run, when it was built for several' },
+  'dry-run': dryRun,
   help,
 };
 
@@ -69,7 +72,9 @@ function flagName(name, spec) {
  * Parses argv against BUILD_FLAGS or RUN_FLAGS. Throws an Error with a message meant for the
  * user: a port flag, an unknown flag, a missing or invalid value.
  */
-export function parseDockerFlags(argv, flags) {
+export function parseDockerFlags(rawArgv, flags) {
+  // pnpm passes the "--" of npm's form (pnpm run docker:run -- -d) on to the script.
+  const argv = rawArgv[0] === '--' ? rawArgv.slice(1) : rawArgv;
   const portFlag = argv.find((arg) => PORT_FLAG.test(arg));
   if (portFlag) {
     throw new Error(`"${portFlag}": ports are set in nutin.config.js "dockerPorts", not on the command line.`);

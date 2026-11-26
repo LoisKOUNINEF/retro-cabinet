@@ -10,10 +10,10 @@ export type HistoryMode = 'push' | 'replace' | 'none';
 const ANNOUNCE_DELAY = 100;
 
 // See reloadOnce().
-const RELOAD_KEY = 'nutin:failed-view-load';
+const RELOAD_KEY = 'nutin:failed-load';
 const RELOAD_WINDOW = 10_000;
 
-// How browsers reject an import() whose file is gone or unreachable (Chrome, Firefox, Safari).
+// How browsers reject an import() whose file is gone or unreachable (Chrome|Firefox|Safari).
 const MODULE_LOAD_ERROR = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/;
 // Where esbuild writes the app's own lazy chunks (tools/builder: chunks/).
 const CHUNKS_PATH = '/chunks/';
@@ -21,9 +21,7 @@ const CHUNKS_PATH = '/chunks/';
 /**
  * Navigation - handles path normalization and history management
  */
-// The i18n guards wrap their branch rather than returning early: esbuild only drops
-// a constant-false block, not code after a constant early return, and I18nService
-// must go unreferenced for prod builds to drop it when i18n is off.
+// I18nService must go unreferenced for prod builds to drop it when i18n is off.
 export function extractLocale(path: string): { locale: Nutin.Language | null; strippedPath: string } {
   if (globalThis.__NUTIN_I18N__ ?? CONFIG.i18n) {
     const segments = path.split('/').filter(Boolean);
@@ -60,8 +58,7 @@ export function updateLocaleInUrl(): void {
 export function normalizePath(path: string): string {
   const collapsed = path.replace(/\/\/+/g, '/');
   const url = new URL(collapsed, window.location.origin);
-  // Parsing can bring "//" back ("/./\\host" -> "//host"), which the browser reads as another
-  // host (pushState throws, a full page load leaves the site): collapse again.
+  // Parsing can bring "//" back ("/./\\host" -> "//host"), which the browser reads as another host: collapse again.
   const pathname = (url.pathname || '/').replace(/\/\/+/g, '/').replace(/\/+$/, '') || '/';
   return extractLocale(pathname).strippedPath;
 }
@@ -93,19 +90,25 @@ export function recoverFromFailedViewLoad(url: string, error: unknown): void {
   reloadOnce(url, error, 'the view');
 }
 
-// Code failed to load: usually a deploy replaced the chunks while this tab was open, or the
-// network dropped. A full page load of `url` fetches the new build. It happens once per URL
-// within RELOAD_WINDOW (recorded in sessionStorage), so code that keeps failing (or a broken
-// chunk) can't reload forever: the error is logged and the current page stays. Offline, or
-// without sessionStorage, it only logs: a reload would only trade the page for an error page.
-export function reloadOnce(url: string, error: unknown, what: string): void {
+// Code failed to load: a full page load of `url` fetches the new build.
+// The last reload is recorded in sessionStorage, so code that keeps failing (or a broken chunk)
+// can't reload forever. The same URL again only logs, and the current page stays:
+// - within RELOAD_WINDOW (a lazy route's view: a later deploy can recover it again).
+// - however late with oncePerSession (an import() nothing caught: Safari names no module in its error,
+//   so a third-party one can't be told apart, and may fail again on every click).
+// Offline, or when sessionStorage throws or doesn't keep the record, it only logs:
+// a reload would trade the page for an error page, or could repeat with nothing to stop it.
+export function reloadOnce(url: string, error: unknown, what: string, oncePerSession = false): void {
   console.error(`[router] Failed to load ${what} for "${url}".`, error);
   if (navigator.onLine === false) return;
   try {
-    const last = JSON.parse(sessionStorage.getItem(RELOAD_KEY) ?? 'null') as { url?: string; at?: number } | null;
+    const last = JSON.parse(sessionStorage.getItem(RELOAD_KEY) ?? 'null') as { url?: string; at: number } | null;
     const now = Date.now();
-    if (last?.url === url && typeof last.at === 'number' && now - last.at < RELOAD_WINDOW) return;
-    sessionStorage.setItem(RELOAD_KEY, JSON.stringify({ url, at: now }));
+    if (last?.url === url && (oncePerSession || now - last.at < RELOAD_WINDOW)) return;
+    const record = JSON.stringify({ url, at: now });
+    sessionStorage.setItem(RELOAD_KEY, record);
+    // Read back: storage that accepts a write without keeping it couldn't stop the next reload.
+    if (sessionStorage.getItem(RELOAD_KEY) !== record) return;
   } catch {
     return;
   }
@@ -113,9 +116,10 @@ export function reloadOnce(url: string, error: unknown, what: string): void {
 }
 
 // An import() of one of the app's own chunks that failed because its file couldn't be fetched,
-// as opposed to an error thrown by the module's own code. A third-party module (an ad blocker,
-// a CSP or a CDN outage) isn't the app's to recover by reloading: when the message names the
-// module, it must be a same-origin chunk. Safari's message names none: assumed to be one.
+// as opposed to an error thrown by the module's own code.
+// A third-party module (an ad blocker, a CSP or a CDN outage) isn't the app's to recover by reloading:
+// when the message names the module, it must be a same-origin chunk.
+// Safari's message names none: assumed to be one.
 export function isModuleLoadError(reason: unknown): boolean {
   if (!(reason instanceof TypeError) || !MODULE_LOAD_ERROR.test(reason.message)) return false;
   // Chrome and Firefox append the module's absolute URL to the message.
@@ -128,17 +132,15 @@ export function loadPage(url: string): void {
   window.location.assign(url);
 }
 
-// Rewrites the current history entry's URL to match content already rendered
-// (e.g. a route that fell back to a default sub-page) without adding a
-// new back/forward-navigable entry.
+// Rewrites the current history entry's URL to match content already rendered without adding a
+// new back/forward-navigable entry. The current query string and hash are kept.
 export function replaceState(path: string): void {
-  const localizedPath = addLocalePrefix(path) + window.location.hash;
-  window.history.replaceState({}, '', localizedPath);
+  window.history.replaceState({}, '', localizedUrl(path, window.location.search, window.location.hash.slice(1)));
 }
 
-// Scrolls to the element matching `hash` (a bare fragment, no leading "#") if it
-// exists; falls back to the top of the page otherwise (no hash, or a stale/broken
-// id) — matches the browser's own native fallback for an unresolvable fragment.
+// Scrolls to the element matching `hash` (a bare fragment, no leading "#") if it exists.
+// Falls back to the top of the page otherwise
+// Matches the browser's own native fallback for an unresolvable fragment.
 export function scrollToHash(hash?: string): void {
   const target = hash ? document.getElementById(hash) : null;
   if (target) {
@@ -184,8 +186,7 @@ function focusElement(element: HTMLElement): void {
 let announcer: HTMLElement | null = null;
 
 // A visually hidden polite live region, created on first use. Emptied first and filled
-// a moment later, so a title identical to the previous one is still announced (a timer,
-// not requestAnimationFrame: that one doesn't run in a background tab).
+// a moment later, so a title identical to the previous one is still announced.
 function announce(message: string): void {
   if (!announcer?.isConnected) {
     const region = document.createElement('div');

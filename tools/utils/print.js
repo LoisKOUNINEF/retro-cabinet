@@ -1,6 +1,6 @@
 // ANSI styles, only when the stream is a terminal: piped output and CI logs get plain text.
-// NO_COLOR (https://no-color.org) turns them off; FORCE_COLOR wins over both: "0" off, any other value on. The dev watcher
-// and the test watcher set FORCE_COLOR for the builds they run, whose output they print to a terminal.
+// NO_COLOR (https://no-color.org) turns them off; FORCE_COLOR wins over both: "0" off, any other value on.
+// The dev watcher and the test watcher set FORCE_COLOR for the builds they run.
 const STYLES = {
   green: '32',
   red: '31',

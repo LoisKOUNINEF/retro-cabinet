@@ -10,14 +10,14 @@ export class UserError extends Error {
   }
 }
 
-// "--debug" on the build (or NUTIN_DEBUG=1, which builder.js sets for its steps): every error's stack.
+// "--debug" on the build: every error's stack.
 // argv is read too: a check that runs while builder.js's imports load comes before builder.js sets it.
 export function isDebug(env = process.env, argv = process.argv) {
   return env.NUTIN_DEBUG === '1' || argv.includes('--debug');
 }
 
-// A string or a UserError: the message only. Another Error: also its stack, without the first line,
-// which repeats the message.
+// A string or a UserError: the message only.
+// Another Error: also its stack, without the first line, which repeats the message.
 export function errorExit(err, origin = '') {
   const message = err?.message || String(err);
   print.boldError(`\n${origin ? `${origin} - ` : ''}Error: ${message}`);

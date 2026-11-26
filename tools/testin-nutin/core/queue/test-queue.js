@@ -24,9 +24,9 @@ export function hasOnlyTests() {
 /**
  * Runs every queued test and returns the results, without printing them.
  * - onlyActive: some test of the run is marked .only, so the others are skipped.
- * - windowPerSuite: each suite gets a fresh jsdom window. When false, the suites share
- *   the window already set up (an isolated file's): each one after the first gets
- *   the document back as it was loaded (restoreDocument()).
+ * - windowPerSuite: each suite gets a fresh jsdom window.
+ *   When false, the suites sharethe window already set up (an isolated file's):
+ *   each one after the first gets the document back as it was loaded (restoreDocument()).
  */
 export async function executeQueue({ queue = testQueue, onlyActive = false, windowPerSuite = true } = {}) {
   const testAmount = queue.length;
@@ -60,8 +60,8 @@ export async function executeQueue({ queue = testQueue, onlyActive = false, wind
   for (let i = 0; i < testAmount; i++) {
     test = queue.deque();
 
-    // Before the suite change below: a suite with only todo or skipped tests
-    // gets no window and runs no hooks.
+    // Before the suite change below:
+    // a suite with only todo or skipped tests gets no window and runs no hooks.
     if (test.isTodo) {
       todo++;
       results.push({
@@ -177,9 +177,7 @@ export async function executeQueue({ queue = testQueue, onlyActive = false, wind
 }
 
 /**
- * Runs the queued tests, adds the runs done elsewhere (extraRuns: an array, or a promise
- * of one, of results shaped like executeQueue's, e.g. the isolated files' workers), then
- * prints the report.
+ * Runs the queued tests, adds the runs done elsewhere, then prints the report.
  */
 export async function runQueuedTests({ onlyActive = false, extraRuns = [] } = {}) {
   printStart();
@@ -191,8 +189,8 @@ export async function runQueuedTests({ onlyActive = false, extraRuns = [] } = {}
   const passed = total('passed');
   const failed = total('failed');
 
-  // Since the process started (performance's time origin): Node startup, discovery and
-  // the test files' imports count too, not only running the queued tests.
+  // Since the process started (performance's time origin):
+  // Node startup, discovery and the test files' imports count too, not only running the queued tests.
   const elapsedTime = performance.now();
   // A console method a test left stubbed would silence the report (see real-console.js).
   restoreRealConsole();

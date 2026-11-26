@@ -8,9 +8,10 @@ import { builderConfig } from '../../builder.config.js';
 
 const APP_CONTAINER = /(<([a-zA-Z][\w-]*)\b[^>]*\sid=["']app["'][^>]*>)[\s\S]*?<\/\2>/;
 
-// The concrete URL path a seo.json route is prerendered at: `outputPath` when given,
-// otherwise `path` with each `:param` filled from `mockParams` (an unset optional
-// `:param?` segment is dropped). '/' maps to '' so it can be appended to baseUrl.
+// The concrete URL path a seo.json route is prerendered at:
+// `outputPath` when given, otherwise `path` with each `:param` filled from `mockParams`.
+// An unset optional `:param?` segment is dropped).
+// '/' maps to '' so it can be appended to baseUrl.
 export function routeSuffixOf(route) {
   const resolved = route.outputPath ?? route.path.replace(/\/:([^/?]+)\??/g, (_match, name) => {
     const value = route.mockParams?.[name];

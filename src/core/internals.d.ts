@@ -83,7 +83,8 @@ declare namespace Nutin {
   }
 
   interface CatalogConfig extends ComponentOptions {
-    items: CatalogItemConfig[];
+    // An array: Array.from() a Set, a Map's values or another iterable. null/undefined are empty.
+    items?: readonly unknown[] | null;
     elementName: string;
     elementTag?: keyof HTMLElementTagNameMap;
     selector: string;
@@ -215,7 +216,6 @@ declare var __NUTIN_SEO__: boolean | undefined;
 // runtime JSON files' content-hashed URLs, as JSON, `{}` in dev. Undefined in tests and tsc output.
 declare var __NUTIN_DATA_FILES__: string | undefined;
 
-// Set by the builder's esbuild `define` for the client bundle only (bundle-options.js
-// clientDefine()): true in prod, so a dev-only diagnostic wrapped in `if (!__NUTIN_PROD__)` is
-// dropped there. Undefined in tests, tsc output and the SSR bundle, which keep the diagnostics.
+// Set by the builder's esbuild `define` for the client bundle only.
+// Undefined in tests, tsc output and the SSR bundle, which keep the diagnostics.
 declare var __NUTIN_PROD__: boolean | undefined;

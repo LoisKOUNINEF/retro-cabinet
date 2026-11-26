@@ -1,20 +1,26 @@
 import * as SecurityHelper from "./security.helper.js";
 import * as SafeDom from "./safe-dom.helper.js";
+import type { BaseComponent } from "../base-component.js";
 
 // Element.moveBefore() isn't in TypeScript's DOM lib yet.
 type MovableParent = ParentNode & { moveBefore?: (node: Node, child: Node | null) => void };
 
-// Root element of every component instance, so a parent can tell its own
-// nodes apart from the ones nested components own.
-const componentRoots = new WeakSet<Element>();
+// Root element of every component instance, mapped to that instance,
+// so a parent can tell its own nodes apart from the ones nested components own,
+// and reach a child's instance from its root.
+const componentRoots = new WeakMap<Element, BaseComponent>();
 
-export function markComponentRoot(element: HTMLElement): void {
-  componentRoots.add(element);
+export function markComponentRoot(element: HTMLElement, instance: BaseComponent): void {
+  componentRoots.set(element, instance);
+}
+
+export function getComponentOf(element: Element): BaseComponent | undefined {
+  return componentRoots.get(element);
 }
 
 // True when `el` lives inside another component's root below `root`.
-// SafeDom: a <form> holding <input name="parentElement"> would otherwise send this walk
-// back down to the input, and from there to the form again, forever.
+// SafeDom: a <form> holding <input name="parentElement"> otherwise send this walk back down to the input,
+// and from there to the form again, forever.
 export function isInsideNestedComponent(el: Element, root: Element): boolean {
   let current = SafeDom.parentElementOf(el);
   while (current && current !== root) {
@@ -24,8 +30,8 @@ export function isInsideNestedComponent(el: Element, root: Element): boolean {
   return false;
 }
 
-// State-preserving move (focus, iframes, animations, custom elements), only
-// possible when both the node and the target parent are in the document.
+// State-preserving move (focus, iframes, animations, custom elements),
+// only possible when both the node and the target parent are in the document.
 export function canMoveBefore(parent: ParentNode, node: Node): boolean {
   return typeof (parent as MovableParent).moveBefore === 'function'
     && parent.isConnected
@@ -37,16 +43,16 @@ export function moveBefore(parent: ParentNode, node: Node, child: Node | null): 
 }
 
 // Chrome restarts the CSS animations of a subtree moved into a parent whose style
-// hasn't been computed yet (e.g. created in the same task). Computing it first,
-// before any move dirties it again, keeps them running.
+// hasn't been computed yet (e.g. created in the same task).
+// Computing it first, before any move dirties it again, keeps them running.
 export function prepareMoveTarget(parent: ParentNode | null, node: Node): void {
   if (parent instanceof Element && canMoveBefore(parent, node)) {
     void getComputedStyle(parent).display;
   }
 }
 
-// Puts an already-mounted element where a placeholder is, moving it without
-// detaching it when the browser supports it.
+// Puts an already-mounted element where a placeholder is,
+// moving it without detaching it when the browser supports it.
 export function replacePlaceholder(element: HTMLElement, placeholder: HTMLElement): void {
   const parent = placeholder.parentNode;
   if (parent && canMoveBefore(parent, element)) {
@@ -90,8 +96,8 @@ export function createElement<T extends HTMLElement>(
   return element;
 }
 
-// Scoped to the rendering component (a detached one included); the document-wide
-// default only serves direct callers.
+// Scoped to the rendering component (a detached one included);
+// the document-wide default only serves direct callers.
 export function cleanupOptionalContent(root: ParentNode = document): void {
   const isEmpty = (el: HTMLElement): boolean => {
     if (el instanceof HTMLImageElement) {
@@ -132,8 +138,8 @@ export function cleanupOptionalContent(root: ParentNode = document): void {
   });
 }
 
-// Carries placeholder attributes (class, id, aria-*, data-*...) onto the mounted
-// element. data-component is skipped so an ancestor's child lookup can't re-match it.
+// Carries placeholder attributes (class, id, aria-*, data-*...) onto the mounted element.
+// data-component is skipped so an ancestor's child lookup can't re-match it.
 function copyAttributes(from: HTMLElement, to: HTMLElement): void {
   Array.from(SafeDom.attributesOf(from)).forEach(attr => {
     if (attr.name === 'data-component') return;

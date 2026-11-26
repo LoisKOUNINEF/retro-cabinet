@@ -112,8 +112,8 @@ export function resetDom() {
   }
 }
 
-// Puts back the document as setupJsdom() loaded it (index.html, with its #app), in the
-// same window: suites of an isolated file share one (see executeQueue's windowPerSuite).
+// Puts back the document as setupJsdom() loaded it (index.html, with its #app), in the same window:
+// suites of an isolated file share one (see executeQueue's windowPerSuite).
 export function restoreDocument() {
   if (!global.document || !initialDocument) return;
 

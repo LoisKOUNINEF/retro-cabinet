@@ -1,4 +1,4 @@
-import { Component, View, html, raw, trustedRaw, SafeHtml } from '#root/dist/src/core/index.js';
+import { Component, View, html, raw, trustedRaw, nutinIf, nutinFor, SafeHtml } from '#root/dist/src/core/index.js';
 
 class TestComponent extends Component {
   constructor(options = {}) {
@@ -8,6 +8,26 @@ class TestComponent extends Component {
   _remove() {
     this.removed = true;
   }
+}
+
+class PickComponent extends Component {
+  constructor(options = {}) {
+    super(options);
+    this.picked = [];
+  }
+
+  _pick(id) {
+    this.picked.push(id);
+  }
+}
+
+// The rendered innerHTML of a component whose templateFn is the given function.
+function renderedHtml(templateFn) {
+  const component = new TestComponent({ templateFn });
+  component.render();
+  const out = component.getElement().innerHTML;
+  component.destroy();
+  return out;
 }
 
 class TestView extends View {
@@ -448,5 +468,402 @@ describe('html', () => {
     view.render();
 
     expect(view.getElement().querySelector('h1').textContent).toBe('<Title>');
+  });
+
+  it('raw returned directly from a template is parsed in place, stripped of bindings and sanitized', () => {
+    const component = new TestComponent({
+      templateFn: () => raw('<button class="evil" data-event="click:_remove">x</button><script>x()</script>'),
+    });
+
+    component.render();
+    const button = component.getElement().querySelector('button.evil');
+    button.click();
+
+    expect(component.getElement().innerHTML).toBe('<button class="evil">x</button>');
+    expect(component.removed).toBe(undefined);
+  });
+
+  it('raw returned directly from a template is stripped of bindings at the trusted level too', () => {
+    const component = new TestComponent({
+      templateFn: () => raw('<b data-event="click:_remove">x</b>'),
+      trustLevel: 'trusted',
+    });
+
+    component.render();
+
+    expect(component.getElement().innerHTML).toBe('<b>x</b>');
+  });
+
+  it('two raws in one template keep their own content', () => {
+    expect(String(html`<p>${raw('<b>1</b>')}${raw('<i>2</i>')}</p>`)).toBe('<p><b>1</b><i>2</i></p>');
+    const component = new TestComponent({ templateFn: () => html`<p>${raw('<b>1</b>')}${raw('<i>2</i>')}</p>` });
+
+    component.render();
+
+    expect(component.getElement().innerHTML).toBe('<p><b>1</b><i>2</i></p>');
+  });
+
+  it('nutinIf returns the branch when true and renders empty when false', () => {
+    expect(String(nutinIf(true, 'a'))).toBe('a');
+    expect(String(nutinIf(false, 'a'))).toBe('');
+    expect(String(html`<p>${nutinIf(true, 'a')}|${nutinIf(false, 'b')}</p>`)).toBe('<p>a|</p>');
+  });
+
+  it('nutinElse renders the taken branch, inline and returned directly', () => {
+    const a = () => html`<b>a</b>`;
+    const b = () => html`<i>b</i>`;
+
+    expect(String(nutinIf(true, a()).nutinElse(b()))).toBe('<b>a</b>');
+    const elseBranch = b();
+    expect(nutinIf(false, a()).nutinElse(elseBranch)).toBe(elseBranch);
+    expect(String(nutinIf(false, a()).nutinElse(b()))).toBe('<i>b</i>');
+    expect(nutinIf(false, a()).nutinElse('b')).toBe('b');
+    expect(renderedHtml(() => html`<p>${nutinIf(true, a()).nutinElse(b())}</p>`)).toBe('<p><b>a</b></p>');
+    expect(renderedHtml(() => nutinIf(true, a()).nutinElse(b()))).toBe('<b>a</b>');
+  });
+
+  it('an array branch with nutinElse returned directly renders its items, not a comma-joined string', () => {
+    expect(renderedHtml(() => nutinIf(true, ['<b>', html`<i>x</i>`, raw('<u>u</u>')]).nutinElse('none')))
+      .toBe('&lt;b&gt;<i>x</i><u>u</u>');
+  });
+
+  it('nutinIf calls only the thunk of the branch taken', () => {
+    let ifCalls = 0;
+    let elseCalls = 0;
+    const ifBranch = () => { ifCalls++; return 'a'; };
+    const elseBranch = () => { elseCalls++; return 'b'; };
+
+    expect(String(nutinIf(true, ifBranch).nutinElse(elseBranch))).toBe('a');
+    expect(String(nutinIf(false, ifBranch).nutinElse(elseBranch))).toBe('b');
+    expect(String(nutinIf(false, ifBranch))).toBe('');
+
+    expect(ifCalls).toBe(1);
+    expect(elseCalls).toBe(1);
+  });
+
+  it('a nutinIf branch renders the same DOM as the value written in place, in either position', () => {
+    const markup = '<button class="b" data-event="click:_remove">x</button>';
+    const branches = {
+      string: () => markup,
+      html: () => html`<button class="b" data-event="click:_remove">${'<x>'}</button>`,
+      raw: () => raw(markup),
+      trustedRaw: () => trustedRaw(markup),
+    };
+    const contexts = {
+      inline: (value) => () => html`<div>${value()}</div>`,
+      top: (value) => value,
+    };
+    const render = (templateFn) => {
+      const component = new TestComponent({ templateFn });
+      component.render();
+      const out = component.getElement().innerHTML;
+      component.destroy();
+      return out;
+    };
+
+    for (const [kind, branch] of Object.entries(branches)) {
+      for (const [where, wrap] of Object.entries(contexts)) {
+        const expected = render(wrap(branch));
+        const asIf = render(wrap(() => nutinIf(true, branch()).nutinElse('no')));
+        const asIfThunk = render(wrap(() => nutinIf(true, branch)));
+        const asElse = render(wrap(() => nutinIf(false, 'no').nutinElse(branch())));
+        const asElseThunk = render(wrap(() => nutinIf(false, 'no').nutinElse(branch)));
+        const unchained = render(wrap(() => nutinIf(true, branch())));
+
+        expect([kind, where, asIf, asIfThunk, asElse, asElseThunk, unchained])
+          .toEqual([kind, where, expected, expected, expected, expected, expected]);
+      }
+    }
+  });
+
+  it('a string branch is escaped inside html and is markup returned directly, like a string written there', () => {
+    const inline = new TestComponent({ templateFn: () => html`<p>${nutinIf(true, '<b>x</b>')}</p>` });
+    const top = new TestComponent({ templateFn: () => nutinIf(true, '<b>x</b>') });
+
+    inline.render();
+    top.render();
+
+    expect(inline.getElement().innerHTML).toBe('<p>&lt;b&gt;x&lt;/b&gt;</p>');
+    expect(top.getElement().innerHTML).toBe('<b>x</b>');
+  });
+
+  it('a raw branch loses its bindings and a trustedRaw branch keeps them, inside html and returned directly', () => {
+    const markup = '<button class="b" data-event="click:_remove">x</button>';
+    const templates = [
+      [() => html`<div>${nutinIf(true, raw(markup))}</div>`, undefined],
+      [() => nutinIf(false, 'no').nutinElse(raw(markup)), undefined],
+      [() => html`<div>${nutinIf(false, 'no').nutinElse(trustedRaw(markup))}</div>`, true],
+      [() => nutinIf(true, trustedRaw(markup)), true],
+    ];
+
+    const removed = templates.map(([templateFn]) => {
+      const component = new TestComponent({ templateFn });
+      component.render();
+      component.getElement().querySelector('button.b').click();
+      component.destroy();
+      return component.removed;
+    });
+
+    expect(removed).toEqual(templates.map(([, expected]) => expected));
+  });
+
+  it('a raw branch is parsed in its parent context (svg, table)', () => {
+    const component = new TestComponent({
+      templateFn: () => html`<svg>${nutinIf(true, raw('<text>t</text>'))}</svg><table>${nutinIf(false, '').nutinElse(raw('<tr><td>cell</td></tr>'))}</table>`,
+    });
+
+    component.render();
+
+    expect(component.getElement().querySelector('svg text').namespaceURI).toBe('http://www.w3.org/2000/svg');
+    expect(component.getElement().querySelector('table td').textContent).toBe('cell');
+  });
+
+  it('a nutinIf branch in tag position is filtered and in a URL attribute cannot add a javascript: URL', () => {
+    const warnSpy = spyOn(console, 'warn').andCallFake(() => {});
+    try {
+      const results = [
+        String(html`<input ${nutinIf(true, 'onclick="x()" title="t"')}>`),
+        String(html`<input ${nutinIf(false, 'title="t"')}>`),
+        String(html`<a href="${nutinIf(true, 'javascript:alert(1)')}">x</a>`),
+        String(html`<a href="${nutinIf(false, '/a').nutinElse('javascript:alert(1)')}">x</a>`),
+        String(html`<a href=${nutinIf(true, '/a b')}>x</a>`),
+      ];
+
+      expect(results).toEqual([
+        '<input title="t">',
+        '<input >',
+        '<a href="about:invalid#nutin-blocked">x</a>',
+        '<a href="about:invalid#nutin-blocked">x</a>',
+        '<a href="/a b">x</a>',
+      ]);
+      expect(warnSpy.callCount).toBe(2);
+    } finally {
+      warnSpy.restore();
+    }
+  });
+
+  it('a nutinIf branch in a textarea is text', () => {
+    expect(String(html`<textarea>${nutinIf(true, raw('</textarea><b>'))}</textarea>`)).toBe('<textarea>&lt;/textarea>&lt;b></textarea>');
+    expect(String(html`<textarea>${nutinIf(false, '').nutinElse('<b>')}</textarea>`)).toBe('<textarea>&lt;b&gt;</textarea>');
+  });
+
+  it('nutinIf warns in development when the condition is not a boolean', () => {
+    const warnSpy = spyOn(console, 'warn').andCallFake(() => {});
+    let results;
+    try {
+      results = [String(nutinIf(0, 'a')), String(nutinIf('yes', 'a')), String(nutinIf(true, 'a'))];
+    } finally {
+      warnSpy.restore();
+    }
+
+    expect(results).toEqual(['', 'a', 'a']);
+    expect(warnSpy.callCount).toBe(2);
+    expect(warnSpy.calls[0][0]).toContain('got number');
+  });
+
+  it('a branch that is not a Template renders as it would inside html, returned directly too', () => {
+    const values = [null, undefined, 5, ['<b>', html`<i>x</i>`, raw('<u>u</u>')]];
+    const render = (templateFn) => {
+      const component = new TestComponent({ templateFn });
+      component.render();
+      const out = component.getElement().innerHTML;
+      component.destroy();
+      return out;
+    };
+
+    const top = values.map((value) => render(() => nutinIf(true, value)));
+    const inline = values.map((value) => render(() => html`${nutinIf(true, value)}`));
+
+    expect(top).toEqual(['', '', '5', '&lt;b&gt;<i>x</i><u>u</u>']);
+    expect(inline).toEqual(top);
+  });
+
+  it('nutinIf chains as else-if through an else thunk and nests', () => {
+    const pick = (a, b) => nutinIf(a, 'x').nutinElse(() => nutinIf(b, 'y').nutinElse('z'));
+
+    expect([String(pick(true, true)), String(pick(false, true)), String(pick(false, false))]).toEqual(['x', 'y', 'z']);
+    expect(String(html`<p>${pick(false, true)}</p>`)).toBe('<p>y</p>');
+    expect(String(html`<p>${nutinIf(true, nutinIf(true, '<b>'))}</p>`)).toBe('<p>&lt;b&gt;</p>');
+    expect(String(nutinIf(true, nutinIf(true, '<b>')))).toBe('<b>');
+  });
+
+  it('a false nutinIf in a data-optional value is an empty string, not a missing value', () => {
+    const component = new TestComponent({
+      templateFn: () => html`<p data-optional="${nutinIf(false, 'x')}">kept</p><p data-optional="${nutinIf(false, 'x')}"></p>`,
+    });
+
+    component.render();
+
+    expect(component.getElement().innerHTML).toBe('<p>kept</p>');
+  });
+
+  it('nutinFor renders each item in order with its index', () => {
+    const li = (item, index) => html`<li>${index}:${item}</li>`;
+
+    expect(String(html`<ul>${nutinFor(['a', 'b', 'c'], li)}</ul>`)).toBe('<ul><li>0:a</li><li>1:b</li><li>2:c</li></ul>');
+    expect(renderedHtml(() => nutinFor(['a', 'b'], li))).toBe('<li>0:a</li><li>1:b</li>');
+  });
+
+  it('nutinFor interpolates each item once, nested or not, inline or returned directly', () => {
+    let reads = 0;
+    // Interpolated as text: each read of its string form is one interpolation of the item.
+    const counted = () => ({ toString: () => { reads++; return 'x'; } });
+
+    expect(String(html`<ul>${nutinFor([1, 2], counted)}</ul>`)).toBe('<ul>xx</ul>');
+    expect(reads).toBe(2);
+
+    reads = 0;
+    const nested = html`<ul>${nutinFor([1, 2], () => html`<li>${nutinFor([1, 2], () => nutinFor([1], counted))}</li>`)}</ul>`;
+    expect(String(nested)).toBe('<ul><li>xx</li><li>xx</li></ul>');
+    expect(reads).toBe(4);
+
+    reads = 0;
+    expect(renderedHtml(() => nutinFor([1, 2], counted))).toBe('xx');
+    expect(reads).toBe(2);
+  });
+
+  it('nutinFor renders empty for an empty list, null and undefined, or the else branch', () => {
+    const li = (item) => html`<li>${item}</li>`;
+
+    expect([String(nutinFor([], li)), String(nutinFor(null, li)), String(nutinFor(undefined, li))]).toEqual(['', '', '']);
+    expect(String(nutinFor([], li).nutinElse(html`<p>none</p>`))).toBe('<p>none</p>');
+    expect(String(nutinFor(null, li).nutinElse('none'))).toBe('none');
+    expect(renderedHtml(() => nutinFor([], li).nutinElse(html`<p>none</p>`))).toBe('<p>none</p>');
+  });
+
+  it('nutinFor calls the else thunk only when the list is empty', () => {
+    let elseCalls = 0;
+    const none = () => { elseCalls++; return 'none'; };
+
+    expect(String(nutinFor(['a'], (item) => item).nutinElse(none))).toBe('a');
+    expect(String(nutinFor([], (item) => item).nutinElse(none))).toBe('none');
+
+    expect(elseCalls).toBe(1);
+  });
+
+  it('a non-empty nutinFor with nutinElse renders its items, inline and returned directly', () => {
+    const li = (item) => html`<li>${item}</li>`;
+
+    expect(String(html`<ul>${nutinFor(['a', 'b'], li).nutinElse('none')}</ul>`)).toBe('<ul><li>a</li><li>b</li></ul>');
+    expect(renderedHtml(() => nutinFor(['a', 'b'], li).nutinElse('none'))).toBe('<li>a</li><li>b</li>');
+  });
+
+  it('nutinFor takes any iterable: Set, Map entries, a generator', () => {
+    function* letters() {
+      yield 'x';
+      yield 'y';
+    }
+
+    expect(String(nutinFor(new Set(['a', 'b']), (item, index) => html`${index}${item}`))).toBe('0a1b');
+    expect(String(nutinFor(new Map([['k', 1], ['l', 2]]), ([key, value]) => html`${key}=${value};`))).toBe('k=1;l=2;');
+    expect(String(nutinFor(letters(), (item) => item))).toBe('xy');
+  });
+
+  it('a nutinFor item renders the same DOM as the same array written in an html hole', () => {
+    const markup = '<button class="b" data-event="click:_remove">x</button>';
+    const items = [
+      markup,
+      html`<b>${'<x>'}</b>`,
+      raw(markup),
+      trustedRaw(markup),
+      nutinIf(true, '<i>'),
+      nutinIf(false, 'no').nutinElse(raw('<u>u</u>')),
+    ];
+    const indexes = items.map((_item, index) => index);
+    const item = (index) => items[index];
+
+    const results = [
+      renderedHtml(() => html`<div>${nutinFor(indexes, item)}</div>`),
+      renderedHtml(() => html`<div>${nutinFor(indexes, item).nutinElse('none')}</div>`),
+      renderedHtml(() => nutinFor(indexes, item)),
+      renderedHtml(() => nutinFor(indexes, item).nutinElse('none')),
+    ];
+
+    expect(results).toEqual([
+      renderedHtml(() => html`<div>${items}</div>`),
+      renderedHtml(() => html`<div>${items}</div>`),
+      renderedHtml(() => html`${items}`),
+      renderedHtml(() => html`${items}`),
+    ]);
+  });
+
+  it('a raw item loses its bindings and a trustedRaw item keeps them', () => {
+    const markup = '<button class="b" data-event="click:_remove">x</button>';
+    const clickFirst = (templateFn) => {
+      const component = new TestComponent({ templateFn });
+      component.render();
+      component.getElement().querySelector('button.b').click();
+      component.destroy();
+      return component.removed;
+    };
+
+    expect(clickFirst(() => nutinFor([markup], (item) => raw(item)))).toBe(undefined);
+    expect(clickFirst(() => html`<div>${nutinFor([markup], (item) => trustedRaw(item))}</div>`)).toBe(true);
+  });
+
+  it('nutinFor items in a textarea are text, and a javascript: URL in an item is blocked', () => {
+    const warnSpy = spyOn(console, 'warn').andCallFake(() => {});
+    let link;
+    try {
+      link = String(html`${nutinFor(['javascript:alert(1)', '/ok'], (url) => html`<a href="${url}">x</a>`)}`);
+    } finally {
+      warnSpy.restore();
+    }
+
+    expect(String(html`<textarea>${nutinFor(['<b>', raw('</textarea>')], (item) => item)}</textarea>`))
+      .toBe('<textarea>&lt;b&gt;&lt;/textarea></textarea>');
+    expect(link).toBe('<a href="about:invalid#nutin-blocked">x</a><a href="/ok">x</a>');
+    expect(warnSpy.callCount).toBe(1);
+  });
+
+  it('nutinFor warns in development and renders empty for a value that is not iterable, a string included', () => {
+    const warnSpy = spyOn(console, 'warn').andCallFake(() => {});
+    let results;
+    try {
+      results = [{ a: 1 }, 5, 'ab'].map((items) => String(nutinFor(items, (item) => html`<li>${item}</li>`)));
+    } finally {
+      warnSpy.restore();
+    }
+
+    expect(results).toEqual(['', '', '']);
+    expect(warnSpy.callCount).toBe(3);
+    expect(warnSpy.calls[0][0]).toContain('got object');
+  });
+
+  it('nutinFor warns once in development when its render returns undefined', () => {
+    const warnSpy = spyOn(console, 'warn').andCallFake(() => {});
+    let result;
+    try {
+      result = String(nutinFor(['a', 'b'], () => undefined));
+    } finally {
+      warnSpy.restore();
+    }
+
+    expect(result).toBe('');
+    expect(warnSpy.callCount).toBe(1);
+    expect(warnSpy.calls[0][0]).toContain('forget a return');
+  });
+
+  it('data-event in nutinFor items binds to the parent component handler, with @dataset args', () => {
+    const component = new PickComponent({
+      config: { items: [{ id: 'a' }, { id: 'b' }] },
+      templateFn: (cfg) => html`<ul>${nutinFor(cfg.items, (item) => html`
+        <li><button data-event="click:_pick:@dataset:id" data-id="${item.id}">${item.id}</button></li>
+      `)}</ul>`,
+    });
+
+    component.render();
+    component.getElement().querySelectorAll('button').forEach((button) => button.click());
+
+    expect(component.picked).toEqual(['a', 'b']);
+  });
+
+  it('nutinFor keeps the exact DOM shape of options and table rows, with no wrappers', () => {
+    const countries = [{ code: 'fr', name: 'France' }, { code: 'it', name: 'Italy' }];
+
+    expect(renderedHtml(() => html`<select>${nutinFor(countries, (c) => html`<option value="${c.code}">${c.name}</option>`)}</select>`))
+      .toBe('<select><option value="fr">France</option><option value="it">Italy</option></select>');
+    expect(renderedHtml(() => html`<table><tbody>${nutinFor(countries, (c) => html`<tr><td>${c.name}</td></tr>`)}</tbody></table>`))
+      .toBe('<table><tbody><tr><td>France</td></tr><tr><td>Italy</td></tr></tbody></table>');
   });
 });

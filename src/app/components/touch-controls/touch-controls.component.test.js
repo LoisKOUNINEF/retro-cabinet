@@ -61,7 +61,7 @@ describe('TouchControlsComponent', () => {
     const stick = $('.touch-controls__stick');
 
     pointer(stick, 'pointerdown', { x: 100 });
-    expect($('.touch-controls__knob').style.transform).toBe('translate(56px, 0px)');
+    expect($('.touch-controls__knob').style.transform).toBe('translate(56px)');
     expect(stick.classList.contains('touch-controls__stick--active')).toBeTruthy();
 
     pointer(stick, 'pointerup');

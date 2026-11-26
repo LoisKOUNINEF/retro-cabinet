@@ -8,7 +8,7 @@ import { AlienAttack, alienAttackGame } from '#root/dist/src/app/games/alien-att
 import { SpaceRocks, spaceRocksGame } from '#root/dist/src/app/games/space-rocks/space-rocks.js';
 import { tableTennisGame } from '#root/dist/src/app/games/table-tennis/table-tennis.js';
 import { levelOption, onOff } from '#root/dist/src/app/games/game.js';
-import { Navigation, registerPipes } from '#root/dist/src/core/index.js';
+import { Navigation, AppPipeRegistry, datePipe } from '#root/dist/src/core/index.js';
 import { resetKeyLabels } from '#root/dist/src/app/components/key-labels.js';
 import { PersistenceService } from '#root/dist/src/app/services/persistence/persistence.service.js';
 
@@ -80,7 +80,7 @@ describe('GameView', () => {
   // The overlays' open/close events: a CustomEvent from jsdom's realm (Node's own is rejected).
   const nodeCustomEvent = global.CustomEvent;
   beforeAll(() => {
-    silenceConsole('warn', () => registerPipes());
+    silenceConsole('warn', () => AppPipeRegistry.register('date', datePipe));
     global.CustomEvent = window.CustomEvent;
   });
   afterAll(() => {

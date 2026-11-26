@@ -1,7 +1,6 @@
 import { AppEventBus } from "./event-bus.js";
 
-// Calls AppEventBus directly, so useEventBus() redirects it too. A class instance rather than
-// module functions (like Lifecycle): tests spy on its methods, e.g. spyOn(Navigation, 'navigateTo').
+// Calls AppEventBus directly, so useEventBus() redirects it too. Tests spy on its methods.
 class NavigationFacade {
   navigateTo(path: string): void {
     AppEventBus.emit('navigate', { path });

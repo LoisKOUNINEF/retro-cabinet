@@ -1,17 +1,16 @@
 // DOM reads that markup can't shadow ("DOM clobbering").
 //
 // A <form> exposes its named controls as own properties that override built-ins
-// (HTMLFormElement is [LegacyOverrideBuiltIns]), and so does `document` for named
-// <img>/<form>/<embed>/<object>/<iframe>: in `<form><input name="attributes"></form>`,
-// `form.attributes` is the <input>. On a form or a document, every read here takes the
-// getter or method from the prototype chain instead, which named properties never reach.
+// and so does `document` for named <img>/<form>/<embed>/<object>/<iframe>:
+// in `<form><input name="attributes"></form>`, `form.attributes` is the <input>.
+// On a form or a document, every read here takes the getter or method from the prototype chain instead,
+// which named properties never reach.
 //
 // Looked up on each node's own chain, not captured once from a global Element.prototype:
 // nodes can come from another realm (a test's jsdom window, linkedom during SSR), whose
 // getters refuse a foreign node.
 
-// Not cached: only forms, documents and <template>s get here (see templateContentOf()), and a
-// prototype chain is a few objects long.
+// Not cached: only forms, documents and <template>s get here (see templateContentOf()).
 function lookup(target: object, key: PropertyKey): PropertyDescriptor | null {
   for (let proto = Object.getPrototypeOf(target) as object | null; proto; proto = Object.getPrototypeOf(proto)) {
     const descriptor = Object.getOwnPropertyDescriptor(proto, key);
@@ -20,9 +19,9 @@ function lookup(target: object, key: PropertyKey): PropertyDescriptor | null {
   return null;
 }
 
-// Only these let named properties override built-ins ([LegacyOverrideBuiltIns]); on any other
-// node a plain read is the built-in (or a test's stub of it). The tag comes from the prototype
-// (Symbol.toStringTag), which a named property can't shadow, and works across realms.
+// Only these let named properties override built-ins ([LegacyOverrideBuiltIns]);
+// on any other node a plain read is the built-in (or a test's stub of it).
+// The tag comes from the prototype (Symbol.toStringTag), which works across realms.
 const OVERRIDING_TAGS = new Set(['[object HTMLFormElement]', '[object HTMLDocument]', '[object Document]', '[object XMLDocument]']);
 
 function isOverriding(target: object): boolean {
@@ -44,7 +43,7 @@ export function assign(target: object, key: PropertyKey, value: unknown): void {
     return;
   }
   const setter = lookup(target, key)?.set;
-  // Prod bundles: only the property name (see Service for the same trade-off).
+  // Prod bundles: only the property name.
   if (!setter) throw new TypeError(globalThis.__NUTIN_PROD__ ? String(key) : `No built-in setter for "${String(key)}".`);
   setter.call(target, value);
 }

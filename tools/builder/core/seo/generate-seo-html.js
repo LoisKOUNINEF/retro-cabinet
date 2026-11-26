@@ -9,9 +9,7 @@ import { resolveLocaleValue, valueForLangWithFallback, collectI18nSeoIssues } fr
 import { segmentsOf, routeSuffixOf, validateMockParams, writeRouteHtml, warnForRoutesMissingSeoConfig } from './route-output.js';
 import { resolveSeoRoutes, resolveSeoOptOutPaths } from './seo-routes.js';
 
-// og:image/twitter:image require an absolute URL for social platforms to resolve them;
-// every other absolute field (og:url, canonical) is already baseUrl-prefixed, so ogImage
-// (a repo-relative path in config/seo.json) needs the same treatment.
+// og:image/twitter:image require an absolute URL for social platforms to resolve them.
 function toAbsoluteUrl(urlOrPath, baseUrl) {
   if (!urlOrPath) return urlOrPath;
   return /^https?:\/\//.test(urlOrPath) ? urlOrPath : `${baseUrl}${urlOrPath}`;

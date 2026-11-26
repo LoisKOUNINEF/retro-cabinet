@@ -24,13 +24,6 @@ export class SafeHtml {
   }
 }
 
-// raw()'s return value: carries the unescaped source so html() can place it as a node.
-class RawHtml extends SafeHtml {
-  constructor(public readonly source: string) {
-    super('');
-  }
-}
-
 type Context = 'text' | 'tag' | 'attr-doublequoted' | 'attr-singlequoted' | 'attr-unquoted-start' | 'attr-unquoted' | 'rcdata';
 
 // Elements whose content is text: markup in them is never parsed as elements.
@@ -134,9 +127,9 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): SafeH
     attrValue += ch;
   };
 
-  // Escaping can't make a URL safe: `javascript:alert(1)` has nothing to escape. A value from data that
-  // turns a URL attribute into a javascript: URL is replaced, at every trust level (the render
-  // sanitizer doesn't run at 'trusted'). A javascript: URL written in the template itself is kept.
+  // Escaping can't make a URL safe: `javascript:alert(1)` has nothing to escape.
+  // A value from data that turns a URL attribute into a javascript: URL is replaced, at every trust level
+  // (the render sanitizer doesn't run at 'trusted'). A javascript: URL written in the template itself is kept.
   const checkUrl = (piece: string): string => {
     const value = attrValue + piece;
     if (SecurityHelper.isScriptUrl(attrName, value) && !SecurityHelper.isScriptUrl(attrName, attrStatic)) {
@@ -178,8 +171,10 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): SafeH
 
 // Inserts markup unescaped, minus Nutin's binding attributes (data-event, data-component, ...),
 // so it can't call the component's methods or mount children. Sanitized at the component's trustLevel.
+// raw() is a SafeHtml whose keyed '', so a raw() from generateTemplate() renders like one between elements.
+// Inside html`` its source is read back (see rawSource()) and placed by interpolateRaw().
 export function raw(value: unknown): SafeHtml {
-  return new RawHtml(toMarkup(value));
+  return new SafeHtml(SafeHtml.placeholder(''), new Map([['', toMarkup(value)]]));
 }
 
 // Like raw(), but keeps binding attributes: only for markup you wrote or compiled yourself
@@ -188,13 +183,118 @@ export function trustedRaw(value: unknown): SafeHtml {
   return new SafeHtml(toMarkup(value));
 }
 
+type Branch = Nutin.Template | (() => Nutin.Template);
+
+const resolveBranch = (branch: Branch): Nutin.Template => (typeof branch === 'function' ? branch() : branch);
+
+// nutinIf()/nutinFor()'s result: the taken branch (nutinFor: the items' templates),
+// or '' when the condition is false and no nutinElse() follows.
+// Inside html`` it is unwrapped (see isConditional()), so the branch gets exactly its inline treatment.
+// Returned directly from generateTemplate() (or through String()), it renders as the branch itself would.
+class ConditionalHtml extends SafeHtml {
+  constructor(public readonly condition: boolean, public readonly result: Nutin.Template | Nutin.Template[]) {
+    super('');
+    // Its top-level value and raws are built on first read only:
+    // inside html`` (the usual case) they never are, since the result is interpolated in place.
+    // Built eagerly, a nutinFor's markup would be built once more for each level of nesting.
+    // Own accessors: they replace the fields SafeHtml set.
+    let built: [string, ReadonlyMap<string, string>] | undefined;
+    const build = () => (built ??= topLevel(result));
+    Object.defineProperties(this, {
+      value: { get: () => build()[0] },
+      raws: { get: () => build()[1] },
+    });
+  }
+
+  // Returns itself when the condition holds: it renders exactly as its branch would,
+  // inline and at the top level, where a bare nutinFor array would be stringified with commas.
+  public nutinElse(branch: Branch): Nutin.Template {
+    return this.condition ? this : resolveBranch(branch);
+  }
+}
+
+// if/else in a template: `${nutinIf(user.isAdmin, () => html`<admin-panel>`).nutinElse('Read-only')}`.
+// A branch can be a string, html``, raw(), trustedRaw()) or a thunk returning one:
+// only the branch taken is called.
+// The condition is a strict boolean (`count > 0`, not `count`).
+export function nutinIf(condition: boolean, branch: Branch): ConditionalHtml {
+  if (!globalThis.__NUTIN_PROD__ && typeof condition !== 'boolean') {
+    console.warn(`nutinIf() expects a boolean condition, got ${typeof condition} - e.g. use count > 0, not count.`);
+  }
+  return new ConditionalHtml(condition, condition ? resolveBranch(branch) : '');
+}
+
+// A list of markup in a template, rendered as an array in a ${} hole would be:
+// `${nutinFor(task.tags, (tag) => html`<li>${tag}</li>`).nutinElse(html`<li>No tags</li>`)}`.
+// items: any iterable (Set, Map entries, generator, NodeList); null/undefined are empty.
+// The else branch, rendered for an empty list, follows nutinIf's rules.
+// For items with their own state or events, or kept across renders (keepBy), use a catalog.
+export function nutinFor<T>(
+  items: Iterable<T> | null | undefined,
+  render: (item: T, index: number) => Nutin.Template
+): ConditionalHtml {
+  const list = toList(items);
+  // The define folds this in prod bundles: only list.map(render) is left.
+  return new ConditionalHtml(list.length > 0, list.map(globalThis.__NUTIN_PROD__ ? render : checkedRender(render)));
+}
+
+function toList<T>(items: Iterable<T> | null | undefined): T[] {
+  if (items === null || items === undefined) return [];
+  if (Array.isArray(items)) return items;
+  // A string is iterable, but char by char is never what a template wants.
+  if (typeof items !== 'string' && typeof (items as Partial<Iterable<T>>)[Symbol.iterator] === 'function') {
+    return Array.from(items);
+  }
+  if (!globalThis.__NUTIN_PROD__) {
+    console.warn(`nutinFor() expects an array or iterable, got ${typeof items} - it renders nothing.`);
+  }
+  return [];
+}
+
+// Dev only: a render callback that returns undefined (a forgotten `return`) renders nothing silently.
+function checkedRender<T>(render: (item: T, index: number) => Nutin.Template) {
+  let warned = false;
+  return (item: T, index: number): Nutin.Template => {
+    const out = render(item, index);
+    if (out === undefined && !warned) {
+      warned = true;
+      console.warn(`nutinFor() render returned undefined for item ${index} - did it forget a return?`);
+    }
+    return out;
+  };
+}
+
+// The value/raws a branch renders with at the top level:
+// a string is markup, as a string returned from generateTemplate() is.
+// Anything else that isn't a SafeHtml is coerced as it would be inside html``.
+function topLevel(result: unknown): [string, ReadonlyMap<string, string>] {
+  if (typeof result === 'string') return [result, new Map()];
+  if (result instanceof SafeHtml) return [result.value, result.raws];
+  const raws = new Map<string, string>();
+  return [interpolate(result, 'text', raws), raws];
+}
+
+// Duck-typed rather than `instanceof ConditionalHtml`:
+// interpolate() runs in every app.
+// The check would keep the class (and nutinIf) in bundles that never call nutinIf.
+function isConditional(value: unknown): value is ConditionalHtml {
+  return value instanceof SafeHtml && 'nutinElse' in value;
+}
+
+// The source of a raw(), or undefined for any other value.
+function rawSource(value: unknown): string | undefined {
+  return value instanceof SafeHtml ? value.raws.get('') : undefined;
+}
+
 function toMarkup(value: unknown): string {
   return value === null || value === undefined ? '' : String(value);
 }
 
 function interpolate(value: unknown, ctx: Context, raws: Map<string, string>): string {
   if (ctx === 'rcdata') return interpolateText(value);
-  if (value instanceof RawHtml) return interpolateRaw(value.source, ctx, raws);
+  if (isConditional(value)) return interpolate(value.result, ctx, raws);
+  const source = rawSource(value);
+  if (source !== undefined) return interpolateRaw(source, ctx, raws);
   if (value instanceof SafeHtml) {
     value.raws.forEach((source, token) => raws.set(token, source));
     return value.value;
@@ -207,11 +307,13 @@ function interpolate(value: unknown, ctx: Context, raws: Map<string, string>): s
   return SecurityHelper.escapeHtml(value);
 }
 
-// Inside <textarea>/<title> everything is text, so no placeholder could be resolved there. raw() is
-// inserted as innerHTML would put it (entities decode, tags show as text) with `<` escaped, so it
-// can't end the element. Nested html`` and trustedRaw() are kept as they are, as anywhere else.
+// Inside <textarea>/<title> everything is text, so no placeholder could be resolved there.
+// raw() is inserted as innerHTML would put it (entities decode, tags show as text) with `<` escaped,
+// so it can't end the element. Nested html`` and trustedRaw() are kept as they are, as anywhere else.
 function interpolateText(value: unknown): string {
-  if (value instanceof RawHtml) return rawAsText(value.source);
+  if (isConditional(value)) return interpolateText(value.result);
+  const source = rawSource(value);
+  if (source !== undefined) return rawAsText(source);
   if (value instanceof SafeHtml) {
     let out = value.value;
     value.raws.forEach((source, token) => {
@@ -238,5 +340,3 @@ function interpolateRaw(source: string, ctx: Context, raws: Map<string, string>)
   if (ctx === 'tag') return SecurityHelper.sanitizeAttributes(source);
   return SecurityHelper.escapeHtml(source);
 }
-
-

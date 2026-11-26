@@ -20,10 +20,9 @@ export const DEV_OVERRIDES = {
 };
 
 // Class fields and #private members ship as written, whatever `builder.esbuild.target` says:
-// core is written with them (#private names minify, TypeScript `private` ones can't), and lowered
-// for es2020 every field becomes a helper call and every #member a WeakMap lookup.
-// Needs Safari 15, Chrome 84, Firefox 90 or later. To support older browsers, list the features to
-// lower for the target in `builder.esbuild.lowerClassFeatures` (validated in builder.config.js).
+// core is written with them (#private names minify, TypeScript `private` ones can't).
+// Needs Safari 15, Chrome 84, Firefox 90 or later.
+// To support older browsers, list the features to lower for the target in `builder.esbuild.lowerClassFeatures`.
 export const NATIVE_CLASS_FEATURES = Object.freeze([
   'class-field',
   'class-static-field',
@@ -67,8 +66,8 @@ export function sharedDefine({ isProd, i18n, generateSEO, markdownSources, dataF
 
 /**
  * The browser bundle's `define`s: sharedDefine()'s, plus `globalThis.__NUTIN_PROD__`, which lets
- * esbuild drop core's dev-only diagnostics from prod bundles. Not shared with the SSR bundle:
- * prerendering keeps them (it keeps its console calls too).
+ * esbuild drop core's dev-only diagnostics from prod bundles.
+ * Not shared with the SSR bundle: prerendering keeps them.
  */
 export function clientDefine(config) {
   return {
@@ -79,7 +78,7 @@ export function clientDefine(config) {
 
 /**
  * Keeps tooling-only config out of the client bundle:
- * - nutin.config.js loses its TOOLING_ONLY_KEYS (app code may read any other key);
+ * - nutin.config.js loses its TOOLING_ONLY_KEYS;
  * - config/seo.json, as imported by core/config.ts, keeps only each route's path and title.
  */
 export function slimConfigPlugin({ generateSEO }) {
