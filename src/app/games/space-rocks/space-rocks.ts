@@ -73,6 +73,16 @@ const SAVED_FIELDS = [
 ];
 
 export class SpaceRocks implements CanvasGame {
+  get rules(): string[] {
+    return [
+      'Goal: clear every rock; big ones split into smaller ones.',
+      'Rocks score 20, 50, then 100 for the smallest.',
+      'A collision costs a life. Extra life every 10,000.',
+      ...(this.options.saucers ? ['Saucers shoot at you: 200 or 1000 points.'] : []),
+      ...(this.options.hyperspace ? ['Hyperspace: a random jump, with a small risk of crashing.'] : []),
+    ];
+  }
+
   readonly kind = 'canvas';
   readonly id = 'space-rocks';
   readonly title = 'Space Rocks';

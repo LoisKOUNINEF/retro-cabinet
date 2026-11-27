@@ -1,7 +1,6 @@
-import { html } from '../../../core/index.js';
+import { html, nutinFor, nutinIf } from '../../../core/index.js';
 import type { ScoreEntry } from '../../services/persistence/persistence.service.js';
 import { UpdatableComponent } from '../updatable-component.js';
-import { ScoreRowComponent, type ScoreRow } from './score-row/score-row.component.js';
 
 export interface ScoreTableConfig {
   entries: ScoreEntry[];
@@ -11,27 +10,24 @@ export interface ScoreTableConfig {
   showLevel?: boolean;
 }
 
-const templateFn = ({ entries, showLevel = true }: ScoreTableConfig) => {
-  const hasEntries = entries.length > 0;
+// One row: rank, score, level (unless the game has none) and date.
+const scoreRow = ({ score, level, date }: ScoreEntry, index: number, isNew: boolean, showLevel: boolean) => html`
+  <li class="score-table__row${isNew ? ' score-table__row--new' : ''}">
+    <span class="score-table__rank">${index + 1}.</span>
+    <span class="score-table__score">${score}</span>
+    ${nutinIf(showLevel, () => html`<span class="score-table__level">Lv ${level}</span>`)}
+    <span class="score-table__date" data-pipe="date:en-GB,numeric,false,DD/MM/YY">${date}</span>
+  </li>`;
+
+const templateFn = ({ entries, highlight, showLevel = true }: ScoreTableConfig) => {
   const listClass = showLevel ? 'score-table__list' : 'score-table__list score-table__list--no-level';
+  const rows = nutinFor(entries, (entry, index) => scoreRow(entry, index, index === highlight, showLevel));
   return html`__TEMPLATE_PLACEHOLDER__`;
 };
 
-// The best scores, one catalog row each: a new score only rebuilds the rows it moved.
+// The best scores. They change once per game, so an update simply renders them all again.
 export class ScoreTableComponent extends UpdatableComponent<ScoreTableConfig> {
   constructor(mountTarget: HTMLElement, config: ScoreTableConfig) {
     super({ templateFn, mountTarget, config });
-  }
-
-  override registerChildren(): Nutin.ComponentConfig[] {
-    const { entries, highlight, showLevel = true } = this.config;
-    return this.createCatalogComponents({
-      items: entries.map(({ score, level, date }, i): ScoreRow => ({ rank: i + 1, score, level, date, isNew: i === highlight, showLevel })),
-      selector: 'rows',
-      elementName: 'score-row',
-      elementTag: 'li',
-      component: ScoreRowComponent,
-      keepBy: (row: ScoreRow) => `${row.rank}:${row.score}:${row.date}`,
-    });
   }
 }

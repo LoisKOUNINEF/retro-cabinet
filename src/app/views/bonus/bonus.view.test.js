@@ -33,8 +33,8 @@ describe('BonusView', () => {
 
   it('shows one card per bonus game, then Random', () => {
     const links = $$('.home__games > li a.game-card');
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/bonus/match-four', '/bonus/dots-and-boxes', '/bonus/naval-battle', '/bonus/matching-pairs', '/bonus/code-breaker', '/bonus/minefield', '/bonus/alien-smash', '/bonus/noughts-and-crosses', '/bonus/rpsls']);
-    expect($$('.home__games .game-card__title').map((title) => title.textContent)).toEqual(['Match Four', 'Dots and Boxes', 'Naval Battle', 'Matching Pairs', 'Code Breaker', 'Minefield', 'Alien Smash', 'Noughts Crosses', 'RPSLS', 'Random']);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/bonus/match-four', '/bonus/dots-and-boxes', '/bonus/wari', '/bonus/minefield', '/bonus/code-breaker', '/bonus/matching-pairs', '/bonus/naval-battle', '/bonus/alien-smash', '/bonus/shut-the-box']);
+    expect($$('.home__games .game-card__title').map((title) => title.textContent)).toEqual(['Match Four', 'Dots and Boxes', 'Wari', 'Minefield', 'Code Breaker', 'Matching Pairs', 'Naval Battle', 'Alien Smash', 'Shut the Box', 'Random']);
     const items = $$('.home__games > li');
     expect(items.length).toBe(BONUS_CARDS.length + 1);
     expect(items.at(-1).querySelector('button.game-card').textContent).toContain('Random');

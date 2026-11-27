@@ -23,7 +23,7 @@ export class TicTacToeCellComponent extends Component<HTMLElement, IndexedCell> 
     super({ templateFn, mountTarget, config: cell, props: { className: 'ttt-board__slot' } });
   }
 
-  private _play(): void {
+  protected _play(): void {
     this.config.onPlay(this.config.index);
   }
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import path from "path";
-import { allFormats, getLastWord, print, errorExit } from "../utils/index.js";
+import { allFormats, getLastWord, print, errorExit, isDryRun } from "../utils/index.js";
 import fs from "fs";
 import { generateFile, generateLocalesJson } from "./handle-file.js";
 import { I18N_ENABLED } from "../utils/languages.js";
@@ -14,7 +14,7 @@ const creators = {
     const suffix = 'service';
     print.section(`Generating service: ${name.pascal}`);
     try {
-      generateFile({ name, targetPath, templateFn: serviceTemplate, suffix: suffix });
+      file({ name, targetPath, templateFn: serviceTemplate, suffix: suffix });
       await generateTest({ name, targetPath, suffix: suffix });
     } catch (err) {
       handleError("Failed to generate service", err);
@@ -25,9 +25,9 @@ const creators = {
     print.section(`Generating component: ${name.pascal}`);
 
     try {
-      generateFile({ name, targetPath, templateFn: componentTemplate, suffix: suffix });
-      generateFile({ name, targetPath, templateFn: htmlTemplate, suffix: suffix, extension: 'html' });
-      generateFile({ name, targetPath, templateFn: scssTemplate, suffix: suffix, extension: 'scss' });
+      file({ name, targetPath, templateFn: componentTemplate, suffix: suffix });
+      file({ name, targetPath, templateFn: htmlTemplate, suffix: suffix, extension: 'html' });
+      file({ name, targetPath, templateFn: scssTemplate, suffix: suffix, extension: 'scss' });
       await generateLocales({ targetPath, name, isView: false });
       await generateTest({ name, targetPath, suffix });
     } catch (err) {
@@ -39,9 +39,9 @@ const creators = {
     print.section(`Generating view: ${name.pascal}`);
 
     try {
-      generateFile({ name, targetPath, templateFn: viewTemplate, suffix: suffix });
-      generateFile({ name, targetPath, templateFn: htmlTemplate, suffix: suffix, extension: 'html' });
-      generateFile({ name, targetPath, templateFn: scssTemplate, suffix: suffix, extension: 'scss' });
+      file({ name, targetPath, templateFn: viewTemplate, suffix: suffix });
+      file({ name, targetPath, templateFn: htmlTemplate, suffix: suffix, extension: 'html' });
+      file({ name, targetPath, templateFn: scssTemplate, suffix: suffix, extension: 'scss' });
       await generateLocales({ targetPath, name, isView: true });
       await generateTest({ name, targetPath, suffix });
     } catch (err) {
@@ -51,7 +51,14 @@ const creators = {
 };
 
 // Constants and Setup
-const [, , rawType, rawFullPath] = process.argv;
+// --dry-run: the same checks, then the list of files it would create.
+// isDryRun() also covers "npm run generate <type> <path> --dry-run" without "--".
+const dryRun = isDryRun();
+// A leading "--" is pnpm passing on npm's form (pnpm run generate -- component x).
+const args = process.argv.slice(2);
+const [rawType, rawFullPath] = (args[0] === '--' ? args.slice(1) : args).filter((arg) => arg !== '--dry-run');
+// Every file written, or that would be with --dry-run.
+const filePaths = [];
 
 if (!rawType || !rawFullPath) {
   showUsageAndExit("Missing arguments.");
@@ -68,31 +75,42 @@ const create = creators[type.kebab];
 
 if (create) {
   // Folder names carry no type suffix, so a view and a component with the same path would
-  // share one folder (and clobber each other's locales/) — refuse before writing anything.
+  // share one folder (and clobber each other's locales/): refuse before writing anything.
   if (fs.existsSync(targetPath) && fs.readdirSync(targetPath).length > 0) {
     print.boldError(`\nA folder with this name already exists: ${targetPath}`);
     print.warn("Pick another path, e.g. user/user-view and user/user-card.");
     process.exit(1);
   }
+  if (dryRun && fs.existsSync(targetPath)) print.gray(`The folder already exists, empty: the files would go into it (${targetPath}).`);
   await create(name, targetPath);
-  print.boldSuccess(`\n${type.capitalized} ${name.pascal} generated in ${targetPath}.\n`)
+  if (dryRun) {
+    print.section(`\nWould create (${filePaths.length}):`);
+    filePaths.forEach((filePath) => print.section(`  - ${filePath}`));
+    print.boldSuccess('\nDry run: nothing was written.\n');
+  } else {
+    print.boldSuccess(`\n${type.capitalized} ${name.pascal} generated in ${targetPath}.\n`)
+  }
 } else {
   showUsageAndExit(`Unsupported type: "${type.kebab}".`);
   process.exit(1);
 }
 
 // Helper Functions
+function file(options) {
+  filePaths.push(generateFile({ ...options, dryRun }));
+}
+
 async function generateTest({ targetPath, name, suffix }) {
-  if (nutinConfig.testinNutin.includeApp) generateFile({ targetPath, name, templateFn: testTemplate, extension: 'test.js', suffix: suffix });
+  if (nutinConfig.testinNutin.includeApp) file({ targetPath, name, templateFn: testTemplate, extension: 'test.js', suffix: suffix });
 }
 
 async function generateLocales({ targetPath, name, isView }) {
-  if (I18N_ENABLED) generateLocalesJson({ targetPath, name, isView });
+  if (I18N_ENABLED) filePaths.push(...generateLocalesJson({ targetPath, name, isView, dryRun }));
 }
 
 function showUsageAndExit(message) {
   print.boldError(`\n${message}`);
-  print.warn("Usage: npm run generate <type> <path>");
+  print.warn("Usage: npm run generate <type> <path> [--dry-run]");
   print.warn(`Supported types: ${Object.keys(creators).join(", ")}`);
   process.exit(1);
 }

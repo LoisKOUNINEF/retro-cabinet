@@ -1,8 +1,8 @@
 import nutinConfig from '../../nutin.config.js';
 import { errorExit, UserError } from './error-exit.js';
 
-// nutin.config.js "i18n": a list of language codes, the first being the default ([] turns i18n
-// off), or a boolean. `true` lists no language: English only (the build warns about it).
+// nutin.config.js "i18n": a list of language codes, the first being the default ([] turns i18n off),
+// or a boolean. `true` lists no language: English only (the build warns about it).
 export const FALLBACK_LANGUAGES = ['en'];
 
 // Language codes end up in URLs (/<lang>/...), file names (locales/<lang>.json) and nginx rules.

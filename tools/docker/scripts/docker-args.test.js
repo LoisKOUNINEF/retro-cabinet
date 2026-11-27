@@ -80,6 +80,18 @@ describe('docker-args', () => {
     expect(imageName('my-app')).toBe('my-app');
   });
 
+  it('takes --dry-run in both commands, without passing it to docker', () => {
+    expect(parseDockerFlags(['--dry-run'], BUILD_FLAGS)['dry-run']).toBe(true);
+    expect(parseDockerFlags(['-d', '--dry-run'], RUN_FLAGS)['dry-run']).toBe(true);
+    expect(build(['--dry-run'])).not.toContain('--dry-run');
+    expect(run(['--dry-run']).args).not.toContain('--dry-run');
+  });
+
+  it('ignores a leading "--", which pnpm passes on from npm\'s form', () => {
+    expect(build(['--', '--dry-run', '-t', '1.0.0'])).toEqual(build(['--dry-run', '-t', '1.0.0']));
+    expect(parseDockerFlags(['--', '-d'], RUN_FLAGS).detach).toBe(true);
+  });
+
   it('help lists every flag', () => {
     const text = helpText(RUN_FLAGS, 'npm run docker:run -- [flags]');
     expect(text).toContain('Usage: npm run docker:run -- [flags]');

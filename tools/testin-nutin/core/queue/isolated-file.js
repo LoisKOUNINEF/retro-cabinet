@@ -1,6 +1,6 @@
 // Runs one test file of testinNutin.isolate in its own worker (started by run-isolated.js):
-// its own module graph, and one jsdom window for its import and all its suites. A custom
-// element package defined while it runs is then defined in the window its tests use.
+// its own module graph, and one jsdom window for its import and all its suites.
+// A custom element package defined while it runs is then defined in the window its tests use.
 import { parentPort, workerData } from 'node:worker_threads';
 import { pathToFileURL } from 'url';
 import {

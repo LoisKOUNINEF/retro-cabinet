@@ -12,7 +12,7 @@ export interface MatchingPairsCardItem {
   cursor: boolean;
   disabled: boolean;
   // Turned on this render: plays the turn animation. False on later renders, so a card
-  // rebuilt or put back in the page (Safari has no moveBefore()) doesn't play it again.
+  // rebuilt for another change (cursor, disabled) doesn't play it again.
   turning: boolean;
   onSelect: (index: number) => void;
 }
@@ -33,7 +33,7 @@ export class MatchingPairsCardComponent extends Component<HTMLElement, IndexedCa
     super({ templateFn, mountTarget, config: card, props: { className: 'matching-pairs-board__slot' } });
   }
 
-  private _select(): void {
+  protected _select(): void {
     this.config.onSelect(this.config.index);
   }
 }

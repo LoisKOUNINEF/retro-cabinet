@@ -15,9 +15,8 @@ function isRunnerFrame(line) {
 }
 
 /**
- * The stack of an error thrown by a test, hook or test file, without the
- * frames of testin-nutin itself and of Node internals: the message, then the
- * trace through the test and the code it called.
+ * The stack of an error thrown by a test, hook or test file:
+ * the message, then the trace through the test and the code it called.
  */
 export function formatError(err) {
   if (!(err instanceof Error) || typeof err.stack !== 'string') return String(err);

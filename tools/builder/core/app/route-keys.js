@@ -22,9 +22,8 @@ export async function findDuplicateRouteKeys(source, { loader, sourcefile }) {
 }
 
 /**
- * Whether the file defines `key` as an object key ('/404': …, "/404": …, ['/404']: …). Checked on
- * esbuild's output: comments are gone, and every form is printed as "<key>" in a key position
- * (after "{" or ","), so a value like redirectTo: '/404' or a ternary doesn't count.
+ * Whether the file defines `key` as an object key ('/404': …, "/404": …, ['/404']: …).
+ * Checked on esbuild's output.
  * A heuristic: a route defined in another file and spread into appRoutes isn't seen.
  */
 export async function hasRouteKey(source, key, { loader, sourcefile }) {
@@ -37,8 +36,8 @@ export async function hasRouteKey(source, key, { loader, sourcefile }) {
 const IMPORT_SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*)(['"`])([^'"`]+)\1/g;
 const CODE_EXTENSION = /\.(ts|js)$/;
 
-// The app files that import the routes module. Without one, the app doesn't use the router
-// (e.g. components mounted into a page), so routes.ts and #app aren't required.
+// The app files that import the routes module. Without one, the app doesn't use the router,
+// so routes.ts and #app aren't required.
 //   files: [{ path, content }], absolute paths; routesFile: the routes module's absolute path.
 export function findRoutesImporters(files, routesFile) {
   const routesModule = routesFile.replace(CODE_EXTENSION, '');

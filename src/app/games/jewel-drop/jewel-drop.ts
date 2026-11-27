@@ -1,6 +1,6 @@
 import {
   applyFields, cryptoRandom, FIRE_KEYS, isFireKey, isOn, levelFrom, levelOption, levelSpeed, onOff, pick, pickFields,
-  type GridGame, type GameDefinition, type Grid, type KeyHint, type Random, type Snapshot, type TouchLayout,
+  type GridGame, type GameDefinition, type Grid, type KeyHint, type MouseButton, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 
 const WIDTH = 6;
@@ -41,7 +41,20 @@ const SAVED_FIELDS = [
   'board', 'piece', 'next', 'phase', 'matched', 'chain', 'shatterRow', 'jewels', 'score', 'level', 'isOver',
 ];
 
+// A held move or drop repeats this often: the D-pad's, and the mouse's right button.
+const REPEAT_MS = 120;
+
 export class JewelDrop implements GridGame {
+  get rules(): string[] {
+    return [
+      'Goal: line up 3 or more jewels of a colour (across, down or diagonally) to clear them.',
+      'Cascades multiply the points.',
+      'Every 35 jewels raise the level.',
+      'The game ends when the well overflows.',
+      ...(this.options.magic ? ['A rare magic column clears every jewel of the colour it lands on.'] : []),
+    ];
+  }
+
   readonly kind = 'grid';
   readonly id = 'jewel-drop';
   readonly title = 'Jewel Drop';
@@ -50,13 +63,16 @@ export class JewelDrop implements GridGame {
   // As in Falling Blocks: the D-pad moves and drops, the button cycles the jewels.
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
-    repeatMs: 120,
+    repeatMs: REPEAT_MS,
     action: { label: 'Cycle', code: 'ArrowUp', onPad: true },
   };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
     { action: 'Cycle', codes: ['ArrowUp', ...FIRE_KEYS] },
   ];
+  readonly mouseHint = 'Mouse: move, left click to cycle, right click to drop';
+  // Held, the right button keeps dropping, as ↓ does.
+  readonly mouseRepeat = { button: 'right' as const, ms: REPEAT_MS };
 
   score = 0;
   level = 1;
@@ -128,6 +144,20 @@ export class JewelDrop implements GridGame {
     if (code === 'ArrowRight') this.move(1);
     if (code === 'ArrowDown') this.tick();
     if (code === 'ArrowUp' || isFireKey(code)) this.cycle();
+  }
+
+  // The column slides towards the one under the mouse, one step at a time,
+  // so it stops at a wall or a stack rather than jumping across.
+  handleMouseMove(x: number): void {
+    if (this.isOver || this.phase !== 'falling') return;
+    const target = Math.min(Math.max(Math.floor(x), 0), WIDTH - 1);
+    const dx = Math.sign(target - this.piece.x);
+    while (this.piece.x !== target && this.fits(this.piece.x + dx, this.piece.y)) this.piece.x += dx;
+  }
+
+  // Left click cycles, as ↑ does; right click drops a row, as ↓ does.
+  handleMouseDown(button: MouseButton): void {
+    this.handleKey(button === 'left' ? 'ArrowUp' : 'ArrowDown');
   }
 
   cells(): Grid {

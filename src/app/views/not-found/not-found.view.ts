@@ -11,12 +11,12 @@ export class NotFoundView extends View {
     return 'Page not found';
   }
 
-  private _handleHome(): void {
+  protected _handleHome(): void {
     Navigation.navigateTo('/');
   }
 
   // Dopefish lives!
-  private _openBonus(): void {
+  protected _openBonus(): void {
     Navigation.navigateTo('/bonus');
   }
 }

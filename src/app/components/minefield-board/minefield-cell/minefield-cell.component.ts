@@ -66,7 +66,7 @@ export class MinefieldCellComponent extends Component<HTMLElement, IndexedCell> 
     this.cancelPress();
   }
 
-  private _dig(): void {
+  protected _dig(): void {
     if (this._pressed) {
       this._pressed = false;
       return;

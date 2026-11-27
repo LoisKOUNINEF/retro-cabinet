@@ -12,6 +12,21 @@
 - Frog Crossing
 - Table Tennis
 
+## Bonus games
+
+One-time reward.
+"Unlocked" by reaching specific conditions or the reward itself.
+
+- Match Four
+- Dots & Boxes
+- Wari
+- Minefield
+- Code Breaker
+- Matching Pairs
+- Naval Battle
+- Alien Smash
+- Shut the Box
+
 ## Quality of life
 
 - Configurable options.

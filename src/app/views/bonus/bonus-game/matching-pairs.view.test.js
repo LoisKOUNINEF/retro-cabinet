@@ -1,10 +1,12 @@
 import { BonusGameView } from '#root/dist/src/app/views/bonus/bonus-game/bonus-game.view.js';
-import { MISMATCH_MS, MatchingPairs, matchingPairsGame } from '#root/dist/src/app/games/bonus/matching-pairs/matching-pairs.js';
+import { MatchingPairs, matchingPairsGame } from '#root/dist/src/app/games/bonus/matching-pairs/matching-pairs.js';
 import { PersistenceService } from '#root/dist/src/app/services/persistence/persistence.service.js';
 
 const random = () => 0.3;
+// The default reveal time.
+const REVEAL_MS = 1000;
 // The same deck the view deals with the same random function.
-const deck = (cards = 16) => new MatchingPairs({ cards, tries: null, random }).cards;
+const deck = (cards = 16) => new MatchingPairs({ cards, tries: null, revealMs: REVEAL_MS, random }).cards;
 const card = (index) => $(`.matching-pairs-board__card[data-index="${index}"]`);
 const status = () => $('.game__status').textContent;
 const stat = (key) => $(`.game__stat-value[data-stat="${key}"]`)?.textContent;
@@ -46,7 +48,7 @@ describe('BonusGameView (Matching Pairs)', () => {
     expect(stat('misses')).toBe('0');
     expect(stat('tries')).toBeUndefined();
     expect(stat('draws')).toBeUndefined();
-    expect(stat('best')).toBe('—');
+    expect(stat('best')).toBe('-');
   });
 
   it('turns a mismatched pair back after a while', () => {
@@ -59,9 +61,36 @@ describe('BonusGameView (Matching Pairs)', () => {
     expect(status()).toBe('No match.');
     expect(stat('misses')).toBe('1');
 
-    advanceTimersByTime(MISMATCH_MS);
+    advanceTimersByTime(REVEAL_MS);
     expect(card(a).classList.contains('matching-pairs-board__card--hidden')).toBeTruthy();
     expect(status()).toBe('Find the pairs.');
+  });
+
+  it('enables the face-up cards of a mismatch: a click only turns the pair back', () => {
+    open();
+    const groups = pairs(deck());
+    const [a, b, c] = [groups[0][0], groups[1][0], groups[2][0]];
+    card(a).click();
+    card(b).click();
+    expect(card(a).disabled).toBe(false);
+    card(a).click();
+    expect(card(a).classList.contains('matching-pairs-board__card--hidden')).toBeTruthy();
+    expect(card(b).classList.contains('matching-pairs-board__card--hidden')).toBeTruthy();
+    expect($$('.matching-pairs-board__card--shown').length).toBe(0);
+    card(c).click();
+    expect(card(c).classList.contains('matching-pairs-board__card--shown')).toBeTruthy();
+  });
+
+  it('keeps a mismatched pair up for the chosen reveal time', () => {
+    PersistenceService.getInstance().saveSettings('matching-pairs', { reveal: '3000' });
+    open();
+    const groups = pairs(deck());
+    card(groups[0][0]).click();
+    card(groups[1][0]).click();
+    advanceTimersByTime(2999);
+    expect(card(groups[0][0]).classList.contains('matching-pairs-board__card--shown')).toBeTruthy();
+    advanceTimersByTime(1);
+    expect(card(groups[0][0]).classList.contains('matching-pairs-board__card--hidden')).toBeTruthy();
   });
 
   it('records a win with its misses as the best, and Enter deals again', () => {
@@ -72,7 +101,7 @@ describe('BonusGameView (Matching Pairs)', () => {
     // One miss first.
     card(first[0]).click();
     card(second[0]).click();
-    advanceTimersByTime(MISMATCH_MS);
+    advanceTimersByTime(REVEAL_MS);
     pairs(deck(12)).forEach((pair) => pair.forEach((index) => card(index).click()));
 
     expect(status()).toContain('with 1 miss!');
@@ -92,11 +121,11 @@ describe('BonusGameView (Matching Pairs)', () => {
     for (let miss = 0; miss < 5; miss++) {
       card(groups[0][0]).click();
       card(groups[1 + (miss % 5)][0]).click();
-      advanceTimersByTime(MISMATCH_MS);
+      advanceTimersByTime(REVEAL_MS);
     }
     expect(status()).toContain('Out of tries.');
     expect(stat('losses')).toBe('1');
-    expect(stat('best')).toBe('—');
+    expect(stat('best')).toBe('-');
     expect($$('.matching-pairs-board__card').every((button) => button.disabled)).toBeTruthy();
   });
 

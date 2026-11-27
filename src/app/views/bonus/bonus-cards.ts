@@ -1,4 +1,4 @@
-import type { GameCard } from '../../components/game-card/game-card.component.js';
+import type { GameCard } from '../../components/game-card/game-card.js';
 import { cryptoRandom, pick, type Random } from '../../games/game.js';
 import { ICONS } from '../../games/icons.js';
 import { BONUS_GAMES, bonusGamePath } from '../../games/bonus/registry.js';

@@ -1,5 +1,5 @@
 import type { Sprite } from '../sprites.js';
-import { CODE_BREAKER_ICON, DOTS_AND_BOXES_ICON, MINEFIELD_ICON, NAVAL_BATTLE_ICON, MATCH_FOUR_ICON, MATCHING_PAIRS_ICON, NOUGHTS_CROSSES_ICON, RPSLS_ICON, ALIEN_SMASH_ICON } from './icons.js';
+import { CODE_BREAKER_ICON, DOTS_AND_BOXES_ICON, MINEFIELD_ICON, NAVAL_BATTLE_ICON, MATCH_FOUR_ICON, MATCHING_PAIRS_ICON, SHUT_THE_BOX_ICON, WARI_ICON, ALIEN_SMASH_ICON } from './icons.js';
 import type { BonusGameDefinition } from './bonus-game.js';
 
 // The bonus cabinet's games, in hub order: the one list its routes, cards and menu are built from.
@@ -21,22 +21,10 @@ export const BONUS_GAMES = [
     load: () => import('./dots-and-boxes/dots-and-boxes.js').then((m) => m.dotsAndBoxesGame),
   },
   {
-    id: 'naval-battle',
-    title: 'Naval Battle',
-    icon: NAVAL_BATTLE_ICON,
-    load: () => import('./naval-battle/naval-battle.js').then((m) => m.navalBattleGame),
-  },
-  {
-    id: 'matching-pairs',
-    title: 'Matching Pairs',
-    icon: MATCHING_PAIRS_ICON,
-    load: () => import('./matching-pairs/matching-pairs.js').then((m) => m.matchingPairsGame),
-  },
-  {
-    id: 'code-breaker',
-    title: 'Code Breaker',
-    icon: CODE_BREAKER_ICON,
-    load: () => import('./code-breaker/code-breaker.js').then((m) => m.codeBreakerGame),
+    id: 'wari',
+    title: 'Wari',
+    icon: WARI_ICON,
+    load: () => import('./wari/wari.js').then((m) => m.wariGame),
   },
   {
     id: 'minefield',
@@ -45,33 +33,46 @@ export const BONUS_GAMES = [
     load: () => import('./minefield/minefield.js').then((m) => m.minefieldGame),
   },
   {
+    id: 'code-breaker',
+    title: 'Code Breaker',
+    icon: CODE_BREAKER_ICON,
+    load: () => import('./code-breaker/code-breaker.js').then((m) => m.codeBreakerGame),
+  },
+  {
+    id: 'matching-pairs',
+    title: 'Matching Pairs',
+    icon: MATCHING_PAIRS_ICON,
+    load: () => import('./matching-pairs/matching-pairs.js').then((m) => m.matchingPairsGame),
+  },
+  {
+    id: 'naval-battle',
+    title: 'Naval Battle',
+    icon: NAVAL_BATTLE_ICON,
+    load: () => import('./naval-battle/naval-battle.js').then((m) => m.navalBattleGame),
+  },
+  {
     id: 'alien-smash',
     title: 'Alien Smash',
     icon: ALIEN_SMASH_ICON,
     load: () => import('./alien-smash/alien-smash.js').then((m) => m.alienSmashGame),
   },
   {
-    id: 'noughts-and-crosses',
-    title: 'Noughts & Crosses',
-    // The card's title fits ~8 characters a line: "Noughts &" would take a third one.
-    cardTitle: 'Noughts Crosses',
-    icon: NOUGHTS_CROSSES_ICON,
-    load: () => import('./noughts-and-crosses/noughts-and-crosses.js').then((m) => m.noughtsCrossesGame),
-  },
-  {
-    id: 'rpsls',
-    title: 'RPSLS',
-    // The card's title fits ~8 characters a line, on two lines.
-    cardTitle: 'RPSLS',
-    icon: RPSLS_ICON,
-    load: () => import('./rpsls/rpsls.js').then((m) => m.rpslsGame),
+    id: 'shut-the-box',
+    title: 'Shut the Box',
+    icon: SHUT_THE_BOX_ICON,
+    load: () => import('./shut-the-box/shut-the-box.js').then((m) => m.shutTheBoxGame),
   },
 ] as const satisfies readonly { id: string; title: string; cardTitle?: string; icon: Sprite; load: () => Promise<BonusGameDefinition> }[];
 
-export type BonusGameId = typeof BONUS_GAMES[number]['id'];
+// Games taken out of the cabinet: their code is kept, but no route, card or menu leads to them.
+export const RETIRED_GAMES = [
+  { id: 'noughts-and-crosses', title: 'Noughts & Crosses' },
+] as const satisfies readonly { id: string; title: string }[];
+
+export type BonusGameId = typeof BONUS_GAMES[number]['id'] | typeof RETIRED_GAMES[number]['id'];
 
 export const BONUS_PATH = '/bonus';
 
 export const bonusGamePath = (id: BonusGameId) => `${BONUS_PATH}/${id}`;
 
-export const bonusGameTitle = (id: BonusGameId) => BONUS_GAMES.find((game) => game.id === id)?.title ?? id;
+export const bonusGameTitle = (id: BonusGameId) => [...BONUS_GAMES, ...RETIRED_GAMES].find((game) => game.id === id)?.title ?? id;

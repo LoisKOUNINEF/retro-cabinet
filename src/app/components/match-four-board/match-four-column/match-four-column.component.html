@@ -6,4 +6,4 @@
   data-event="click:_drop"
   aria-label="${column.label}"
   ${column.disabled ? 'disabled' : ''}
->${[...column.discs].map((disc, row) => html`<span class="${cellClass(column, disc, row)}" aria-hidden="true"></span>`)}</button>
+>${nutinFor([...column.discs], (disc, row) => html`<span class="${cellClass(column, disc, row)}" aria-hidden="true"></span>`)}</button>

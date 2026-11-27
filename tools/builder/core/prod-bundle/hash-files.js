@@ -4,9 +4,9 @@ import { PATHS } from '../app/paths.js';
 import { errorExit } from '../../../utils/index.js';
 import { hashFile } from './content-hash.js';
 
-// What index.html references, the only file whose references are updated. Everything else keeps
-// its name: chunks are already hashed by esbuild, and files copied from public/ and src/assets/
-// (a service worker, a stylesheet linked by path...) must stay where they are.
+// What index.html references, the only file whose references are updated.
+// Everything else keeps its name: chunks are already hashed by esbuild,
+// and files copied from public/ and src/assets/ must stay where they are.
 const HASHED_FILES = ['bundle.js', 'main.css'];
 
 function addHashToFiles(distDir) {

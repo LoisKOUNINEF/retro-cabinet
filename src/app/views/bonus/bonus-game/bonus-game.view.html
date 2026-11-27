@@ -10,18 +10,18 @@
         <h2 class="game__section-title" id="bonus-play-title">Play</h2>
         <div data-component="play"></div>
       </section>
-      ${hasStats ? html`
+      ${nutinIf(hasStats, html`
         <section class="game__section" aria-labelledby="bonus-stats-title">
           <h2 class="game__section-title" id="bonus-stats-title">Stats</h2>
           <div data-component="stats"></div>
-        </section>` : ''}
-      ${results === 'tally' ? html`
+        </section>`)}
+      ${nutinIf(results === 'tally', html`
         <section class="game__section" aria-labelledby="bonus-tally-title">
           <h2 class="game__section-title" id="bonus-tally-title">Tally</h2>
           <div data-component="tally"></div>
-        </section>` : ''}
+        </section>`)}
       <div data-component="options"></div>
-      ${results === 'scores' ? html`<section class="game__section"><div data-component="scores"></div></section>` : ''}
+      ${nutinIf(results === 'scores', html`<section class="game__section"><div data-component="scores"></div></section>`)}
     </aside>
   </div>
 </div>

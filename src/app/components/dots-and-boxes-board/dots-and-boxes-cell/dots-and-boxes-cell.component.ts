@@ -1,4 +1,4 @@
-import { Component, html } from '../../../../core/index.js';
+import { Component, html, nutinIf } from '../../../../core/index.js';
 import type { Player } from '../../../games/bonus/dots-and-boxes/board.js';
 import type { Sprite } from '../../../games/sprites.js';
 import { pixelArt } from '../../pixel-art.js';
@@ -36,7 +36,7 @@ export class DotsAndBoxesCellComponent extends Component<HTMLElement, IndexedCel
     super({ templateFn, mountTarget, config: cell, props: { className: 'dots-boxes__slot' } });
   }
 
-  private _select(): void {
+  protected _select(): void {
     this.config.onSelect(this.config.line);
   }
 }

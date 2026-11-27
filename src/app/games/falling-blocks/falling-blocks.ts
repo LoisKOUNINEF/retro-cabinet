@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell, FIRE_KEYS,
-  type GridGame, type GameDefinition, type Grid, type Random, type Snapshot, type TouchLayout, type KeyHint,
+  applyFields, cryptoRandom, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell,
+  type GridGame, type GameDefinition, type Grid, type MouseButton, type Random, type Snapshot, type TouchLayout, type KeyHint,
 } from '../game.js';
 import { KINDS, TETROMINOES, type Shape, type TetrominoKind } from './tetrominoes.js';
 
@@ -39,7 +39,15 @@ export interface FallingBlocksOptions {
   random?: Random;
 }
 
+// A held move or drop repeats this often: the D-pad's, and the mouse's right button.
+const REPEAT_MS = 120;
+
 export class FallingBlocks implements GridGame {
+  readonly rules = [
+    'Goal: complete rows to clear them, before the pile reaches the top.',
+    '1 to 4 rows at once score 40, 100, 300 or 1200, times the level.',
+    'Every 10 rows raise the level: blocks fall faster.',
+  ];
   readonly kind = 'grid';
   readonly id = 'falling-blocks';
   readonly title = 'Falling Blocks';
@@ -48,13 +56,17 @@ export class FallingBlocks implements GridGame {
   // On touch, the button rotates: the D-pad has no 'up', so a piece never turns by accident.
   readonly touch: TouchLayout = {
     directions: ['left', 'right', 'down'],
-    repeatMs: 120,
+    repeatMs: REPEAT_MS,
     action: { label: 'Rotate', code: 'ArrowUp', onPad: true },
   };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
-    { action: 'Cycle', codes: ['ArrowUp', ...FIRE_KEYS] },
+    { action: 'Rotate', codes: ['ArrowUp', 'KeyE'] },
+    { action: 'Rotate back', codes: ['KeyQ'] },
   ];
+  readonly mouseHint = 'Mouse: move, left click to rotate, right click to drop';
+  // Held, the right button keeps dropping, as ↓ does.
+  readonly mouseRepeat = { button: 'right' as const, ms: REPEAT_MS };
 
   score = 0;
   level = 1;
@@ -128,6 +140,27 @@ export class FallingBlocks implements GridGame {
       case 'KeyE': return this.rotatePiece(true);
       case 'KeyQ': return this.rotatePiece(false);
     }
+  }
+
+  // The piece slides towards the column under the mouse (its middle column there),
+  // one step at a time, so it stops at a wall or a block rather than jumping across.
+  handleMouseMove(x: number): void {
+    if (this.isOver || this.phase !== 'falling') return;
+    const target = Math.min(Math.max(Math.floor(x), 0), WIDTH - 1);
+    const columns: number[] = [];
+    this.eachBlock(this.piece.shape, 0, 0, (bx) => columns.push(bx));
+    const middle = Math.floor((Math.min(...columns) + Math.max(...columns)) / 2);
+    const dx = Math.sign(target - (this.piece.x + middle));
+    while (dx !== 0 && this.piece.x + middle !== target) {
+      const before = this.piece.x;
+      this.move(dx);
+      if (this.piece.x === before) return;
+    }
+  }
+
+  // Left click rotates clockwise, as ↑ does; right click drops a row, as ↓ does.
+  handleMouseDown(button: MouseButton): void {
+    this.handleKey(button === 'left' ? 'ArrowUp' : 'ArrowDown');
   }
 
   cells(): Grid {

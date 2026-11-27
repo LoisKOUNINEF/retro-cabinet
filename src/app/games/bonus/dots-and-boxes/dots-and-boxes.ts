@@ -1,8 +1,8 @@
 import { DotsAndBoxesBoardComponent, type DotsAndBoxesBoardConfig } from '../../../components/dots-and-boxes-board/dots-and-boxes-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { choiceOf, type GameOption, type Random, type Settings } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { choiceOf, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
+import { clickHint, type BonusGame, type BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS, DIFFICULTY_OPTION, FIRST_OPTION, type Difficulty } from '../turns.js';
 import { chooseLine } from './ai.js';
 import { Board, type Player } from './board.js';
@@ -29,6 +29,14 @@ export interface DotsAndBoxesOptions {
 // One round against the AI: draw lines in turns, close a box to take it and play again;
 // whoever takes the most boxes wins.
 export class DotsAndBoxes implements BonusGame {
+  readonly clickHints = clickHint('a line.');
+  readonly rules = [
+    'Goal: close more boxes than your opponent.',
+    'Take turns drawing a line.',
+    "Drawing a box's 4th side takes it, and you play again.",
+    'A 3rd side hands the box to the other player.',
+  ];
+  readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }, { action: 'Draw a line', codes: PICK_CODES }];
   readonly board: Board;
   turn: Player;
   // The keyboard cursor, on a line, in the board's grid.
@@ -72,10 +80,10 @@ export class DotsAndBoxes implements BonusGame {
 
   get status(): string {
     const again = ' Press Enter or New round to play again.';
-    const score = `${this.playerBoxes}–${this.aiBoxes}`;
+    const score = `${this.playerBoxes}-${this.aiBoxes}`;
     switch (this.outcome) {
       case 'wins': return `You win ${score}!${again}`;
-      case 'losses': return `Your opponent wins ${this.aiBoxes}–${this.playerBoxes}.${again}`;
+      case 'losses': return `Your opponent wins ${this.aiBoxes}-${this.playerBoxes}.${again}`;
       case 'draws': return `Draw, ${score}.${again}`;
       default:
         if (this.turn === 'ai') return this._lastClosed ? 'Your opponent took a box…' : 'Thinking…';

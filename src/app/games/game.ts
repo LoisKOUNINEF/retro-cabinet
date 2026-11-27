@@ -37,6 +37,12 @@ export function rotate({ vx, vy }: Velocity, angle: number): Velocity {
   return { vx: vx * cos - vy * sin, vy: vx * sin + vy * cos };
 }
 
+// `value` moved towards `target` by at most `maxStep` (e.g. a paddle chasing the mouse at its top speed).
+export function approach(value: number, target: number, maxStep: number): number {
+  const gap = target - value;
+  return value + Math.sign(gap) * Math.min(Math.abs(gap), maxStep);
+}
+
 // A position on a field that wraps around: always within [0, size).
 export const wrap = (value: number, size: number) => ((value % size) + size) % size;
 
@@ -46,11 +52,18 @@ export const FIRE_KEYS = ['KeyZ', 'KeyW'];
 
 export const isFireKey = (code: string) => FIRE_KEYS.includes(code);
 
-// A line of the HUD's controls hint, e.g. { action: 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] }.
-export interface KeyHint {
-  action: string;
-  codes: string[];
-}
+// A line of the Play section's controls, e.g. { action: 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] }:
+// the keys are named in the player's layout. For a range of keys (digits, whose labels vary
+// with the layout), fixed text instead: { action: 'Drop in a column', keys: '1 to 7' }.
+// Only characters Manaspace draws: it has blank glyphs for some (e.g. – · é), which the browser
+// shows as gaps instead of falling back to another font (key-labels.test.js checks every game).
+export type KeyHint = { action: string; codes: string[] } | { action: string; keys: string };
+
+// The usual hints' keys: the four arrows, and the two that pick what the cursor is on.
+export const ARROW_CODES = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+export const PICK_CODES = ['Enter', 'Space'];
+
+export type MouseButton = 'left' | 'right';
 
 export const UP: Point = { x: 0, y: -1 };
 export const DOWN: Point = { x: 0, y: 1 };
@@ -59,6 +72,12 @@ export const RIGHT: Point = { x: 1, y: 0 };
 
 // KeyboardEvent.code → direction.
 export const ARROW_DIRECTIONS: Record<string, Point | undefined> = { ArrowUp: UP, ArrowDown: DOWN, ArrowLeft: LEFT, ArrowRight: RIGHT };
+
+// A direction turned a quarter, clockwise or counter-clockwise as seen on screen (y points down).
+// `|| 0` keeps -0 out of saved and compared directions.
+export function quarterTurn({ x, y }: Point, clockwise: boolean): Point {
+  return clockwise ? { x: -y || 0, y: x } : { x: y, y: -x || 0 };
+}
 
 export const samePoint = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
 
@@ -99,7 +118,10 @@ interface BaseGame {
 
   // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
   readonly touch?: TouchLayout;
-  // Keys worth mentioning in the HUD (the ones beyond arrows and Space).
+  // How to play, listed by the Play section's Rules button: the goal first, then a few short lines.
+  // A getter in games whose rules depend on their options. Only characters Manaspace draws (see KeyHint).
+  readonly rules: string[];
+  // The game's keys, listed by the Play section's Controls button (Space, play/pause, is in the status).
   readonly keyHints?: KeyHint[];
 
   reset(): void;
@@ -110,6 +132,17 @@ interface BaseGame {
   handleKeyUp?(code: string): void;
   // Called when the game pauses, so no key stays held down.
   releaseKeys?(): void;
+  // Mouse controls, in board units: cells for grid games, canvas pixels for canvas games
+  // (fractional: x 2.5 is the middle of column 2). Called only while the game runs.
+  handleMouseMove?(x: number, y: number): void;
+  handleMouseDown?(button: MouseButton, x: number, y: number): void;
+  // A button let go, for one held down (e.g. Alien Attack's fire). Not called while paused:
+  // releaseKeys() lets go of everything then.
+  handleMouseUp?(button: MouseButton): void;
+  // A button pressed again every `ms` while held, as a held key repeats (e.g. Falling Blocks' right-click drop).
+  readonly mouseRepeat?: { button: MouseButton; ms: number };
+  // Shown after the key hints, except on touch devices, e.g. 'Mouse: move, left click to rotate, right click to drop'.
+  readonly mouseHint?: string;
   // Saving: a JSON-safe copy of the game's state, and putting it back.
   snapshot?(): Snapshot;
   restore?(snapshot: Snapshot): void;

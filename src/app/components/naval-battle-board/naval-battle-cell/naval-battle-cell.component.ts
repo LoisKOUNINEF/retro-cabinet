@@ -46,12 +46,12 @@ export class NavalBattleCellComponent extends Component<HTMLElement, IndexedCell
     super({ templateFn, mountTarget, config: cell, props: { className: 'naval__slot' } });
   }
 
-  private _select(): void {
+  protected _select(): void {
     this.config.onSelect(this.config.index, this.config.action);
   }
 
   // The mouse over a cell aims there (the ship's preview follows it while placing).
-  private _aim(): void {
+  protected _aim(): void {
     if (!this.config.disabled && !this.config.cursor) this.config.onSelect(this.config.index, 'aim');
   }
 }

@@ -26,6 +26,49 @@ describe('Table Tennis', () => {
     expect(game.playerY).toBe(224);
   });
 
+  it('mouse: heads the paddle for the mouse at its keyboard speed, and stops there', () => {
+    const game = newGame();
+
+    game.handleMouseMove(5, 200);
+    game.tick(100);
+    expect(game.playerY).toBe(142);
+    game.tick(1000);
+    expect(game.playerY).toBe(200);
+
+    game.handleMouseMove(5, 190);
+    game.tick(100);
+    expect(game.playerY).toBe(190);
+  });
+
+  it('mouse: keeps the paddle within the court', () => {
+    const game = newGame();
+
+    game.handleMouseMove(5, 0);
+    game.tick(5000);
+    expect(game.playerY).toBe(16);
+    game.handleMouseMove(5, 999);
+    game.tick(5000);
+    expect(game.playerY).toBe(224);
+  });
+
+  it('mouse: gives way to a held arrow, without swinging back when it is let go', () => {
+    const game = newGame();
+    game.handleMouseMove(5, 200);
+
+    game.handleKey('ArrowUp');
+    game.tick(100);
+    expect(game.playerY).toBe(98);
+    game.handleKeyUp('ArrowUp');
+    game.tick(100);
+    expect(game.playerY).toBe(98);
+
+    // A pause forgets the mouse too.
+    game.handleMouseMove(5, 200);
+    game.releaseKeys();
+    game.tick(100);
+    expect(game.playerY).toBe(98);
+  });
+
   it('serves after a second, to the AI first', () => {
     const game = newGame();
     game.tick(999);

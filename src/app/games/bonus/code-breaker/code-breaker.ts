@@ -1,8 +1,8 @@
 import { CodeBreakerBoardComponent, type CodeBreakerBoardConfig } from '../../../components/code-breaker-board/code-breaker-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { choiceOf, pick, shuffle, type GameOption, type Random, type Settings } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { choiceOf, pick, shuffle, type GameOption, type Random, type Settings, type KeyHint } from '../../game.js';
+import { clickHint, type BonusGame, type BonusGameDefinition } from '../bonus-game.js';
 import { EMPTY, PEGS } from './pegs.js';
 
 export const DIFFICULTY_OPTION: GameOption<'easy' | 'normal' | 'hard'> = {
@@ -80,7 +80,26 @@ export interface CodeBreakerOptions {
 // A round of Code Breaker: crack the AI's secret code within the tries, each guess being told how
 // many of its pegs are the right colour in the right place, and how many the right colour elsewhere.
 export class CodeBreaker implements BonusGame {
-  readonly rules: Rules;
+  readonly clickHints = clickHint('a colour to place it, a hole to aim at it (again to empty it), then Check.');
+  get rules(): string[] {
+    return [
+      `Goal: find the secret code of ${this.ruleSet.pegs} pegs in ${this.tries} tries.`,
+      `${describeRules(this.ruleSet)}.`,
+      'After each guess, filled pegs: right colour, right place; hollow pegs: right colour, wrong place.',
+    ];
+  }
+
+  // The digits pick from the palette, which grows with the difficulty.
+  get keyHints(): KeyHint[] {
+    return [
+      { action: 'Peg', keys: `1 to ${this.palette.length}` },
+      { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
+      { action: 'Check', codes: ['Enter'] },
+      { action: 'Empty a hole', codes: ['Backspace', 'Delete'] },
+    ];
+  }
+
+  readonly ruleSet: Rules;
   readonly tries: number;
   readonly code: readonly number[];
   readonly guesses: Guess[] = [];
@@ -92,7 +111,7 @@ export class CodeBreaker implements BonusGame {
   private _incomplete = false;
 
   constructor({ rules, tries, random }: CodeBreakerOptions) {
-    this.rules = rules;
+    this.ruleSet = rules;
     this.tries = tries;
     const colours = palette(rules);
     this.code = rules.repeats
@@ -102,11 +121,11 @@ export class CodeBreaker implements BonusGame {
   }
 
   get palette(): number[] {
-    return palette(this.rules);
+    return palette(this.ruleSet);
   }
 
   get outcome(): TallyResult | null {
-    if (this.guesses.at(-1)?.exact === this.rules.pegs) return 'wins';
+    if (this.guesses.at(-1)?.exact === this.ruleSet.pegs) return 'wins';
     return this.guesses.length >= this.tries ? 'losses' : null;
   }
 
@@ -128,7 +147,7 @@ export class CodeBreaker implements BonusGame {
         const last = this.guesses.at(-1);
         const told = last ? `${last.exact} in place, ${last.misplaced} misplaced. ` : '';
         if (this._incomplete) return `${told}Fill every hole, then Check.`;
-        return `${told}Guess ${count + 1} of ${this.tries}: ${this.rules.repeats ? 'colours may repeat' : 'no colour repeats'}.`;
+        return `${told}Guess ${count + 1} of ${this.tries}: ${this.ruleSet.repeats ? 'colours may repeat' : 'no colour repeats'}.`;
       }
     }
   }
@@ -136,7 +155,7 @@ export class CodeBreaker implements BonusGame {
   // Whether the peg can go under the cursor: on Easy, a colour already elsewhere in the row can't.
   canPlace(peg: number): boolean {
     if (this.isOver || !this.palette.includes(peg)) return false;
-    return this.rules.repeats || this.current.every((placed, i) => placed !== peg || i === this.cursor);
+    return this.ruleSet.repeats || this.current.every((placed, i) => placed !== peg || i === this.cursor);
   }
 
   nextTickIn(): number | null {
@@ -164,7 +183,7 @@ export class CodeBreaker implements BonusGame {
     }
     switch (code) {
       case 'ArrowLeft': this.cursor = Math.max(this.cursor - 1, 0); return true;
-      case 'ArrowRight': this.cursor = Math.min(this.cursor + 1, this.rules.pegs - 1); return true;
+      case 'ArrowRight': this.cursor = Math.min(this.cursor + 1, this.ruleSet.pegs - 1); return true;
       case 'Enter': this.check(); return true;
       case 'Delete': this.clear(this.cursor); return true;
       case 'Backspace':
@@ -185,13 +204,13 @@ export class CodeBreaker implements BonusGame {
     this.current = this.current.map((placed, i) => (i === this.cursor ? peg : placed));
     this._incomplete = false;
     // On to the next hole left, after the cursor first.
-    const { pegs } = this.rules;
+    const { pegs } = this.ruleSet;
     const next = Array.from({ length: pegs - 1 }, (_, step) => (this.cursor + step + 1) % pegs).find((i) => this.current[i] === null);
     if (next !== undefined) this.cursor = next;
   }
 
   private selectSlot(index: number): void {
-    if (index < 0 || index >= this.rules.pegs) return;
+    if (index < 0 || index >= this.ruleSet.pegs) return;
     if (index === this.cursor) this.clear(index);
     this.cursor = index;
   }
@@ -209,7 +228,7 @@ export class CodeBreaker implements BonusGame {
     }
     const pegs = this.current as number[];
     this.guesses.push({ pegs, ...score(this.code, pegs) });
-    this.current = Array<number | null>(this.rules.pegs).fill(null);
+    this.current = Array<number | null>(this.ruleSet.pegs).fill(null);
     this.cursor = 0;
     this._incomplete = false;
   }
@@ -226,8 +245,8 @@ export const codeBreakerGame: BonusGameDefinition<CodeBreaker, CodeBreakerBoardC
   board: {
     create: (el, config, onSelect) => new CodeBreakerBoardComponent(el, config, onSelect),
     config: (game) => ({
-      pegs: game.rules.pegs,
-      rules: describeRules(game.rules),
+      pegs: game.ruleSet.pegs,
+      rules: describeRules(game.ruleSet),
       tries: game.tries,
       guesses: game.guesses.map(({ pegs, exact, misplaced }) => ({ pegs, exact, misplaced })),
       current: game.current,

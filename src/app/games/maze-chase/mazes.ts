@@ -4,6 +4,7 @@ import type { Point } from '../game.js';
 //   #  wall          .  pellet        o  power pellet      (space) empty floor
 //   -  ghost door    _  outside the maze (drawn empty, never walkable)
 //   P  runner start  1-4  chaser, ambusher, flanker, wanderer starts (1 sits just above the door)
+//   F  where the bonus prize appears (floor, below the ghost house)
 // A row whose two edge cells are floor is a wraparound tunnel.
 
 export const COMPACT = [
@@ -18,7 +19,7 @@ export const COMPACT = [
   '####.# ##-## #.####',
   '    .  #234#  .    ',
   '####.# ##### #.####',
-  '####.#       #.####',
+  '####.#   F   #.####',
   '####.# ##### #.####',
   '#........#........#',
   '#.##.###.#.###.##.#',
@@ -48,7 +49,7 @@ export const ARCADE = [
   '      .   # 32 4 #   .      ',
   '######.## #      # ##.######',
   '_____#.## ######## ##.#_____',
-  '_____#.##          ##.#_____',
+  '_____#.##    F     ##.#_____',
   '_____#.## ######## ##.#_____',
   '######.## ######## ##.######',
   '#............##............#',
@@ -76,6 +77,7 @@ export interface Maze {
   // 'pellet' | 'power' | null, per cell, as laid out.
   pellets: (string | null)[][];
   runnerStart: Point;
+  prizeSpot: Point;
   ghostStarts: Record<GhostName, Point>;
   // Tunnel cells: a wraparound row's floor from each edge to its first pellet (ghosts slow down there).
   tunnels: boolean[][];
@@ -87,9 +89,11 @@ const PELLETS: Record<string, string> = { '.': 'pellet', 'o': 'power' };
 export function parseMaze(layout: string[]): Maze {
   const ghostStarts: Partial<Record<GhostName, Point>> = {};
   let runnerStart: Point = { x: 0, y: 0 };
+  let prizeSpot: Point = { x: 0, y: 0 };
 
   layout.forEach((row, y) => [...row].forEach((char, x) => {
     if (char === 'P') runnerStart = { x, y };
+    if (char === 'F') prizeSpot = { x, y };
     const ghost = GHOST_NAMES[Number(char) - 1];
     if (ghost) ghostStarts[ghost] = { x, y };
   }));
@@ -100,6 +104,7 @@ export function parseMaze(layout: string[]): Maze {
     tiles: layout.map((row) => [...row].map((char) => TILES[char] ?? 'floor')),
     pellets: layout.map((row) => [...row].map((char) => PELLETS[char] ?? null)),
     runnerStart,
+    prizeSpot,
     ghostStarts: ghostStarts as Record<GhostName, Point>,
     tunnels: layout.map(tunnelCells),
   };

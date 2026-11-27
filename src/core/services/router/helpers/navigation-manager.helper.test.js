@@ -122,6 +122,21 @@ describe('NavigationManager', () => {
     }
   });
 
+  it('replaceState preserves the query string', () => {
+    const originalReplaceState = window.history.replaceState;
+    window.history.pushState({}, '', '/section?tab=api#some-heading');
+    let replaceArgs = null;
+    window.history.replaceState = (state, title, url) => { replaceArgs = url; };
+
+    try {
+      NavigationManager.replaceState('/section/first-page');
+      expect(replaceArgs).toBe('/section/first-page?tab=api#some-heading');
+    } finally {
+      window.history.replaceState = originalReplaceState;
+      window.history.pushState({}, '', '/');
+    }
+  });
+
   it('should return current path from location', () => {
     // This test assumes a DOM-like environment
     const currentPath = window.location.pathname;
@@ -457,7 +472,8 @@ describe('NavigationManager', () => {
     const { view, element } = mountView('<h1 style="color: red">Title</h1>');
     const h1 = element.querySelector('h1');
     NavigationManager.focusView(view);
-    expect(h1.style.outline).toBe('none');
+    // jsdom 31 expands the shorthand (outline reads "medium", outlineStyle "none"); jsdom 30 doesn't.
+    expect(h1.style.outlineStyle || h1.style.outline).toBe('none');
 
     h1.blur();
     expect(h1.hasAttribute('tabindex')).toBe(false);
@@ -538,7 +554,7 @@ describe('NavigationManager', () => {
     // The full page load (location.assign) is a no-op in jsdom: the sessionStorage record written
     // right before it shows it was attempted.
     sessionStorage.clear();
-    const record = () => JSON.parse(sessionStorage.getItem('nutin:failed-view-load') ?? 'null');
+    const record = () => JSON.parse(sessionStorage.getItem('nutin:failed-load') ?? 'null');
     try {
       await silenceConsole('error', async () => {
         Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
@@ -558,6 +574,57 @@ describe('NavigationManager', () => {
       });
     } finally {
       delete navigator.onLine;
+      sessionStorage.clear();
+    }
+  });
+
+  it('reloadOnce with oncePerSession doesn\'t reload the same URL again, however late', async () => {
+    sessionStorage.clear();
+    const record = () => JSON.parse(sessionStorage.getItem('nutin:failed-load') ?? 'null');
+    let time = 0;
+    const now = spyOn(Date, 'now').andCallFake(() => time);
+    try {
+      await silenceConsole('error', async () => {
+        NavigationManager.reloadOnce('/a', new Error('x'), 'a module', true);
+        expect(record()).toEqual({ url: '/a', at: 0 });
+
+        // Well past the lazy-route window: still no second reload of the same URL.
+        time = 60_000;
+        NavigationManager.reloadOnce('/a', new Error('x'), 'a module', true);
+        expect(record()).toEqual({ url: '/a', at: 0 });
+
+        NavigationManager.reloadOnce('/b', new Error('x'), 'a module', true);
+        expect(record()).toEqual({ url: '/b', at: 60_000 });
+      });
+    } finally {
+      now.restore();
+      sessionStorage.clear();
+    }
+  });
+
+  it('reloadOnce never reloads when sessionStorage throws or doesn\'t keep its record', () => {
+    // jsdom reports the full page load (location.assign to another URL) as a "Not implemented:
+    // navigation" console error: counting those counts the reloads.
+    const errors = spyOn(console, 'error').andCallFake(() => {});
+    const reloads = () => errors.calls.filter((args) => String(args[0]).includes('Not implemented: navigation')).length;
+    const storage = Object.getPrototypeOf(sessionStorage);
+    sessionStorage.clear();
+    let setItem;
+    try {
+      NavigationManager.reloadOnce('/reloads', new Error('x'), 'the view');
+      expect(reloads()).toBe(1);
+
+      setItem = spyOn(storage, 'setItem').andCallFake(() => {});
+      NavigationManager.reloadOnce('/dropped', new Error('x'), 'the view');
+      NavigationManager.reloadOnce('/dropped-module', new Error('x'), 'a module', true);
+      setItem.andCallFake(() => { throw new Error('QuotaExceededError'); });
+      NavigationManager.reloadOnce('/throws', new Error('x'), 'the view');
+      NavigationManager.reloadOnce('/throws-module', new Error('x'), 'a module', true);
+
+      expect(reloads()).toBe(1);
+    } finally {
+      setItem?.restore();
+      errors.restore();
       sessionStorage.clear();
     }
   });

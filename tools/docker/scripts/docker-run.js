@@ -3,7 +3,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { spawn, spawnSync } from 'child_process';
-import { print, errorExit } from '../../utils/index.js';
+import { print, errorExit, isDryRun } from '../../utils/index.js';
 import nutinConfig from '../../../nutin.config.js';
 import { validateDockerPorts } from './docker-ports.js';
 import { RUN_FLAGS, parseDockerFlags, runCommand, imageName, containerName, helpText } from './docker-args.js';
@@ -33,11 +33,22 @@ try {
 }
 
 const { args, name, rm, ports } = command;
+// isDryRun(): "npm run docker:run --dry-run"
+const dryRun = flags['dry-run'] || isDryRun();
 
 // Docker's own error for a taken name is a long "Conflict..." line: say what to do instead.
 // Exit status 0 means the container exists; anything else (none, no docker) is left to docker run.
 if (spawnSync('docker', ['container', 'inspect', name], { stdio: 'ignore' }).status === 0) {
-  errorExit(`A container named "${name}" already exists: stop it (docker stop ${name}) and remove it (docker rm ${name}), or pass --name <other>.`, 'docker:run');
+  const taken = `A container named "${name}" already exists: stop it (docker stop ${name}) and remove it (docker rm ${name}), or pass --name <other>.`;
+  if (!dryRun) errorExit(taken, 'docker:run');
+  print.warn(`A real run would stop here. ${taken}`);
+}
+
+if (dryRun) {
+  print.boldSection(`Would run: docker ${args.join(' ')}`);
+  print.info(`--help to see supported flags`);
+  print.gray('Dry run: no container was started.');
+  process.exit(0);
 }
 
 print.boldSection(`Running: docker ${args.join(' ')}`);

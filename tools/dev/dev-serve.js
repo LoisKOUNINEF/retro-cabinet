@@ -31,13 +31,13 @@ async function startDev() {
   // descendants (watcher.js's own `exec('npm run build')` included) can be
   // killed as a group below. Without this, a shutdown that doesn't cleanly propagate
   // SIGINT down the shell layers (backgrounded, launched by a task runner, a closed
-  // terminal tab instead of Ctrl-C, ...) leaves them running as orphans — multiple
-  // stray watcher.js processes then race each other's builds.
+  // terminal tab instead of Ctrl-C, ...) leaves them running as orphans:
+  // multiple stray watcher.js processes then race each other's builds.
   // Not on Windows: there, detached children leave the console, so Ctrl-C would no
-  // longer reach them, and negative-pid group kills aren't supported — taskkill /T
-  // walks the process tree instead.
-  // Hand serve.js the already-resolved port via PORT; npm_config_port is dropped so it
-  // can't take precedence over it in the child.
+  // longer reach them, and negative-pid group kills aren't supported:
+  // taskkill /T walks the process tree instead.
+  // Hand serve.js the already-resolved port via PORT;
+  // npm_config_port is dropped so it can't take precedence over it in the child.
   const { npm_config_port, ...serveEnv } = process.env;
   serveEnv.PORT = String(port);
   // Both run node directly (no shell/npm layer) with an IPC channel, used as a relay:

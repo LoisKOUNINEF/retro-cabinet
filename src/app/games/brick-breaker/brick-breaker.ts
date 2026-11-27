@@ -1,6 +1,6 @@
 import {
-  applyFields, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff, pick, pickFields, rotate, withSpeed,
-  type CanvasGame, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
+  applyFields, approach, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff, pick, pickFields, rotate, withSpeed,
+  type CanvasGame, type GameDefinition, type KeyHint, type MouseButton, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawBrickBreaker } from './brick-breaker.draw.js';
 import {
@@ -51,6 +51,15 @@ export interface BrickBreakerOptions {
 const SAVED_FIELDS = ['paddle', 'balls', 'bricks', 'capsule', 'effect', 'score', 'level', 'lives', 'isOver', '_stuckMs'];
 
 export class BrickBreaker implements CanvasGame {
+  get rules(): string[] {
+    return [
+      'Goal: break every brick without losing the ball.',
+      'Silver bricks take several hits; gold ones never break.',
+      'Missing the ball costs a life.',
+      ...(this.options.powerUps ? ['Catch capsules: E wider paddle, S slower ball, D three balls, C catch, P extra life.'] : []),
+    ];
+  }
+
   readonly kind = 'canvas';
   readonly id = 'brick-breaker';
   readonly title = 'Brick Breaker';
@@ -61,6 +70,7 @@ export class BrickBreaker implements CanvasGame {
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
     { action: 'Launch', codes: ['ArrowUp', ...FIRE_KEYS] },
   ];
+  readonly mouseHint = 'Mouse: move the paddle, click to launch';
 
   score = 0;
   // The round: picks the layout and, every 5 rounds, speeds the ball up.
@@ -73,6 +83,8 @@ export class BrickBreaker implements CanvasGame {
   capsule: Capsule | null = null;
   effect: 'enlarge' | 'slow' | 'catch' | null = null;
   private _held = { left: false, right: false };
+  // Where the mouse wants the paddle's centre, until a key takes over or the game pauses.
+  private _mouseX: number | null = null;
   private _stuckMs = 0;
   private readonly random: Random;
 
@@ -136,6 +148,17 @@ export class BrickBreaker implements CanvasGame {
 
   releaseKeys(): void {
     this._held = { left: false, right: false };
+    this._mouseX = null;
+  }
+
+  // The paddle heads for the mouse at its keyboard speed, so the mouse aims better but reaches no faster.
+  handleMouseMove(x: number): void {
+    this._mouseX = x;
+  }
+
+  // Left click launches, as ↑ does.
+  handleMouseDown(button: MouseButton): void {
+    if (button === 'left') this.launch();
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
@@ -186,9 +209,14 @@ export class BrickBreaker implements CanvasGame {
     else this.serve();
   }
 
+  // A held arrow wins over the mouse, and drops its target: letting go doesn't swing the paddle back.
   private movePaddle(seconds: number): void {
     const direction = Number(this._held.right) - Number(this._held.left);
-    const x = this.paddle.x + direction * PADDLE_SPEED * seconds;
+    if (direction !== 0) this._mouseX = null;
+    const step = PADDLE_SPEED * seconds;
+    const x = direction === 0 && this._mouseX !== null
+      ? approach(this.paddle.x, this._mouseX - this.paddle.width / 2, step)
+      : this.paddle.x + direction * step;
     this.paddle.x = Math.min(Math.max(x, 0), WIDTH - this.paddle.width);
     this.balls.filter((ball) => ball.stuck).forEach((ball) => ball.x = this.paddle.x + ball.offset);
   }
@@ -315,7 +343,7 @@ export class BrickBreaker implements CanvasGame {
   }
 }
 
-const POWER_UPS_OPTION = onOff('powerups', 'Power-ups');
+const POWER_UPS_OPTION = onOff('powerups', 'Power-ups', true);
 
 export const brickBreakerGame: GameDefinition = {
   id: 'brick-breaker',

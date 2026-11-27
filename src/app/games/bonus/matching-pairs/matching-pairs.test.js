@@ -1,8 +1,10 @@
-import { MATCHING_PAIRS_OPTIONS, MISMATCH_MS, MatchingPairs, matchingPairsGame } from '#root/dist/src/app/games/bonus/matching-pairs/matching-pairs.js';
+import { MATCHING_PAIRS_OPTIONS, MatchingPairs, matchingPairsGame } from '#root/dist/src/app/games/bonus/matching-pairs/matching-pairs.js';
 import { FACES } from '#root/dist/src/app/games/bonus/matching-pairs/faces.js';
 import { defaultSettings } from '#root/dist/src/app/games/game.js';
 
-const deal = (options = {}) => new MatchingPairs({ cards: 12, tries: null, random: () => 0.3, ...options });
+// The default reveal time.
+const REVEAL_MS = 1000;
+const deal = (options = {}) => new MatchingPairs({ cards: 12, tries: null, revealMs: REVEAL_MS, random: () => 0.3, ...options });
 // The two indexes of the pair holding face `face`.
 const pairOf = (game, face) => game.cards.flatMap((card, index) => (card.face === face ? [index] : []));
 // Two indexes of different faces.
@@ -14,8 +16,8 @@ const mismatch = (game) => {
 const states = (game) => game.cards.map((card) => card.state[0]).join('');
 
 describe('Matching Pairs', () => {
-  it('defaults to 16 cards and unlimited tries', () => {
-    expect(defaultSettings(MATCHING_PAIRS_OPTIONS)).toEqual({ cards: '16', tries: 'unlimited' });
+  it('defaults to 16 cards, unlimited tries and a 1 s reveal', () => {
+    expect(defaultSettings(MATCHING_PAIRS_OPTIONS)).toEqual({ cards: '16', tries: 'unlimited', reveal: '1000' });
   });
 
   it('deals pairs of distinct faces, enough for every deck size', () => {
@@ -51,9 +53,9 @@ describe('Matching Pairs', () => {
     game.select(b);
     expect(game.misses).toBe(1);
     expect(game.status).toBe('No match.');
-    expect(game.nextTickIn()).toBe(MISMATCH_MS);
+    expect(game.nextTickIn()).toBe(REVEAL_MS);
 
-    game.tick(MISMATCH_MS - 1);
+    game.tick(REVEAL_MS - 1);
     expect(game.cards[a].state).toBe('shown');
     game.tick(1);
     expect(game.cards[a].state).toBe('hidden');
@@ -61,17 +63,47 @@ describe('Matching Pairs', () => {
     expect(game.nextTickIn()).toBe(null);
   });
 
-  it('turns a mismatched pair back at once when another card is picked', () => {
+  it('only turns a mismatched pair back when another card is picked', () => {
     const game = deal();
     const [a, b] = mismatch(game);
     game.select(a);
     game.select(b);
+    expect(game.turningBack).toBe(true);
     const c = game.cards.findIndex((card, i) => card.state === 'hidden' && i !== a && i !== b);
     game.select(c);
     expect(game.cards[a].state).toBe('hidden');
     expect(game.cards[b].state).toBe('hidden');
-    expect(game.cards[c].state).toBe('shown');
+    expect(game.cards[c].state).toBe('hidden');
+    expect(game.turningBack).toBe(false);
     expect(game.nextTickIn()).toBe(null);
+    // The next pick turns it.
+    game.select(c);
+    expect(game.cards[c].state).toBe('shown');
+  });
+
+  it('turns a mismatched pair back when one of its cards is picked', () => {
+    const game = deal();
+    const [a, b] = mismatch(game);
+    game.select(a);
+    game.select(b);
+    game.select(a);
+    expect(game.cards[a].state).toBe('hidden');
+    expect(game.cards[b].state).toBe('hidden');
+    expect(game.misses).toBe(1);
+  });
+
+  it('keeps a mismatched pair up until a pick with the "Until click" reveal', () => {
+    const game = deal({ revealMs: null });
+    const [a, b] = mismatch(game);
+    game.select(a);
+    game.select(b);
+    expect(game.nextTickIn()).toBe(null);
+    expect(game.status).toBe('No match. Pick any card to turn them back.');
+    game.tick(60_000);
+    expect(game.cards[a].state).toBe('shown');
+    game.select(b);
+    expect(game.cards[a].state).toBe('hidden');
+    expect(game.status).toBe('Find the pairs.');
   });
 
   it('ignores a card picked twice, and face-up cards', () => {
@@ -99,7 +131,7 @@ describe('Matching Pairs', () => {
       const [a, b] = mismatch(game);
       game.select(a);
       game.select(b);
-      if (miss < 4) game.tick(MISMATCH_MS);
+      if (miss < 4) game.tick(REVEAL_MS);
     }
     expect(game.outcome).toBe('losses');
     expect(game.triesLeft).toBe(0);
@@ -138,11 +170,15 @@ describe('Matching Pairs', () => {
     expect(game.cards.length).toBe(20);
     expect(game.tries).toBe(15);
     expect(matchingPairsGame.create({ cards: '12', tries: 'unlimited' }, () => 0.3).tries).toBe(null);
+    expect(game.revealMs).toBe(REVEAL_MS);
+    expect(matchingPairsGame.create({ reveal: '2000' }, () => 0.3).revealMs).toBe(2000);
+    expect(matchingPairsGame.create({ reveal: 'click' }, () => 0.3).revealMs).toBe(null);
     game.misses = 4;
     expect(matchingPairsGame.results.best.score(game)).toBe(4);
     const config = matchingPairsGame.board.config(game);
     expect(config.columns).toBe(5);
     expect(config.cards.length).toBe(20);
     expect(config.locked).toBe(false);
+    expect(config.turningBack).toBe(false);
   });
 });

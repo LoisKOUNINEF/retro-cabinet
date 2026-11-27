@@ -297,4 +297,72 @@ describe('Falling Blocks', () => {
       expect(copy.snapshot()).toEqual(game.snapshot());
     });
   });
+  it('mouse: slides the piece so its middle column sits under the mouse', () => {
+    const game = new FallingBlocks({ random: alwaysI });
+
+    // The I fills its shape's second column: x + 1.
+    game.handleMouseMove(7.6);
+    expect(game.piece.x).toBe(6);
+    game.handleMouseMove(0.2);
+    expect(game.piece.x).toBe(-1);
+    // Beyond the board, the nearest column.
+    game.handleMouseMove(42);
+    expect(game.piece.x).toBe(8);
+  });
+
+  it('mouse: stops at the walls', () => {
+    const game = new FallingBlocks({ random: alwaysO });
+
+    // The O's middle column is its left one: it can't reach column 9's right edge.
+    game.handleMouseMove(9.5);
+    expect(game.piece.x).toBe(8);
+    game.handleMouseMove(0);
+    expect(game.piece.x).toBe(0);
+  });
+
+  it('mouse: stops at a block in the way instead of jumping across it', () => {
+    const game = new FallingBlocks({ random: alwaysI });
+    game.board[2][7] = 'blocks-Z';
+
+    game.handleMouseMove(9);
+
+    expect(game.piece.x).toBe(5);
+  });
+
+  it('mouse: rotates clockwise on a left click, with the wall kick', () => {
+    const game = new FallingBlocks({ random: alwaysI });
+    game.handleMouseMove(9);
+
+    game.handleMouseDown('left');
+    expect(game.piece.x).toBe(6);
+    expect(game.piece.shape[1]).toEqual([1, 1, 1, 1]);
+  });
+
+  it('mouse: drops the piece a row on a right click, as ↓ does, and locks it at the bottom', () => {
+    const game = new FallingBlocks({ random: alwaysI });
+
+    game.handleMouseDown('right');
+    expect(game.piece.y).toBe(1);
+    expect(game.piece.shape[1]).toEqual([0, 1, 0, 0]);
+
+    const piece = game.piece;
+    for (let i = 0; i < 20; i++) game.handleMouseDown('right');
+    expect(game.piece).not.toBe(piece);
+    expect(game.board[17][4]).toBe('blocks-I');
+  });
+
+  it('mouse: does nothing while lines flash or the curtain falls', () => {
+    const game = new FallingBlocks({ random: alwaysI });
+    const shape = game.piece.shape;
+
+    for (const phase of ['clearing', 'curtain']) {
+      game.phase = phase;
+      game.handleMouseMove(0);
+      game.handleMouseDown('left');
+      game.handleMouseDown('right');
+      expect(game.piece.x).toBe(3);
+      expect(game.piece.y).toBe(0);
+      expect(game.piece.shape).toBe(shape);
+    }
+  });
 });

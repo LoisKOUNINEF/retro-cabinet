@@ -1,4 +1,4 @@
-import { Component, html } from '../../../../core/index.js';
+import { Component, html, nutinIf } from '../../../../core/index.js';
 import { pegArt } from '../peg-art.js';
 
 export interface CodeBreakerPeg {
@@ -28,7 +28,7 @@ export class CodeBreakerPegComponent extends Component<HTMLElement, IndexedPeg> 
     super({ templateFn, mountTarget, config: item, props: { className: 'code-breaker__slot' } });
   }
 
-  private _select(): void {
+  protected _select(): void {
     this.config.onSelect(this.config.value, this.config.action);
   }
 }

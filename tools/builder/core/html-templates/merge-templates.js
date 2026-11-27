@@ -3,7 +3,7 @@ import path from 'path';
 import esbuild from 'esbuild';
 import { getFilesRecursive, print, pascalCased, capitalized, UserError } from '../../../utils/index.js';
 import { PATHS } from '../app/paths.js';
-import { findInlineTemplate, minifyTemplateBody } from './template-literal.js';
+import { findInlineTemplate, findHtmlTemplates, minifyTemplatesIn } from './template-literal.js';
 
 const PLACEHOLDER = '__TEMPLATE_PLACEHOLDER__';
 const TARGET_EXTENSIONS = ['.ts', '.js'];
@@ -41,30 +41,31 @@ export async function mergeTemplates() {
   }
 }
 
-// Minifies the template of every code file, merged or inline. Anything that can't be
-// minified safely is kept as written.
+// Minifies the templates of every code file: the merged or inline one, and every other
+// html`` literal (generateTemplate()'s returns, helpers'). Anything that can't be minified
+// safely is kept as written.
 export async function minifyTemplates() {
   const templateMap = await readTemplateMap();
   const codeFiles = await getFilesRecursive(PATHS.tempApp, TARGET_EXTENSIONS);
 
   for (const codePath of codeFiles) {
     const content = await fs.readFile(codePath, 'utf-8');
-    const template = findMergedTemplate(content, codePath, templateMap) ?? findInlineTemplate(content);
-    if (!template || template.body === null || template.body === PLACEHOLDER) continue;
+    const templates = [
+      findMergedTemplate(content, codePath, templateMap),
+      findInlineTemplate(content),
+      ...(findHtmlTemplates(content) ?? []),
+    ].filter((template) => template && template.body !== null && template.body !== PLACEHOLDER);
+    if (!templates.length) continue;
 
-    const minified = await minifyTemplateBody(template.body);
-    if (minified === null) {
-      print.gray(describeUnminified(codePath));
-      continue;
-    }
-    const updated = content.slice(0, template.open) + minified + content.slice(template.end);
-    await fs.writeFile(codePath, await keepIfValid(codePath, updated, content));
+    const { content: updated, unminified } = await minifyTemplatesIn(content, templates);
+    const valid = updated === content || await parses(codePath, updated);
+    if (unminified || !valid) print.gray(describeUnminified(codePath));
+    if (valid && updated !== content) await fs.writeFile(codePath, updated);
   }
 }
 
-// Normally a view/component has exactly one sibling here: its copied `.ts` (TypeScript
-// projects; tsc compiles it once merged) or `.js` (JS-only projects). Checking whichever
-// exist(s) rather than assuming one, so this can't silently regress if that ever changes.
+// Normally a view/component has exactly one sibling here: its copied `.ts` or `.js` (JS-only projects).
+// Checking whichever exist(s) rather than assuming one, so this can't silently regress.
 async function mergeExternalTemplate(htmlPath, resolvedPaths, failures, templateMap) {
   const htmlFilename = path.basename(htmlPath);
 
@@ -151,8 +152,7 @@ export async function readTemplateMap() {
   }
 }
 
-// A merged template, found by its markup: it's wherever the placeholder was, whatever the
-// variable holding it is called, in the copied .ts or in tsc's .js emitted from it.
+// A merged template, found by its markup: it's wherever the placeholder was.
 function findMergedTemplate(content, codePath, templateMap) {
   const relPath = path.relative(PATHS.temp, codePath);
   const entry = templateMap[relPath] ?? templateMap[relPath.replace(/\.js$/, '.ts')];
@@ -169,15 +169,13 @@ export function placeholderPosition(content) {
   return { line: before.split('\n').length, col: index - before.lastIndexOf('\n') };
 }
 
-// Last safety net: minified code that no longer parses is replaced by the code as written.
-async function keepIfValid(codePath, minified, asWritten) {
-  if (minified === asWritten) return minified;
+// Last safety net: minified code that no longer parses is left as written.
+async function parses(codePath, code) {
   try {
-    await esbuild.transform(minified, { loader: codePath.endsWith('.ts') ? 'ts' : 'js' });
-    return minified;
+    await esbuild.transform(code, { loader: codePath.endsWith('.ts') ? 'ts' : 'js' });
+    return true;
   } catch {
-    print.gray(describeUnminified(codePath));
-    return asWritten;
+    return false;
   }
 }
 
@@ -222,7 +220,7 @@ Add ${basename}.html, or replace the placeholder in ${filename} with inline mark
 }
 
 function describeUnminified(filePath) {
-  return `Kept the template of ${path.basename(filePath)} unminified: its markup couldn't be minified safely.`;
+  return `Kept a template of ${path.basename(filePath)} unminified: its markup couldn't be minified safely.`;
 }
 
 function describeUntagged(codePath) {

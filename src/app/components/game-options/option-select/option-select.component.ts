@@ -1,4 +1,4 @@
-import { Component, html } from '../../../../core/index.js';
+import { Component, html, nutinFor } from '../../../../core/index.js';
 import type { GameOption } from '../../../games/game.js';
 
 export interface OptionSelect extends Omit<GameOption, 'defaultValue'> {
@@ -15,7 +15,7 @@ export class OptionSelectComponent extends Component<HTMLElement, OptionSelect> 
     super({ templateFn, mountTarget, config: option });
   }
 
-  private _change(value: string): void {
+  protected _change(value: string): void {
     this.config.onChange(this.config.key, value);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, html } from '../../../core/index.js';
+import { Component, html, nutinFor } from '../../../core/index.js';
 import { ALIEN_SPRITES, UFO } from '../../games/alien-attack/sprites.js';
 import { HOLE_KEYS, type HoleState, type Target } from '../../games/bonus/alien-smash/alien-smash.js';
 import type { Sprite } from '../../games/sprites.js';
@@ -24,15 +24,11 @@ function holeLabel(index: number, target: Target | null, state: HoleState, point
   return state === 'leaving' ? `${name}: ${NAMES[target]} going back down` : `${name}: ${NAMES[target]}, ${points} points`;
 }
 
-// One mount point per hole, each replaced by its AlienSmashHoleComponent.
-// Built at render: alien-smash.js (HOLE_KEYS) imports this module too.
-const holePlaceholders = () => HOLE_KEYS.map((_, index) => html`<div data-component="hole-${index}"></div>`);
-
 const templateFn = () => html`__TEMPLATE_PLACEHOLDER__`;
 
 // Nine holes, rendered once and kept: update() hands each hole its own config, and a hole only
-// rebuilds when its alien changes. The board itself never re-renders, so no hole is ever moved
-// (moving a node restarts its CSS animations where Element.moveBefore() is missing, e.g. Safari).
+// rebuilds when its alien changes (which restarts its animation). The board itself never
+// re-renders: it updates on every tick, so it patches its holes instead.
 // A smash counts on the press (pointerdown), not the release: an alien leaving between the two
 // rebuilds its hole, and a click whose pressed button is gone never fires.
 export class AlienSmashBoardComponent extends Component<HTMLElement, AlienSmashBoardConfig> {
@@ -67,12 +63,17 @@ export class AlienSmashBoardComponent extends Component<HTMLElement, AlienSmashB
     this._holes.forEach((hole, index) => hole.update(this.holeConfig(index)));
   }
 
+  // One placeholder per hole (nutinFor in the template), all mounted by this factory: each
+  // placeholder carries its hole's index. The holes never move, so keeping by position is right.
   override registerChildren(): Nutin.ComponentConfig[] {
-    return HOLE_KEYS.map((_, index) => ({
-      selector: `hole-${index}`,
-      keep: index,
-      factory: (el: HTMLElement) => (this._holes[index] = new AlienSmashHoleComponent(el, this.holeConfig(index))),
-    }));
+    return [{
+      selector: 'hole',
+      keep: 'hole',
+      factory: (el: HTMLElement) => {
+        const index = Number(el.dataset['hole']);
+        return (this._holes[index] = new AlienSmashHoleComponent(el, this.holeConfig(index)));
+      },
+    }];
   }
 
   private holeConfig(index: number): AlienSmashHole {

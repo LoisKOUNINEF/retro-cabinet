@@ -80,7 +80,7 @@ describe('AlienSmashBoardComponent', () => {
     expect(hole(1)).toBe(untouched);
   });
 
-  // A moved or rebuilt node restarts its CSS animations: the alien would rise out of its hole again.
+  // A rebuilt node restarts its CSS animations: the alien would rise out of its hole again.
   it('leaves an alien already up alone when another hole changes', () => {
     const holes = empty();
     holes[0] = { target: 'squid', state: 'up', points: 30 };

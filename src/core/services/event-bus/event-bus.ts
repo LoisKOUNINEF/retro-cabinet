@@ -9,8 +9,8 @@ export type EventBusApi = Pick<EventBus, 'subscribe' | 'once' | 'emit' | 'off'>;
 // Set by useEventBus() (tests): the bus every call is routed to instead.
 let delegate: EventBusApi | null = null;
 
-// One subscription; `once` ones are removed after their first call.
-type Handler = { callback: (data: any) => void; once: boolean };
+// One subscription; `once` ones are removed on their first call (`fired` set).
+type Handler = { callback: (data: any) => void; once: boolean; fired?: boolean };
 
 export class EventBus extends Service<EventBus> {
   // In subscription order, per event.
@@ -40,16 +40,21 @@ export class EventBus extends Service<EventBus> {
   public emit<K extends Nutin.EventKey>(event: K, ...[data]: EventArgs<K>): void {
     if (delegate && delegate !== this) return delegate.emit(event, ...([data] as EventArgs<K>));
     // A copy: handlers may subscribe or unsubscribe while the event is dispatched.
-    this.#handlers[event]?.slice().forEach(({ callback, once }) => {
-      // A failing listener is reported but doesn't keep the others (the router's
-      // included) from receiving the event.
+    this.#handlers[event]?.slice().forEach((handler) => {
+      if (handler.once) {
+        // Removed before it's called, and only this subscription: an emit of the same event from
+        // inside it (or a handler after it) can't call it again, and a subscribe() of the same
+        // callback stays.
+        if (handler.fired) return;
+        handler.fired = true;
+        this.#handlers[event] = this.#handlers[event]?.filter((other) => other !== handler);
+      }
+      // A failing listener is reported but doesn't keep the others from receiving the event.
       try {
-        callback(data);
+        handler.callback(data);
       } catch (error) {
         console.error(`Error in a "${event}" listener:`, error);
       }
-      // Like off(event, callback): every subscription of this callback to the event goes.
-      if (once) this.off(event, callback);
     });
   }
 
@@ -81,9 +86,9 @@ export class EventBus extends Service<EventBus> {
 export const AppEventBus = /* @__PURE__ */ EventBus.getInstance();
 
 /**
- * For tests: routes every subscribe/once/emit/off made through AppEventBus to `bus`, e.g.
- * testin-nutin's MockEventBus. That covers components' `listen()`, the Navigation and Lifecycle
- * facades, the router, i18n and app services alike. Pass null to restore the real bus.
+ * For tests: routes every subscribe/once/emit/off made through AppEventBus to `bus`.
+ * That covers components' `listen()`, the Navigation and Lifecycle facades, the router, i18n and app services alike.
+ * Pass null to restore the real bus.
  * A subscription stays on the bus it was made on: set it before mounting, restore after destroying.
  */
 export function useEventBus(bus: EventBusApi | null): void {

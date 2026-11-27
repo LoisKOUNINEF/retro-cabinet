@@ -1,18 +1,18 @@
 import { MinefieldBoardComponent, type MinefieldBoardConfig, type MinefieldView } from '../../../components/minefield-board/minefield-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { ARROW_DIRECTIONS, choiceOf, shuffle, type GameOption, type Random, type Settings } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { ARROW_DIRECTIONS, choiceOf, shuffle, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
+import type { BonusGame, BonusGameDefinition, ClickHints } from '../bonus-game.js';
 
-export const SIZE_OPTION: GameOption<'beginner' | 'intermediate' | 'expert'> = {
+export const SIZE_OPTION: GameOption<'easy' | 'medium' | 'hard'> = {
   key: 'size',
   label: 'Size',
   choices: [
-    { value: 'beginner', label: 'Beginner: 9×9, 10 mines' },
-    { value: 'intermediate', label: 'Intermediate: 16×16, 40 mines' },
-    { value: 'expert', label: 'Expert: 30×16, 99 mines' },
+    { value: 'easy', label: 'Easy: 9x9, 10 Mines' },
+    { value: 'medium', label: 'Medium: 16x16, 40 Mines' },
+    { value: 'hard', label: 'Hard: 30x16, 99 Mines' },
   ],
-  defaultValue: 'beginner',
+  defaultValue: 'easy',
 };
 
 export const MINEFIELD_OPTIONS: GameOption[] = [SIZE_OPTION];
@@ -26,9 +26,9 @@ export interface Field {
 }
 
 export const SIZES: Record<Size, Field> = {
-  beginner: { rows: 9, columns: 9, mines: 10 },
-  intermediate: { rows: 16, columns: 16, mines: 40 },
-  expert: { rows: 16, columns: 30, mines: 99 },
+  easy: { rows: 9, columns: 9, mines: 10 },
+  medium: { rows: 16, columns: 16, mines: 40 },
+  hard: { rows: 16, columns: 30, mines: 99 },
 };
 
 // hidden → flag → question → hidden, with the flag action; open once dug.
@@ -50,6 +50,20 @@ export interface MinefieldOptions extends Field {
 // A round of Minefield: dig every cell without a mine. A number tells how many of the 8 cells
 // around hide one; flags mark the mines found. The first dig is always safe, and opens an area.
 export class Minefield implements BonusGame {
+  readonly clickHints: ClickHints = {
+    mouse: ['Or click a cell to dig it, right-click to flag it.', 'Dig and Flag above the field change what a click does.'],
+    touch: ['Or tap a cell to dig it, long-press to flag it.', 'Dig and Flag above the field change what a tap does.'],
+  };
+  get rules(): string[] {
+    return [
+      `Goal: open every cell without a mine (${this.mines} mines).`,
+      'A number tells how many mines touch the cell.',
+      'Flag the cells you think are mined.',
+      'The first dig is always safe.',
+    ];
+  }
+
+  readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }, { action: 'Dig', codes: PICK_CODES }, { action: 'Flag', codes: ['KeyF'] }];
   readonly rows: number;
   readonly columns: number;
   readonly mines: number;

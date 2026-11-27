@@ -65,9 +65,9 @@ server {
     location / {
         try_files $uri $uri/ /index.html;
 
-        # Every file that keeps its name and no other location matches (.json, .xml, .txt,
-        # .webmanifest, .map...): revalidated on each use (304 while its ETag matches), so
-        # neither a browser nor a CDN guesses a lifetime from Last-Modified and keeps a stale
+        # Every file that keeps its name and no other location matches (.json, .xml, .txt, .map...):
+        # revalidated on each use (304 while its ETag matches),
+        # so neither a browser nor a CDN guesses a lifetime from Last-Modified and keeps a stale
         # copy for hours after a deploy. The SPA shell itself gets the .html location's headers.
         add_header Cache-Control "no-cache" always;
 
@@ -84,11 +84,10 @@ server {
     # STATIC ASSETS CACHING
     # ---------------------------
 
-    # Immutable cache for the files whose name holds a content hash: esbuild's chunks
-    # (^~: no regex location is tried for them), bundle.<hash>.js / main.<hash>.css
-    # (hash-files.js) and the copies of the locales and markdown manifests the app fetches,
-    # /locales/ and /generated/<name>.<hash>.json (hash-data-files.js). A changed file gets a
-    # new name. Only those exact paths: a public/ file whose name merely looks hashed
+    # Immutable cache for the files whose name holds a content hash: esbuild's chunks,
+    # bundle.<hash>.js / main.<hash>.css and the copies of the locales and markdown manifests the app fetches:
+    # /locales/ and /generated/<name>.<hash>.json (hash-data-files.js).
+    # A changed file gets a new name. Only those exact paths: a public/ file whose name merely looks hashed
     # (report.20241231.json) is revalidated like any other. A regex with {} must be quoted.
     # One Cache-Control header: `expires` would add a second one.
     location ^~ /chunks/ {
@@ -150,7 +149,9 @@ server {
     # Exact match: it must win over the i18n unprefixed-path redirect (a regex location).
     location = /health {
         access_log off;
-        add_header Content-Type text/plain always;
+        # The type of `return`'s body. add_header would send a second Content-Type,
+        # after nginx's own application/octet-stream.
+        default_type text/plain;
         add_header Cache-Control "no-store" always;
         return 200 "healthy\n";
     }

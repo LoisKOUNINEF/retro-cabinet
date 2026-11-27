@@ -3,14 +3,11 @@ import path from 'path';
 import { UserError } from '../../../../utils/error-exit.js';
 
 /**
- * Installs the minimum browser globals the framework's own base classes touch
- * unconditionally (the Router's `popstate` listener, I18n's `navigator`/`window.location`
- * reads), plus a couple of cheap defensive stubs (matchMedia) for common patterns
- * downstream projects add (e.g. dark-mode toggles).
+ * Installs the minimum browser globals the framework's own base classes touch unconditionally,
+ * plus a couple of cheap defensive stubs (matchMedia) for common patterns downstream projects add.
  *
- * Returns `trackedFetches`, the in-flight promises served by the fetch shim during this
- * render — ssr-render.js awaits these before capturing markup, to let any resulting
- * fetch-driven re-render (via `listenToRenderEvents`) complete first.
+ * Returns `trackedFetches`, the in-flight promises served by the fetch shim during this render.
+ * ssr-render.js awaits these before capturing markup, to let any resulting fetch-driven re-render complete first.
  */
 function setGlobal(target, key, value) {
   try {
@@ -53,9 +50,10 @@ function createMemoryStorage() {
   };
 }
 
-// Accessors the DOM spec defines on these exact prototypes. Clobbering-proof code (e.g.
-// a11y-elements' sanitizer) reads them with `Object.getOwnPropertyDescriptor(proto, name).get`,
-// often at module load, then calls that getter on any node. linkedom doesn't match the spec here:
+// Accessors the DOM spec defines on these exact prototypes.
+// Clobbering-proof code reads them with `Object.getOwnPropertyDescriptor(proto, name).get`,
+// often at module load, then calls that getter on any node.
+// linkedom doesn't match the spec here:
 // - some live on a mixin below the named prototype (`children` on ParentNode): no own getter;
 // - some are per-instance data (`nodeType`, `localName`, `parentNode`), on no prototype at all;
 // - Node.prototype has base-class stubs (`childNodes` → empty, `firstChild` → null, …) that
@@ -118,6 +116,19 @@ function defineDispatchingAccessor(proto, name) {
 }
 
 /**
+ * Document methods linkedom doesn't implement but core calls.
+ * - getSelection(): kept children capture and restore the text selection (preservation.helper).
+ *   SSR has no selection, so it returns null.
+ * Defined on the document's prototype: core reads document methods from the prototype chain,
+ * where a named element can't shadow them (safe-dom.helper). Idempotent, like installSpecAccessors().
+ */
+export function installDocumentStubs(window) {
+  const proto = Object.getPrototypeOf(window.document);
+  if (!proto || 'getSelection' in proto) return;
+  Object.defineProperty(proto, 'getSelection', { value: () => null, writable: true, configurable: true });
+}
+
+/**
  * Makes the SSR window's DOM prototypes carry the accessors the spec puts on them, so code
  * that reads `Object.getOwnPropertyDescriptor(Element.prototype, 'children').get` works.
  * Idempotent: linkedom's classes are shared by every window it creates.
@@ -138,6 +149,7 @@ export function installSpecAccessors(window) {
 export function installGlobals(window, { lang, mockFetch = {}, localesDir, staticDir } = {}) {
   // Before anything imports the bundle: its modules may read these getters as they load.
   installSpecAccessors(window);
+  installDocumentStubs(window);
   for (const key of Object.getOwnPropertyNames(window)) {
     setGlobal(globalThis, key, window[key]);
   }

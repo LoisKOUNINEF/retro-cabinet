@@ -3,8 +3,8 @@ const LANGUAGE_CODE = /^[A-Za-z0-9-]+$/;
 
 const REDIRECT_CACHE = 'add_header Cache-Control "public, max-age=3600" always;';
 
-// Only i18n builds serve every page under a language prefix — without it, "/" and every
-// other path are real pages, and nothing is redirected.
+// Only i18n builds serve every page under a language prefix:
+// without it, "/" and every other path are real pages, and nothing is redirected.
 export function localeRedirects({ i18n, languages, defaultLanguage }) {
   if (!i18n) return '';
 
@@ -14,12 +14,12 @@ export function localeRedirects({ i18n, languages, defaultLanguage }) {
     }
   });
 
-  // Unprefixed app paths (old or external links like "/docs") get a 301 to the default
-  // language instead of a 200 SPA shell that duplicates the real page. Paths with a "."
-  // (robots.txt, sitemap.xml, assets) are left to the other locations. $request_uri is
-  // the raw request (query included): the decoded $uri could inject headers via %0D%0A.
-  // Browsers and CDNs keep a 301 without Cache-Control indefinitely: an hour lets a change
-  // of default language reach everyone.
+  // Unprefixed app paths (old or external links like "/docs") get a 301 to the default language
+  // instead of a 200 SPA shell that duplicates the real page.
+  // Paths with a "." (robots.txt, sitemap.xml, assets) are left to the other locations.
+  // $request_uri is the raw request (query included): the decoded $uri could inject headers via %0D%0A.
+  // Browsers and CDNs keep a 301 without Cache-Control indefinitely:
+  // an hour lets a change of default language reach everyone.
   return [
     `location = / {`,
     `        ${REDIRECT_CACHE}`,

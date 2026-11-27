@@ -68,7 +68,7 @@ describe('Dots and Boxes round', () => {
     game.board.boxes.fill('player', 0, 5);
     game.board.boxes.fill('ai', 5);
     expect(game.outcome).toBe('wins');
-    expect(game.status).toContain('You win 5–4!');
+    expect(game.status).toContain('You win 5-4!');
     expect(dotsAndBoxesGame.results.key({ size: '7', difficulty: 'hard' })).toBe('7-hard');
     expect(dotsAndBoxesGame.results.key({})).toBe('5-medium');
   });

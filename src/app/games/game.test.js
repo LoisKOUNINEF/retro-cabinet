@@ -1,4 +1,4 @@
-import { applyFields, choiceOf, cryptoRandom, defaultSettings, isOn, levelFrom, levelOption, livesFrom, livesOption, onOff, pickFields, shuffle } from '#root/dist/src/app/games/game.js';
+import { applyFields, approach, choiceOf, cryptoRandom, defaultSettings, isOn, levelFrom, levelOption, livesFrom, livesOption, onOff, pickFields, quarterTurn, shuffle } from '#root/dist/src/app/games/game.js';
 
 describe('Game options', () => {
   it('offers starting levels 1 to 10, defaulting to 1', () => {
@@ -96,5 +96,27 @@ describe('Saving fields', () => {
   it('throws on a field the game does not have, or a save that lacks one', () => {
     expect(() => pickFields({ score: 10 }, ['scroe'])).toThrow();
     expect(() => applyFields({ score: 10 }, {}, ['score'])).toThrow();
+  });
+});
+
+describe('Movement helpers', () => {
+  it('approaches a target by at most the given step, without overshooting', () => {
+    expect(approach(10, 50, 15)).toBe(25);
+    expect(approach(10, -50, 15)).toBe(-5);
+    expect(approach(10, 12, 15)).toBe(12);
+    expect(approach(10, 10, 15)).toBe(10);
+  });
+
+  it('turns a direction a quarter, clockwise or not, as seen on screen', () => {
+    const right = { x: 1, y: 0 };
+    const down = { x: 0, y: 1 };
+    const left = { x: -1, y: 0 };
+    const up = { x: 0, y: -1 };
+
+    expect([right, down, left, up].map((d) => quarterTurn(d, true))).toEqual([down, left, up, right]);
+    expect([right, down, left, up].map((d) => quarterTurn(d, false))).toEqual([up, right, down, left]);
+    // No -0, which would tell apart in Object.is and toEqual.
+    expect(Object.is(quarterTurn(right, true).x, 0)).toBeTruthy();
+    expect(Object.is(quarterTurn(left, false).x, 0)).toBeTruthy();
   });
 });

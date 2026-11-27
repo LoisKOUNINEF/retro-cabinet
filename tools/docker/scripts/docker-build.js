@@ -3,7 +3,7 @@
 import path from 'path';
 import { readFileSync } from 'fs';
 import { spawn } from 'child_process';
-import { print, runScript, errorExit } from '../../utils/index.js';
+import { print, runScript, errorExit, isDryRun } from '../../utils/index.js';
 import { BUILD_FLAGS, parseDockerFlags, buildCommand, imageName, helpText } from './docker-args.js';
 
 const USAGE = 'npm run docker:build -- [flags]';
@@ -22,9 +22,21 @@ if (flags.help) {
 
 const { name: projectName } = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'));
 
+// isDryRun(): "npm run docker:build --dry-run"
+const dryRun = flags['dry-run'] || isDryRun();
+// validate-docker checks the config either way, but only writes Dockerfile and nginx.conf for a real build.
+if (dryRun) process.env.NUTIN_DRY_RUN = '1';
+
 runScript(path.join(process.cwd(), 'tools', 'docker', 'scripts', 'validate-docker.js'), 'Validating Docker configuration...');
 
 const args = buildCommand(flags, { image: imageName(projectName), context: '.' });
+
+if (dryRun) {
+  print.boldSection(`Would run: docker ${args.join(' ')}`);
+  print.gray('Dry run: nothing was built. The Docker configuration was checked; tools/docker/Dockerfile and nginx.conf were left as they are.');
+  process.exit(0);
+}
+
 print.boldSection(`Running: docker ${args.join(' ')}`);
 
 const child = spawn('docker', args, { stdio: 'inherit' });

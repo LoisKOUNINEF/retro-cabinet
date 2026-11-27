@@ -1,5 +1,5 @@
 <div class="home bonus">
-  <div class="home__bonus" data-component="games-link"></div>
+  <div class="home__bonus">${gameCard(GAMES_CARD)}</div>
   <h1 class="home__title">Bonus Games</h1>
-  <ul class="home__games" data-catalog="games"></ul>
+  <ul class="home__games">${nutinFor(CARDS, (card) => html`<li>${gameCard(card)}</li>`)}</ul>
 </div>

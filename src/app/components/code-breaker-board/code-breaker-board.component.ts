@@ -1,4 +1,4 @@
-import { html } from '../../../core/index.js';
+import { html, nutinIf, nutinFor } from '../../../core/index.js';
 import { PEGS } from '../../games/bonus/code-breaker/pegs.js';
 import { ICONS } from '../../games/icons.js';
 import { pixelArt } from '../pixel-art.js';
@@ -36,7 +36,7 @@ const feedback = (exact: number, misplaced: number) => `${exact} in place, ${mis
 function codeRow({ code, pegs }: CodeBreakerBoardConfig) {
   const label = code ? `The code: ${names(code)}` : 'The code: hidden';
   const holes = code
-    ? code.map((peg) => html`<span class="code-breaker__hole">${pegArt(peg)}</span>`)
+    ? nutinFor(code, (peg) => html`<span class="code-breaker__hole">${pegArt(peg)}</span>`)
     : Array.from({ length: pegs }, () => html`<span class="code-breaker__hole">${pixelArt(ICONS.random, 'code-breaker__peg code-breaker__peg--secret')}</span>`);
   return html`<div class="code-breaker__row code-breaker__row--code" role="img" aria-label="${label}"><span class="code-breaker__number" aria-hidden="true"></span>${holes}<span class="code-breaker__keys"></span></div>`;
 }
@@ -123,7 +123,7 @@ export class CodeBreakerBoardComponent extends UpdatableComponent<CodeBreakerBoa
     return this.element.querySelector<HTMLElement>('.code-breaker__button--colour:not(:disabled)');
   }
 
-  private _check(): void {
+  protected _check(): void {
     this.onSelect(0, 'check');
   }
 }

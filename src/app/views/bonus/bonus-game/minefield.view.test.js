@@ -52,7 +52,7 @@ describe('BonusGameView (Minefield)', () => {
     const mine = view._game.cells.findIndex((c) => c.mine);
     cell(mine).click();
     expect(status()).toContain('Boom!');
-    expect(PersistenceService.getInstance().tally('minefield', 'beginner')).toEqual({ wins: 0, draws: 0, losses: 1 });
+    expect(PersistenceService.getInstance().tally('minefield', 'easy')).toEqual({ wins: 0, draws: 0, losses: 1 });
     expect($$('.minefield__cell--mine').length).toBe(9);
     expect(cell(mine).classList.contains('minefield__cell--exploded')).toBeTruthy();
   });

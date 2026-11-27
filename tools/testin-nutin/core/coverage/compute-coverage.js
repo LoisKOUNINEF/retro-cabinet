@@ -46,8 +46,8 @@ function deriveLabel(sourceText, startOffset) {
   return snippet.trim().split('\n')[0].slice(0, 30) || '<anonymous>';
 }
 
-// What ran in one script, keyed so that the coverage of the same file from several
-// isolates (the main thread and the workers of testinNutin.isolate) can be merged:
+// What ran in one script, keyed so that the coverage of the same file from several isolates
+// (the main thread and the workers of testinNutin.isolate) can be merged:
 // lines by number, functions by start offset, branches by range.
 function collectFileCoverage({ functions }, sourceText) {
   const allRanges = functions.flatMap(fn => fn.ranges);
@@ -79,7 +79,7 @@ function collectFileCoverage({ functions }, sourceText) {
 
   // Branch coverage: every range beyond a function's own top-level range (index 0)
   // is a nested conditional block V8 already tracked while collecting detailed
-  // coverage - if/else arms, ternary branches, switch cases, logical short-circuits,
+  // coverage: if/else arms, ternary branches, switch cases, logical short-circuits,
   // loop bodies. No AST parsing needed, just reusing data already being collected.
   // V8 only reports them for functions that ran in that isolate.
   const branches = new Map(functions.flatMap(fn => fn.ranges.slice(1)).map(r => [`${r.startOffset}:${r.endOffset}`, {
@@ -91,11 +91,11 @@ function collectFileCoverage({ functions }, sourceText) {
   return { lines, functions: functionsByStart, branches, allRanges };
 }
 
-// Covered in any isolate means covered. A function that ran is always listed with its
-// count, so a missing one didn't run there. A branch is not: V8 drops a block range whose
-// count equals its parent's, and keeps the ranges that differ, which depend on the calls
-// made in that isolate. So a branch range from another isolate is looked up by offset,
-// like a line.
+// Covered in any isolate means covered.
+// A function that ran is always listed with its count, so a missing one didn't run there.
+// A branch is not: V8 drops a block range whose count equals its parent's,
+// and keeps the ranges that differ, which depend on the calls made in that isolate.
+// So a branch range from another isolate is looked up by offset, like a line.
 function mergeCollected(collected) {
   const lines = new Map();
   const functions = new Map();

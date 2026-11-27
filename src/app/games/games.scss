@@ -53,7 +53,8 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
 
   &--snake,
   &[class*='--snake-head-'],
-  &--food {
+  &--food,
+  &[class*='--bonus-'] {
     position: relative;
     z-index: 1;
   }
@@ -88,6 +89,25 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
     &::after { box-shadow: 0 0 calc(var(--cell-size) / 5) rgba(227, 78, 78, 0.45); }
   }
 
+  // Bonus food: a golden apple, and a smaller purple berry. Both blink before they go.
+  $shine: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.7) 0 10%, transparent 14%);
+  &--bonus-golden,
+  &--bonus-golden-ending {
+    @include mixins.shape(($shine, rgb(255, 200, 40)), 50%);
+
+    &::after { box-shadow: 0 0 calc(var(--cell-size) / 4) rgba(255, 200, 40, 0.6); }
+  }
+
+  &--bonus-shrink,
+  &--bonus-shrink-ending {
+    @include mixins.shape((radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.7) 0 8%, transparent 12%),
+      radial-gradient(circle, rgb(170, 90, 230) 0 55%, transparent 60%)), 50%);
+
+    &::after { box-shadow: 0 0 calc(var(--cell-size) / 5) rgba(170, 90, 230, 0.45); }
+  }
+
+  &[class*='--bonus-'][class$='-ending']::after { animation: bonus-blink 0.4s steps(1) infinite; }
+
   // Maze Chase
   &--wall { background: rgb(33, 33, 222); }
   &--door { background: linear-gradient(transparent 40%, rgb(255, 184, 222) 40% 60%, transparent 60%), #000; }
@@ -114,10 +134,45 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
   &--ghost-eyes {
     @include mixins.shape((radial-gradient(circle at 30% 40%, #fff 15%, transparent 18%), radial-gradient(circle at 70% 40%, #fff 15%, transparent 18%), #000), $ghost-radius);
   }
+
+  // Bonus prizes, drawn on a 14×14 grid.
+  $prizes: (
+    'cherry': "<path d='M4 9 Q6 4 10 2 M10 9 Q9 5 10 2' fill='none' stroke='rgb(120,70,20)' stroke-width='1'/>"
+      + "<circle cx='4' cy='10' r='3' fill='rgb(230,30,30)'/><circle cx='10' cy='10' r='3' fill='rgb(230,30,30)'/>"
+      + "<circle cx='3' cy='9' r='0.8' fill='white'/><circle cx='9' cy='9' r='0.8' fill='white'/>",
+    'strawberry': "<path d='M2 5 Q7 2 12 5 Q12 10 7 13 Q2 10 2 5 Z' fill='rgb(230,30,30)'/>"
+      + "<path d='M4 4 L7 2 L10 4 L7 5 Z' fill='rgb(60,180,60)'/>"
+      + "<g fill='white'><rect x='5' y='7' width='1' height='1'/><rect x='8' y='7' width='1' height='1'/>"
+      + "<rect x='6.5' y='9.5' width='1' height='1'/><rect x='4.5' y='9' width='1' height='1'/><rect x='9' y='9.5' width='1' height='1'/></g>",
+    'orange': "<circle cx='7' cy='8' r='5' fill='rgb(255,150,20)'/><path d='M7 3 Q9 1 12 2 Q10 4 7 3 Z' fill='rgb(60,180,60)'/>"
+      + "<circle cx='5' cy='6.5' r='1' fill='rgba(255,255,255,0.6)'/>",
+    'apple': "<path d='M7 4 Q12 2 12 8 Q11 13 7 12 Q3 13 2 8 Q2 2 7 4 Z' fill='rgb(220,20,40)'/>"
+      + "<path d='M7 4 L8 1' stroke='rgb(120,70,20)' stroke-width='1'/><path d='M8 2 Q11 1 11 3 Q9 3 8 2 Z' fill='rgb(60,180,60)'/>"
+      + "<circle cx='4.5' cy='6.5' r='1' fill='rgba(255,255,255,0.6)'/>",
+    'melon': "<ellipse cx='7' cy='8' rx='5' ry='5' fill='rgb(60,180,60)'/>"
+      + "<path d='M7 3 V13 M4 4 Q2 8 4 12 M10 4 Q12 8 10 12' fill='none' stroke='rgb(200,255,160)' stroke-width='0.8'/>"
+      + "<path d='M7 3 L7 1' stroke='rgb(120,70,20)' stroke-width='1'/>",
+    'ship': "<path d='M7 1 L9 6 L13 9 L13 11 L9 10 L8 13 L6 13 L5 10 L1 11 L1 9 L5 6 Z' fill='rgb(40,80,230)'/>"
+      + "<path d='M7 3 L8.5 7 L7 9 L5.5 7 Z' fill='rgb(255,220,40)'/><path d='M1 9 L1 11 L3 10.5 Z M13 9 L13 11 L11 10.5 Z' fill='rgb(230,30,30)'/>",
+    'bell': "<path d='M7 2 Q11 2 11 8 L12.5 11 L1.5 11 L3 8 Q3 2 7 2 Z' fill='rgb(255,220,40)'/>"
+      + "<circle cx='7' cy='12' r='1.5' fill='rgb(110,210,255)'/><path d='M5 5 Q5 4 6 3.5' fill='none' stroke='white' stroke-width='0.8'/>",
+    'key': "<circle cx='7' cy='4' r='3' fill='none' stroke='rgb(110,210,255)' stroke-width='1.6'/>"
+      + "<path d='M7 7 V13 M7 10 H9.5 M7 12 H9.5' fill='none' stroke='rgb(230,240,255)' stroke-width='1.4'/>",
+  );
+
+  @each $kind, $body in $prizes {
+    &--prize-#{$kind} {
+      @include mixins.shape(url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'>#{$body}</svg>") center / 100% 100% no-repeat);
+    }
+  }
 }
 
 @keyframes ghost-flash {
   50% { background: $frightened-flash; }
+}
+
+@keyframes bonus-blink {
+  50% { opacity: 0.25; }
 }
 
 // A falling block, bevelled like the Game Boy's: lit top-left edge, shaded bottom-right
@@ -240,9 +295,13 @@ $frightened-flash: (ghost-face("rgb(255,0,0)"), rgb(255, 255, 255));
   .game-board__cell[class*='-flash'],
   .game-board__cell[class*='-flash']::after,
   .game-board__cell--jewel-magic::after,
-  .game-board__cell--ghost-frightened-ending::after {
+  .game-board__cell--ghost-frightened-ending::after,
+  .game-board__cell[class*='--bonus-'][class$='-ending']::after {
     animation: none;
   }
+
+  // An ending bonus fades instead of blinking.
+  .game-board__cell[class*='--bonus-'][class$='-ending']::after { opacity: 0.5; }
 
   .game-board__cell[class*='-flash'] {
     outline: 2px solid #fff;

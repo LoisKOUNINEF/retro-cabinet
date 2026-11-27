@@ -1,4 +1,5 @@
-import { BaseComponent, AppEventBus, AppPipeRegistry } from '#root/dist/src/core/index.js';
+import { BaseComponent, AppEventBus, AppPipeRegistry, html, nutinIf, nutinFor } from '#root/dist/src/core/index.js';
+import * as DomHelper from '#root/dist/src/core/base-classes/base-component/helpers/dom.helper.js';
 
 class TestComponent extends BaseComponent {
   constructor(options = {}, hooks = {}) {
@@ -136,6 +137,11 @@ describe('BaseComponent', () => {
   it('mounts its element into the default "#app" target on construction', () => {
     const component = new TestComponent();
     expect(app.contains(component.getElement())).toBe(true);
+  });
+
+  it('registers its root element as mapped to itself', () => {
+    const component = new TestComponent();
+    expect(DomHelper.getComponentOf(component.getElement())).toBe(component);
   });
 
   it('creates the element with the given tagName', () => {
@@ -728,5 +734,34 @@ describe('BaseComponent', () => {
     } finally {
       delete Element.prototype.moveBefore;
     }
+  });
+
+  it('render() never creates the child placeholder of a nutinIf branch that is not taken', () => {
+    const log = [];
+    const parent = new LoggingParent(log, {
+      template: html`${nutinIf(true, () => html`<div data-component="a"></div>`).nutinElse(html`<div data-component="b"></div>`)}`,
+    });
+
+    parent.render();
+
+    expect(parent.children.map((child) => child.name)).toEqual(['a']);
+    expect(log).toContain('a:render');
+    expect(log).not.toContain('b:render');
+    parent.destroy();
+  });
+
+  it('render() mounts one child per data-component placeholder in nutinFor items, with the same factory', () => {
+    const log = [];
+    const parent = new LoggingParent(log, {
+      template: html`<ul>${nutinFor(['x', 'y', 'z'], (item) => html`<li data-item="${item}"><div data-component="a"></div></li>`)}</ul>`,
+    });
+
+    parent.render();
+
+    expect(parent.children.length).toBe(3);
+    expect(parent.children.every((child) => child.name === 'a')).toBe(true);
+    expect(Array.from(parent.getElement().querySelectorAll('li'), (li) => li.querySelector('input.a') !== null))
+      .toEqual([true, true, true]);
+    parent.destroy();
   });
 });

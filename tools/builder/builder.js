@@ -6,9 +6,8 @@ import { print, runScript, acquireBuildLock } from '../utils/index.js';
 import { builderConfig } from './builder.config.js';
 import { PATHS } from './core/app/paths.js';
 
-// Must happen before copy-static.js wipes/recreates dist-build — a second build
-// starting mid-run (a manual build, another dev watcher instance, ...) would
-// otherwise race it. See tools/utils/build-lock.js.
+// Must happen before copy-static.js wipes/recreates dist-build.
+// A second build starting mid-run would otherwise race it. See tools/utils/build-lock.js.
 await acquireBuildLock();
 
 const scriptsDir = path.join(process.cwd(), 'tools', 'builder', 'core');
@@ -33,8 +32,7 @@ if (builderConfig.i18nListsNoLanguage) {
   print.warn('nutin.config.js "i18n: true" lists no language: building for English only. List them instead, the default first: i18n: [\'en\', ...].');
 }
 
-// runScript forwards env vars but not argv, so -y/--yes (auto-install an opt-in
-// feature's missing dependencies, see utils/ensure-deps.js) is passed through the env.
+// runScript forwards env vars but not argv, so -y/--yes is passed through the env.
 if (process.argv.includes('-y') || process.argv.includes('--yes')) process.env.NUTIN_ASSUME_YES = '1';
 
 runScript(path.join(scriptsDir, 'app', 'copy-static.js'), 'Copying files...');
@@ -52,8 +50,7 @@ if (builderConfig.tailwind) runScript(path.join(scriptsDir, 'styles', 'tailwind.
 
 if (builderConfig.i18n) runScript(path.join(scriptsDir, 'i18n', 'build-i18n.js'), 'Combining locales...');
 
-// After every runtime JSON file is written (locales, markdown manifests), before the bundles
-// that get their hashed URLs through esbuild's define.
+// After every runtime JSON file is written, before the bundles that get their hashed URLs.
 if (builderConfig.isProd) runScript(path.join(scriptsDir, 'prod-bundle', 'hash-data-files.js'), 'Hashing data files...');
 
 runScript(path.join(scriptsDir, 'prod-bundle', 'esbuild.js'), 'Running esbuild...');

@@ -1,4 +1,4 @@
-import { Component, html } from '../../../../core/index.js';
+import { Component, html, nutinFor } from '../../../../core/index.js';
 
 export interface MatchFourColumn {
   // One letter per cell from the top: 'r' red, 'y' yellow, '.' empty.
@@ -34,7 +34,7 @@ export class MatchFourColumnComponent extends Component<HTMLElement, IndexedColu
     super({ templateFn, mountTarget, config: column, props: { className: 'm4-board__slot' } });
   }
 
-  private _drop(): void {
+  protected _drop(): void {
     this.config.onDrop(this.config.index);
   }
 }

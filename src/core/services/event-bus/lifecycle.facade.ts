@@ -1,7 +1,7 @@
 import { AppEventBus } from "./event-bus.js";
 
-// Module functions, re-exported as the `Lifecycle` namespace (see index.ts): unlike a class
-// instance's methods, the ones nothing calls are left out of the bundle.
+// Module functions, re-exported as the `Lifecycle` namespace (see index.ts):
+// the ones nothing calls are left out of the bundle.
 
 export function beforeRender(): void {
   AppEventBus.emit('before-render');

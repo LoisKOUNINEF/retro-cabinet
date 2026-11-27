@@ -1,0 +1,9 @@
+<button
+  type="button"
+  class="wari__pit wari__pit-button${pitClass(pit)}"
+  data-index="${pit.index}"
+  data-focus-key="pit-${pit.index}"
+  data-event="click:_select"
+  aria-label="Pit ${pit.index + 1}: ${seedsLabel(pit.seeds)}"
+  ${pit.disabled ? 'disabled' : ''}
+><span class="wari__key" aria-hidden="true">${pit.index + 1}</span>${pixelArt(seedSprite(pit.seeds), 'wari__seeds')}<span class="wari__count" aria-hidden="true">${pit.seeds}</span></button>

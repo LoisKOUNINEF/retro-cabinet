@@ -1,4 +1,4 @@
-import { View, html } from '../../../../core/index.js';
+import { View, html, nutinIf } from '../../../../core/index.js';
 import { GameOptionsComponent, type GameOptionsConfig } from '../../../components/game-options/game-options.component.js';
 import { createGamesMenu } from '../../../components/games-menu/games-menu.js';
 import { discoverBonus } from '../../../components/reward-notices/reward-notices.js';
@@ -73,18 +73,19 @@ export class BonusGameView extends View {
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    const { board, realtime } = this._definition;
+    const { board } = this._definition;
     return [{
       selector: 'board',
       keep: 'board',
       factory: (el) => this._board = board.create(el, board.config(this._game, this.isActive), this._onSelect),
     }, {
       selector: 'play',
-      keep: 'play',
+      // New rules or key hints (another option, e.g. Code Breaker's difficulty) need new controls.
+      keep: this.infoKey,
       factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
         togglePlay: () => (this.isRealtime ? this.togglePlay() : this.newRound()),
         newGame: () => this.newRound(),
-      }, realtime?.keyHints),
+      }, { rules: this._game.rules, keyHints: this._game.keyHints, clickHints: this.clickHints }),
     }, {
       selector: 'stats',
       keep: 'stats',
@@ -178,12 +179,24 @@ export class BonusGameView extends View {
 
   private newRound(): void {
     this.cancelTick();
+    const hints = this.infoKey;
     this._game = this._definition.create(this._settings, this._random);
     this._running = false;
     this._started = false;
     this._recorded = false;
     this._rank = null;
+    // Other options may mean other rules or keys: the Play controls are rebuilt with them.
+    if (this.infoKey !== hints) this.render();
     this.afterAction();
+  }
+
+  private get infoKey(): string {
+    return JSON.stringify([this._game.rules, this._game.keyHints ?? null, this.clickHints]);
+  }
+
+  private get clickHints(): string[] {
+    const { mouse, touch } = this._game.clickHints;
+    return isTouchDevice() ? touch : mouse;
   }
 
   // Realtime games: start, pause or resume; a finished round starts over.
@@ -246,7 +259,7 @@ export class BonusGameView extends View {
     const { outcome } = this._game;
     if (!outcome) return;
     this._storage.recordResult(this.storageId, this.resultKey, outcome);
-    if (results.best && outcome === 'wins') this._storage.recordBest(this.storageId, this.resultKey, results.best.score(this._game));
+    if (results.best && (outcome === 'wins' || results.best.everyRound)) this._storage.recordBest(this.storageId, this.resultKey, results.best.score(this._game));
   }
 
   // One function for the options box, so its config stays the same between moves.
@@ -302,18 +315,19 @@ export class BonusGameView extends View {
     return isTouchDevice() ? 'Tap ▶ to start' : 'Press Space to start';
   }
 
-  // The results under the current key, and the best won round if kept.
+  // The results under the current key, and the best round if kept.
   private tallyConfig(): StatsConfig {
     const { results } = this._definition;
     if (results.kind !== 'tally') return { items: [] };
-    const { draws: hasDraws = true, best, labels = { wins: 'Wins', losses: 'Losses' } } = results;
+    const { draws: showsDraws = true, best, labels = { wins: 'Wins', losses: 'Losses' } } = results;
+    const hasDraws = typeof showsDraws === 'function' ? showsDraws(this._settings) : showsDraws;
     const { wins, draws, losses } = this._storage.tally(this.storageId, this.resultKey);
     return {
       items: [
         { key: 'wins', label: labels.wins, value: wins },
         ...(hasDraws ? [{ key: 'draws', label: 'Draws', value: draws }] : []),
         { key: 'losses', label: labels.losses, value: losses },
-        ...(best ? [{ key: 'best', label: best.label, value: this._storage.best(this.storageId, this.resultKey) ?? '—' }] : []),
+        ...(best ? [{ key: 'best', label: best.label, value: this._storage.best(this.storageId, this.resultKey) ?? '-' }] : []),
       ],
     };
   }

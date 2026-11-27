@@ -28,9 +28,27 @@ export interface BonusGame {
   // A key pressed during the round (Enter/Space on a finished round start a new one,
   // in the view); true when the game used it, so its default is prevented.
   handleKey(code: string): boolean;
+  // How to play, listed by the Play section's Rules button: the goal first, then a few short lines.
+  // A getter in games whose rules depend on their options. Only characters Manaspace draws (see KeyHint).
+  readonly rules: string[];
+  // What a click (or a tap) does, listed after the keys: "Or click a column.".
+  readonly clickHints: ClickHints;
+  // The round's keys, listed by the Play section's Controls button. A getter for keys that
+  // depend on the options (e.g. Code Breaker's palette).
+  readonly keyHints?: KeyHint[];
   // Values worth showing while playing, e.g. pairs found and misses; none by default.
   stats?(): Stat[];
 }
+
+// The Controls' lines for the mouse and for touch screens, which may differ (a right-click is
+// a long press, the mouse wheel has no touch equivalent). Only characters Manaspace draws (see KeyHint).
+export interface ClickHints {
+  mouse: string[];
+  touch: string[];
+}
+
+// One line, the same on both but for the verb: "Or click a column." / "Or tap a column.".
+export const clickHint = (what: string): ClickHints => ({ mouse: [`Or click ${what}`], touch: [`Or tap ${what}`] });
 
 // The board: a component (e.g. an UpdatableComponent) its parent refreshes with a config read from the game.
 export type BoardComponent<C> = Component & { update(config: C): void };
@@ -49,21 +67,19 @@ export type BonusResults<G extends BonusGame> = {
   kind: 'tally';
   key(settings: Settings): string;
   // False for games that can't end in a draw (e.g. Matching Pairs): the tally leaves draws out.
-  draws?: boolean;
+  // A function for games where it depends on the options (e.g. Shut the Box, played solo or not).
+  draws?: boolean | ((settings: Settings) => boolean);
   // Names for the wins and losses rows, when the game names its two sides (e.g. "Me" / "Evil Me").
   labels?: { wins: string; losses: string };
   // A won round's score, lower being better (e.g. misses): the best is kept per key.
-  best?: { label: string; score(game: G): number };
+  // everyRound: lost and drawn rounds count too, for games whose score is kept whatever the
+  // outcome (e.g. Shut the Box's tiles left open, 0 on every win).
+  best?: { label: string; score(game: G): number; everyRound?: boolean };
 } | {
   kind: 'scores';
   key(settings: Settings): string;
 };
 
-// Games played against the clock: a Start/Pause button (and Space), ticks only while running,
-// a pause when the page loses focus or the menu opens, options locked while running.
-export interface Realtime {
-  keyHints?: KeyHint[];
-}
 
 // What a route hands to the BonusGameView: how to build a round from the chosen options,
 // its board, and how its results are kept.
@@ -75,6 +91,8 @@ export interface BonusGameDefinition<G extends BonusGame = BonusGame, C extends 
   create(settings: Settings, random: Random): G;
   board: BonusBoard<G, C>;
   results: BonusResults<G>;
+  // Games played against the clock: a Start/Pause button (and Space), ticks only while running,
+  // a pause when the page loses focus or the menu opens, options locked while running.
   // Absent for turn-based games, which wait for the player.
-  realtime?: Realtime;
+  realtime?: true;
 }

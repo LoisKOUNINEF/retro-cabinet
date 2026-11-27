@@ -361,8 +361,29 @@
   }
 }
 
-.game__keys {
-  color: var(--text);
+.game__info-button {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+// The Rules and Controls popovers (PlayControlsComponent): in <body>, out of .game.
+:root {
+  --a11y-popover-color-background: var(--surface-elevated);
+  --a11y-popover-color-text: var(--text);
+  --a11y-popover-border-radius: 8px;
+  --a11y-popover-content-padding: 0.75rem 1rem;
+  --a11y-popover-max-width: min(22rem, 90vw);
+  --a11y-popover-shadow-blur: 10px;
+  --a11y-popover-shadow-offset-y: 2px;
+  --a11y-popover-shadow-fade: 40%;
+}
+
+.list-popover__list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 // Stats (StatsComponent): one row per value, its label on the left.

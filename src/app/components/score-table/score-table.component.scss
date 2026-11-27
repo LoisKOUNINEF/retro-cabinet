@@ -20,8 +20,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
-// Each catalog row (li > .score-table__row) spans the table and shares its columns.
-.score-table__list > li,
+// Each row spans the table and shares its columns.
 .score-table__row {
   display: grid;
   grid-column: 1 / -1;

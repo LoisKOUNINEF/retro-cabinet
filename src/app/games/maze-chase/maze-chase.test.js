@@ -1,4 +1,4 @@
-import { MazeChase, mazeChaseGame, TICK_MS } from '#root/dist/src/app/games/maze-chase/maze-chase.js';
+import { MazeChase, mazeChaseGame, prizeFor, TICK_MS } from '#root/dist/src/app/games/maze-chase/maze-chase.js';
 import { COMPACT } from '#root/dist/src/app/games/maze-chase/mazes.js';
 
 const UP = { x: 0, y: -1 };
@@ -172,6 +172,125 @@ describe('Maze Chase', () => {
     stepOnce(game);
     expect(game.runner.position).toEqual({ x: 8, y: 14 });
     expect(game.runner.direction).toEqual(UP);
+  });
+
+  it('mouse: the first click picks the starting direction, left or right', () => {
+    const right = new MazeChase({ layout: COMPACT, random: () => 0 });
+    right.handleMouseDown('right');
+    expect(right.waiting).toBeFalsy();
+    expect(right.runner.direction).toEqual(RIGHT);
+    expect(right.wanted).toBe(null);
+
+    const left = new MazeChase({ layout: COMPACT, random: () => 0 });
+    left.handleMouseDown('left');
+    expect(left.waiting).toBeFalsy();
+    expect(left.runner.direction).toEqual(LEFT);
+  });
+
+  it('mouse: then turns a quarter from where the runner goes, at the next open turn', () => {
+    const game = alone();
+    // Going left, a right click (clockwise) means up: a wall at the start.
+    game.handleMouseDown('right');
+    expect(game.wanted).toEqual(UP);
+
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 8, y: 15 });
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 8, y: 14 });
+    expect(game.runner.direction).toEqual(UP);
+
+    // Going up, a left click (counter-clockwise) means left.
+    game.handleMouseDown('left');
+    expect(game.wanted).toEqual(LEFT);
+  });
+
+  it('mouse: adds up clicks from the turn still waiting, so two make a U-turn', () => {
+    const game = alone();
+
+    game.handleMouseDown('left');
+    game.handleMouseDown('left');
+    expect(game.wanted).toEqual(RIGHT);
+
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 10, y: 15 });
+    expect(game.runner.direction).toEqual(RIGHT);
+  });
+
+  it('mouse: drops a click\'s turn not taken within half a second', () => {
+    const game = alone();
+    // Up opens one tile to the left, at (8, 15).
+    game.handleMouseDown('right');
+    expect(game.wanted).toEqual(UP);
+    expect(game.wantedMs).toBe(500);
+
+    // The first tick banks 80% of a step; the second steps to (8, 15), as the half second runs out.
+    game.tick(250);
+    expect(game.runner.position).toEqual(START);
+    game.tick(250);
+    expect(game.runner.position).toEqual({ x: 8, y: 15 });
+    expect(game.wanted).toBe(null);
+    expect(game.wantedMs).toBe(null);
+
+    // Too late for the opening: it keeps going left.
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 7, y: 15 });
+    expect(game.runner.direction).toEqual(LEFT);
+  });
+
+  it('mouse: restarts the half second on each click, and lets an arrow\'s turn wait for good', () => {
+    const game = alone();
+    game.handleMouseDown('right');
+    game.tick(400);
+    game.handleMouseDown('right');
+    game.handleMouseDown('left');
+    expect(game.wantedMs).toBe(500);
+
+    // An arrow replaces the click's turn, with no time limit.
+    game.handleKey('ArrowUp');
+    expect(game.wantedMs).toBe(null);
+
+    const keys = alone();
+    keys.handleKey('ArrowUp');
+    keys.tick(1000);
+    keys.tick(1000);
+    expect(keys.runner.position).toEqual({ x: 8, y: 15 });
+    stepOnce(keys);
+    expect(keys.runner.position).toEqual({ x: 8, y: 14 });
+    expect(keys.runner.direction).toEqual(UP);
+  });
+
+  it('mouse: turns a runner stopped at a wall on the spot, facing the way it turned', () => {
+    const game = alone();
+    // In the top-left corner, facing the left wall: only right and down are open.
+    stuck(game);
+
+    // Clockwise: up, another wall. The runner stays, but faces it.
+    game.handleMouseDown('right');
+    expect(game.runner.direction).toEqual(UP);
+    expect(game.wanted).toBe(null);
+    expect(game.cells()[1][1]).toBe('runner-up');
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 1, y: 1 });
+
+    // Each click turns from the way it is drawn: left again, then down, which is open.
+    game.handleMouseDown('left');
+    expect(game.runner.direction).toEqual(LEFT);
+    game.handleMouseDown('left');
+    expect(game.runner.direction).toEqual({ x: 0, y: 1 });
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 1, y: 2 });
+  });
+
+  it('mouse: forgets a turn still waiting when the runner stops, turning from the way it faces', () => {
+    const game = alone();
+    stuck(game);
+    // A click while it was moving, into a wall at the corner.
+    game.wanted = UP;
+
+    // From the drawn left, not the hidden up: counter-clockwise is down.
+    game.handleMouseDown('left');
+    expect(game.runner.direction).toEqual({ x: 0, y: 1 });
+    expect(game.wanted).toBe(null);
   });
 
   it('stops at walls', () => {
@@ -366,8 +485,8 @@ describe('Maze Chase', () => {
     expect(TICK_MS).toBe(106);
   });
 
-  it('combines the maze and level options', () => {
-    expect(mazeChaseGame.options.map((o) => o.key)).toEqual(['maze', 'level', 'lives']);
+  it('combines the maze, level, lives and prize options', () => {
+    expect(mazeChaseGame.options.map((o) => o.key)).toEqual(['maze', 'level', 'lives', 'prizes']);
     const game = mazeChaseGame.create({ maze: 'arcade', level: '2' });
     expect(game.width).toBe(28);
     expect(game.lives).toBe(3);
@@ -393,5 +512,104 @@ describe('Maze Chase', () => {
     for (let i = 0; i < 30; i++) { game.tick(); copy.tick(); }
     expect(copy.snapshot()).toEqual(game.snapshot());
     expect(copy.mode).toBe(game.mode);
+  });
+
+  describe('bonus prizes', () => {
+    // Compact maze: the prize spot is (9, 11), just below the house; one pellet sits at (1, 1).
+    const SPOT = { x: 9, y: 11 };
+
+    // Leaves `left` pellets, the last one (1, 1) in front of the runner.
+    const withPellets = (game, left) => {
+      game.ghosts = [];
+      let keep = left;
+      game.pellets = game.pellets.map((row, y) => row.map((pellet, x) => {
+        if (!pellet || (x === 1 && y === 1)) return pellet;
+        if (keep > 1) { keep -= 1; return pellet; }
+        return null;
+      }));
+      game.runner = { position: { x: 2, y: 1 }, direction: LEFT };
+      return game;
+    };
+    const prizeGame = (options = {}) => playing({ layout: COMPACT, random: () => 0, prizes: true, ...options });
+
+    it('gives the arcade prize for each level', () => {
+      expect([1, 2, 3, 4, 5, 7, 9, 11, 13, 20].map((level) => prizeFor(level).kind)).toEqual([
+        'cherry', 'strawberry', 'orange', 'orange', 'apple', 'melon', 'ship', 'bell', 'key', 'key',
+      ]);
+      expect([1, 2, 3, 5, 7, 9, 11, 13].map((level) => prizeFor(level).points)).toEqual([
+        100, 300, 500, 700, 1000, 2000, 3000, 5000,
+      ]);
+    });
+
+    it('appears below the house after the 43rd and the 105th pellet of the compact maze', () => {
+      [43, 105].forEach((eaten) => {
+        const game = withPellets(prizeGame(), 150 - eaten + 1);
+        stepOnce(game);
+        expect(game.pelletsLeft).toBe(150 - eaten);
+        expect(game.prize.kind).toBe('cherry');
+        expect(game.cells()[SPOT.y][SPOT.x]).toBe('prize-cherry');
+      });
+
+      const early = withPellets(prizeGame(), 150 - 42 + 1);
+      stepOnce(early);
+      expect(early.prize).toBe(null);
+    });
+
+    it('never appears with the option off', () => {
+      const game = withPellets(playing({ layout: COMPACT, random: () => 0 }), 150 - 43 + 1);
+      stepOnce(game);
+      expect(game.prize).toBe(null);
+    });
+
+    it("is worth the level's points when the runner steps on it", () => {
+      const game = prizeGame({ firstLevel: 9 });
+      game.ghosts = [];
+      game.prize = { kind: 'ship', ms: 5000 };
+      game.runner = { position: { x: 8, y: 11 }, direction: RIGHT };
+      stepOnce(game);
+
+      expect(game.runner.position).toEqual(SPOT);
+      expect(game.score).toBe(2000);
+      expect(game.prize).toBe(null);
+    });
+
+    it('goes after 9⅓ to 10 seconds', () => {
+      const game = prizeGame();
+      stuck(game);
+      game.ghosts = [];
+      game.prize = { kind: 'cherry', ms: 9333 };
+      game.tick(9000);
+      expect(game.prize).not.toBe(null);
+      game.tick(400);
+      expect(game.prize).toBe(null);
+    });
+
+    it('goes when a life is lost', () => {
+      const game = prizeGame();
+      game.prize = { kind: 'cherry', ms: 9333 };
+      game.ghosts = [ghost('chaser', { x: 1, y: 1 }, RIGHT)];
+      stuck(game);
+      game.tick();
+      expect(game.lives).toBe(2);
+      expect(game.prize).toBe(null);
+    });
+
+    it('is kept by saves, which are newer than the ones without it', () => {
+      const game = prizeGame();
+      game.prize = { kind: 'cherry', ms: 4000 };
+      const copy = prizeGame();
+      copy.restore(JSON.parse(JSON.stringify(game.snapshot())));
+      expect(copy.prize).toEqual(game.prize);
+      expect(mazeChaseGame.saveVersion).toBeGreaterThan(7);
+    });
+
+    it('is on by default', () => {
+      expect(mazeChaseGame.options.find((o) => o.key === 'prizes').defaultValue).toBe('on');
+      const game = withPellets(mazeChaseGame.create({}), 150 - 43 + 1);
+      game.waiting = false;
+      stepOnce(game);
+      expect(game.prize).not.toBe(null);
+      expect(withPellets(mazeChaseGame.create({ prizes: 'off' }), 2).prizes).toBeFalsy();
+    });
   });
 });

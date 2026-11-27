@@ -1,8 +1,8 @@
 import { NavalBattleBoardComponent, type NavalBattleBoardConfig } from '../../../components/naval-battle-board/naval-battle-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { ARROW_DIRECTIONS, choiceOf, type GameOption, type Random, type Settings } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { ARROW_DIRECTIONS, choiceOf, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
+import type { BonusGame, BonusGameDefinition, ClickHints } from '../bonus-game.js';
 import { AI_DELAY_MS, DIFFICULTY_OPTION, FIRST_OPTION, type Difficulty } from '../turns.js';
 import { chooseShot } from './ai.js';
 import { FLEET, GRID, Waters, fit, randomFleet, shipCells, shipType, type Ship, type ShipType, type ShotResult } from './fleet.js';
@@ -42,6 +42,33 @@ const MIDDLE = (GRID / 2 - 1) * GRID + GRID / 2 - 1;
 // A round against the AI: place your fleet, then shoot in turns at the AI's waters while it
 // shoots at yours. Sink all five of its ships first.
 export class NavalBattle implements BonusGame {
+  readonly clickHints: ClickHints = {
+    mouse: [
+      'Or click your grid to place the next ship, or a placed ship to pick it up.',
+      'Point at your grid to see where it goes; the mouse wheel or Rotate turns it.',
+      'Random and Clear lay out the fleet; Start begins.',
+      "Then click the enemy's waters to fire.",
+    ],
+    touch: [
+      'Or tap your grid to place the next ship, or a placed ship to pick it up.',
+      'Rotate turns it; Random and Clear lay out the fleet; Start begins.',
+      "Then tap the enemy's waters to fire.",
+    ],
+  };
+  get rules(): string[] {
+    return [
+      "Goal: sink the enemy's 5 ships before they sink yours.",
+      'Place your fleet, then take turns firing.',
+      ...(this.options.hitAgain ? ['A hit fires again.'] : []),
+      ...(this.touching ? [] : ["Ships can't touch, even at corners."]),
+    ];
+  }
+
+  readonly keyHints: KeyHint[] = [
+    { action: 'Move', codes: ARROW_CODES },
+    { action: 'Place a ship, fire', codes: PICK_CODES },
+    { action: 'Turn a ship', codes: ['KeyR'] },
+  ];
   phase: Phase = 'placing';
   // The player's ships while placing them.
   placed: Ship[] = [];

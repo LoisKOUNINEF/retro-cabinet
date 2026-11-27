@@ -1,8 +1,11 @@
-import { Navigation, View, html } from '../../../core/index.js';
-import { GameCardComponent } from '../../components/game-card/game-card.component.js';
+import { Navigation, View, html, nutinFor } from '../../../core/index.js';
+import { gameCard } from '../../components/game-card/game-card.js';
 import { discoverBonus } from '../../components/reward-notices/reward-notices.js';
 import { CABINET_ICON } from '../../games/icons.js';
 import { BONUS_CARDS, BONUS_RANDOM_CARD, randomBonusPath } from './bonus-cards.js';
+
+const GAMES_CARD = { title: 'Games', path: '/', icon: CABINET_ICON, plain: true };
+const CARDS = [...BONUS_CARDS, BONUS_RANDOM_CARD];
 
 const template = html`__TEMPLATE_PLACEHOLDER__`;
 
@@ -21,17 +24,12 @@ export class BonusView extends View {
     discoverBonus();
   }
 
-  override registerChildren(): Nutin.ComponentConfig[] {
-    return [{
-      selector: 'games-link',
-      keep: 'games-link',
-      factory: (el) => new GameCardComponent(el, { title: 'Games', path: '/', icon: CABINET_ICON, plain: true }),
-    }, ...this.createCatalogComponents({
-      items: [...BONUS_CARDS, { ...BONUS_RANDOM_CARD, onSelect: () => Navigation.navigateTo(randomBonusPath()) }],
-      selector: 'games',
-      elementName: 'game-card',
-      elementTag: 'li',
-      component: GameCardComponent,
-    })];
+  // The cards' clicks (see gameCard).
+  protected _open(path: string): void {
+    Navigation.navigateTo(path);
+  }
+
+  protected _random(): void {
+    Navigation.navigateTo(randomBonusPath());
   }
 }

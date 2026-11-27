@@ -279,4 +279,51 @@ describe('Jewel Drop', () => {
     for (let i = 0; i < 5; i++) { game.tick(); copy.tick(); }
     expect(copy.snapshot()).toEqual(game.snapshot());
   });
+
+  it('mouse: slides the column under the mouse, between the walls', () => {
+    const game = newGame();
+
+    game.handleMouseMove(4.7);
+    expect(game.piece.x).toBe(4);
+    game.handleMouseMove(0.1);
+    expect(game.piece.x).toBe(0);
+    // Beyond the board, the nearest column.
+    game.handleMouseMove(-3);
+    expect(game.piece.x).toBe(0);
+    game.handleMouseMove(42);
+    expect(game.piece.x).toBe(5);
+  });
+
+  it('mouse: stops at a jewel in the way instead of jumping across it', () => {
+    const game = newGame();
+    // On the top row, where the column's bottom jewel is.
+    game.board[0][4] = 'blue';
+
+    game.handleMouseMove(5.5);
+
+    expect(game.piece.x).toBe(3);
+  });
+
+  it('mouse: cycles on a left click, as ↑ does, and drops a row on a right click, as ↓ does', () => {
+    const game = newGame();
+
+    game.handleMouseDown('left');
+    expect(game.piece.jewels).toEqual(['yellow', 'red', 'orange']);
+
+    game.handleMouseDown('right');
+    expect(game.piece.y).toBe(-1);
+    expect(game.piece.jewels).toEqual(['yellow', 'red', 'orange']);
+  });
+
+  it('mouse: does nothing while jewels flash or the pile shatters', () => {
+    const game = newGame();
+
+    for (const phase of ['clearing', 'shattering']) {
+      game.phase = phase;
+      game.handleMouseMove(0);
+      game.handleMouseDown('left');
+      game.handleMouseDown('right');
+      expect(game.piece).toEqual({ jewels: ['red', 'orange', 'yellow'], x: 2, y: -2 });
+    }
+  });
 });
