@@ -52,11 +52,16 @@ export const FIRE_KEYS = ['KeyZ', 'KeyW'];
 
 export const isFireKey = (code: string) => FIRE_KEYS.includes(code);
 
-// A line of the HUD's controls hint, e.g. { action: 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] }.
-export interface KeyHint {
-  action: string;
-  codes: string[];
-}
+// A line of the Play section's controls, e.g. { action: 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] }:
+// the keys are named in the player's layout. For a range of keys (digits, whose labels vary
+// with the layout), fixed text instead: { action: 'Drop in a column', keys: '1 to 7' }.
+// Only characters Manaspace draws: it has blank glyphs for some (e.g. – · é), which the browser
+// shows as gaps instead of falling back to another font (key-labels.test.js checks every game).
+export type KeyHint = { action: string; codes: string[] } | { action: string; keys: string };
+
+// The usual hints' keys: the four arrows, and the two that pick what the cursor is on.
+export const ARROW_CODES = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+export const PICK_CODES = ['Enter', 'Space'];
 
 export type MouseButton = 'left' | 'right';
 
@@ -113,7 +118,7 @@ interface BaseGame {
 
   // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
   readonly touch?: TouchLayout;
-  // Keys worth mentioning in the HUD (the ones beyond arrows and Space).
+  // The game's keys, listed by the Play section's Controls button (Space, play/pause, is in the status).
   readonly keyHints?: KeyHint[];
 
   reset(): void;

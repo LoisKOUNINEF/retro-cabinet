@@ -1,7 +1,7 @@
 import { ShutTheBoxBoardComponent, type ShutTheBoxBoardConfig } from '../../../components/shut-the-box-board/shut-the-box-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { choiceOf, isOn, onOff, type GameOption, type Random, type Settings } from '../../game.js';
+import { choiceOf, isOn, onOff, type GameOption, type Random, type Settings, PICK_CODES, type KeyHint } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS } from '../turns.js';
 import { canComplete, combinations, matchChance, rollDie } from './dice.js';
@@ -58,6 +58,17 @@ export function aiChoice(open: readonly number[], total: number): number[] | nul
 // better; shutting them all wins at once. Solo, a round is won only by shutting the box; against
 // the AI, it then plays its own turn on its own box, and the lower score wins.
 export class ShutTheBox implements BonusGame {
+  // The digits reach tile 10 (0); the one-die roll only with its option.
+  get keyHints(): KeyHint[] {
+    return [
+      { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
+      { action: 'Roll or pick', codes: PICK_CODES },
+      { action: 'Pick a tile', keys: this.tiles > 9 ? '1 to 9, 0 for 10' : '1 to 9' },
+      { action: 'Roll', codes: ['KeyR'] },
+      ...(this.oneDie ? [{ action: 'Roll one die', codes: ['KeyO'] }] : []),
+    ];
+  }
+
   readonly tiles: number;
   readonly vs: boolean;
   readonly oneDie: boolean;

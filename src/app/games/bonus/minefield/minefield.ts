@@ -1,7 +1,7 @@
 import { MinefieldBoardComponent, type MinefieldBoardConfig, type MinefieldView } from '../../../components/minefield-board/minefield-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { ARROW_DIRECTIONS, choiceOf, shuffle, type GameOption, type Random, type Settings } from '../../game.js';
+import { ARROW_DIRECTIONS, choiceOf, shuffle, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 
 export const SIZE_OPTION: GameOption<'easy' | 'medium' | 'hard'> = {
@@ -50,6 +50,7 @@ export interface MinefieldOptions extends Field {
 // A round of Minefield: dig every cell without a mine. A number tells how many of the 8 cells
 // around hide one; flags mark the mines found. The first dig is always safe, and opens an area.
 export class Minefield implements BonusGame {
+  readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }, { action: 'Dig', codes: PICK_CODES }, { action: 'Flag', codes: ['KeyF'] }];
   readonly rows: number;
   readonly columns: number;
   readonly mines: number;

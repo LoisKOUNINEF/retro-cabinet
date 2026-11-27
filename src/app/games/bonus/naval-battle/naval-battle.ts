@@ -1,7 +1,7 @@
 import { NavalBattleBoardComponent, type NavalBattleBoardConfig } from '../../../components/naval-battle-board/naval-battle-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { ARROW_DIRECTIONS, choiceOf, type GameOption, type Random, type Settings } from '../../game.js';
+import { ARROW_DIRECTIONS, choiceOf, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS, DIFFICULTY_OPTION, FIRST_OPTION, type Difficulty } from '../turns.js';
 import { chooseShot } from './ai.js';
@@ -42,6 +42,11 @@ const MIDDLE = (GRID / 2 - 1) * GRID + GRID / 2 - 1;
 // A round against the AI: place your fleet, then shoot in turns at the AI's waters while it
 // shoots at yours. Sink all five of its ships first.
 export class NavalBattle implements BonusGame {
+  readonly keyHints: KeyHint[] = [
+    { action: 'Move', codes: ARROW_CODES },
+    { action: 'Place a ship, fire', codes: PICK_CODES },
+    { action: 'Turn a ship', codes: ['KeyR'] },
+  ];
   phase: Phase = 'placing';
   // The player's ships while placing them.
   placed: Ship[] = [];

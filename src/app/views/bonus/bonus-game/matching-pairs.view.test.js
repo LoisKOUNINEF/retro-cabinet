@@ -48,7 +48,7 @@ describe('BonusGameView (Matching Pairs)', () => {
     expect(stat('misses')).toBe('0');
     expect(stat('tries')).toBeUndefined();
     expect(stat('draws')).toBeUndefined();
-    expect(stat('best')).toBe('—');
+    expect(stat('best')).toBe('-');
   });
 
   it('turns a mismatched pair back after a while', () => {
@@ -125,7 +125,7 @@ describe('BonusGameView (Matching Pairs)', () => {
     }
     expect(status()).toContain('Out of tries.');
     expect(stat('losses')).toBe('1');
-    expect(stat('best')).toBe('—');
+    expect(stat('best')).toBe('-');
     expect($$('.matching-pairs-board__card').every((button) => button.disabled)).toBeTruthy();
   });
 

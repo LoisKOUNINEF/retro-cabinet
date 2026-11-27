@@ -73,18 +73,19 @@ export class BonusGameView extends View {
   }
 
   override registerChildren(): Nutin.ComponentConfig[] {
-    const { board, realtime } = this._definition;
+    const { board } = this._definition;
     return [{
       selector: 'board',
       keep: 'board',
       factory: (el) => this._board = board.create(el, board.config(this._game, this.isActive), this._onSelect),
     }, {
       selector: 'play',
-      keep: 'play',
+      // New key hints (another option, e.g. Code Breaker's difficulty) need new controls.
+      keep: this.hintsKey,
       factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
         togglePlay: () => (this.isRealtime ? this.togglePlay() : this.newRound()),
         newGame: () => this.newRound(),
-      }, realtime?.keyHints),
+      }, this._game.keyHints),
     }, {
       selector: 'stats',
       keep: 'stats',
@@ -178,12 +179,19 @@ export class BonusGameView extends View {
 
   private newRound(): void {
     this.cancelTick();
+    const hints = this.hintsKey;
     this._game = this._definition.create(this._settings, this._random);
     this._running = false;
     this._started = false;
     this._recorded = false;
     this._rank = null;
+    // Other options may mean other keys: the Play controls are rebuilt with them.
+    if (this.hintsKey !== hints) this.render();
     this.afterAction();
+  }
+
+  private get hintsKey(): string {
+    return JSON.stringify(this._game.keyHints ?? null);
   }
 
   // Realtime games: start, pause or resume; a finished round starts over.
@@ -314,7 +322,7 @@ export class BonusGameView extends View {
         { key: 'wins', label: labels.wins, value: wins },
         ...(hasDraws ? [{ key: 'draws', label: 'Draws', value: draws }] : []),
         { key: 'losses', label: labels.losses, value: losses },
-        ...(best ? [{ key: 'best', label: best.label, value: this._storage.best(this.storageId, this.resultKey) ?? '—' }] : []),
+        ...(best ? [{ key: 'best', label: best.label, value: this._storage.best(this.storageId, this.resultKey) ?? '-' }] : []),
       ],
     };
   }

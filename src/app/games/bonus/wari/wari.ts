@@ -1,7 +1,7 @@
 import { WariBoardComponent, type WariBoardConfig } from '../../../components/wari-board/wari-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { choiceOf, type Random, type Settings } from '../../game.js';
+import { choiceOf, type Random, type Settings, PICK_CODES, type KeyHint } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS, DIFFICULTY_OPTION, FIRST_OPTION, type Difficulty } from '../turns.js';
 import { WARI_OPTIONS, choosePit } from './ai.js';
@@ -24,6 +24,7 @@ export interface WariOptions {
 // One round against the AI. Moves are worked out at once (rules.ts) but shown step by step:
 // each seed sown on its own tick, then the capture, then the other side's turn.
 export class WariRound implements BonusGame {
+  readonly keyHints: KeyHint[] = [{ action: 'Aim', codes: ['ArrowLeft', 'ArrowRight'] }, { action: 'Sow', codes: PICK_CODES }, { action: 'Sow a pit', keys: '1 to 6' }];
   // The position before the move being shown, or the current one.
   state: WariState;
   phase: Phase = 'idle';

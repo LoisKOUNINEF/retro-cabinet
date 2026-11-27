@@ -18,6 +18,8 @@ const definitionOf = (game) => ({ id: game.id, create: () => game });
 const snakeDefinition = { id: 'snake', create: () => new Snake({ random: () => 0 }) };
 const SNAKE_SAVE = 'retro-cabinet:save:snake';
 
+// The Controls popover's lines (in <body>: the previous one is removed with its component).
+const controlLines = () => $$('.controls-popover__list li').map((li) => li.textContent);
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 const release = (code) => document.dispatchEvent(new KeyboardEvent('keyup', { code }));
 
@@ -749,13 +751,14 @@ describe('GameView', () => {
     view.render();
     view.onEnter();
     await flushPromises();
-    expect($('.game__keys').textContent).not.toContain('Hold fire');
+    expect(controlLines().join('\n')).not.toContain('Hold fire');
 
     const select = $('select[data-option="autoFire"]');
     select.value = 'on';
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
     await flushPromises();
-    expect($('.game__keys').textContent).toContain('Hold fire');
+    expect(controlLines().join('\n')).toContain('Hold fire');
+    expect($$('a11y-popover').length).toBe(1);
     getContext.restore();
   });
 
@@ -936,14 +939,14 @@ describe('GameView', () => {
     resetKeyLabels();
     fallingBlocks();
     await flushPromises();
-    expect($('.game__keys').textContent).toBe('Move: ← → ↓ · Cycle: ↑, Z or W · Mouse: move, left click to rotate, right click to drop');
+    expect(controlLines()).toEqual(['Move: ← → ↓', 'Cycle: ↑, Z or W', 'Mouse: move, left click to rotate, right click to drop']);
     view.onExit();
     view.destroy();
 
     document.documentElement.classList.add('touch');
     fallingBlocks();
     await flushPromises();
-    expect($('.game__keys').textContent).toBe('Move: ← → ↓ · Cycle: ↑, Z or W');
+    expect(controlLines()).toEqual(['Move: ← → ↓', 'Cycle: ↑, Z or W']);
     document.documentElement.classList.remove('touch');
   });
 
@@ -990,17 +993,17 @@ describe('GameView', () => {
     view.render();
     await flushPromises();
 
-    expect($('.game__keys').textContent).toBe('Move: ← → · Launch: ↑, W or Z · Mouse: move the paddle, click to launch');
+    expect(controlLines()).toEqual(['Move: ← →', 'Launch: ↑, W or Z', 'Mouse: move the paddle, click to launch']);
     delete navigator.keyboard;
     resetKeyLabels();
     getContext.restore();
   });
 
-  it('shows no key line for games without key or mouse hints', () => {
+  it('shows no Controls button for games without key or mouse hints', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(new Proxy({}, { get: () => () => {} }));
     view = new GameView(frogCrossingGame);
     view.render();
-    expect($('.game__keys')).toBeFalsy();
+    expect($('.game__controls')).toBeFalsy();
     getContext.restore();
   });
 

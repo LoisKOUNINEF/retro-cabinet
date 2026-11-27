@@ -38,7 +38,7 @@ describe('BonusGameView (Shut the Box)', () => {
     expect(view.documentTitle()).toBe('Shut the Box');
     expect(status()).toBe('Roll the dice.');
     expect(labels()).toEqual(['Score', 'Tiles shut', 'Wins', 'Losses', 'Lowest score']);
-    expect(stat('best')).toBe('—');
+    expect(stat('best')).toBe('-');
 
     $('.shut-the-box__roll').click();
     expect(status()).toBe('Rolling…');

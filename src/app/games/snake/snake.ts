@@ -2,6 +2,8 @@ import {
   applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, emptyGrid, isOn, levelFrom, levelOption, levelSpeed, onOff,
   pickFields, quarterTurn, randomFreeCell, RIGHT, samePoint, setCell, SAVE_VERSION,
   type GridGame, type GameDefinition, type Grid, type MouseButton, type Point, type Random, type Snapshot, type TouchLayout,
+  ARROW_CODES,
+  type KeyHint,
 } from '../game.js';
 
 const SIZE = 21;
@@ -39,6 +41,7 @@ export interface SnakeOptions {
 }
 
 export class Snake implements GridGame {
+  readonly keyHints: KeyHint[] = [{ action: 'Turn', codes: ARROW_CODES }];
   readonly kind = 'grid';
   readonly id = 'snake';
   readonly title = 'Snake';

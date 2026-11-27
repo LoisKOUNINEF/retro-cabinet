@@ -1,5 +1,6 @@
 import { BonusGameView } from '#root/dist/src/app/views/bonus/bonus-game/bonus-game.view.js';
 import { CAPTURE_MS, SOW_MS, wariGame } from '#root/dist/src/app/games/bonus/wari/wari.js';
+import { codeBreakerGame } from '#root/dist/src/app/games/bonus/code-breaker/code-breaker.js';
 import { AI_DELAY_MS } from '#root/dist/src/app/games/bonus/turns.js';
 import { Navigation } from '#root/dist/src/core/index.js';
 import { PersistenceService } from '#root/dist/src/app/services/persistence/persistence.service.js';
@@ -22,6 +23,7 @@ const navigations = (fn) => {
   stop();
   return paths;
 };
+const controlLines = () => $$('.controls-popover__list li').map((li) => li.textContent);
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 
 // Wari dealt one move from the player's win: pit 6 (1 seed) makes 2 in the AI's pit 7.
@@ -101,6 +103,26 @@ describe('BonusGameView', () => {
     expect(status()).toBe('Sowing…');
     advanceTimersByTime(4 * SOW_MS);
     expect(seeds().slice(0, 7)).toEqual([4, 4, 0, 5, 5, 5, 5]);
+  });
+
+  it('lists the round\'s keys under Controls', async () => {
+    open();
+    await flushPromises();
+    expect(controlLines()).toEqual(['Aim: ← →', 'Sow: Enter or Space', 'Sow a pit: 1 to 6']);
+  });
+
+  it('rebuilds the Controls when an option changes the keys', async () => {
+    PersistenceService.getInstance().saveSettings('code-breaker', { difficulty: 'easy' });
+    open(codeBreakerGame);
+    await flushPromises();
+    expect(controlLines()[0]).toBe('Peg: 1 to 6');
+
+    const select = $('select[data-option="difficulty"]');
+    select.value = 'hard';
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await flushPromises();
+    expect(controlLines()[0]).toBe('Peg: 1 to 9');
+    expect($$('a11y-popover').length).toBe(1);
   });
 
   it('records the result in the tally for the difficulty', () => {

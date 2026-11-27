@@ -1,6 +1,8 @@
 import {
   applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, levelFrom, levelOption, livesFrom, livesOption, onOff, overlaps, pick, pickFields, UP,
   type CanvasGame, type GameDefinition, type Point, type Random, type Rect, type Snapshot,
+  ARROW_CODES,
+  type KeyHint,
 } from '../game.js';
 import { drawFrogCrossing } from './frog-crossing.draw.js';
 import {
@@ -84,6 +86,7 @@ const SAVED_FIELDS = [
 ];
 
 export class FrogCrossing implements CanvasGame {
+  readonly keyHints: KeyHint[] = [{ action: 'Hop', codes: ARROW_CODES }];
   readonly kind = 'canvas';
   readonly id = 'frog-crossing';
   readonly title = 'Frog Crossing';

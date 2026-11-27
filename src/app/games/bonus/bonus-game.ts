@@ -28,6 +28,9 @@ export interface BonusGame {
   // A key pressed during the round (Enter/Space on a finished round start a new one,
   // in the view); true when the game used it, so its default is prevented.
   handleKey(code: string): boolean;
+  // The round's keys, listed by the Play section's Controls button. A getter for keys that
+  // depend on the options (e.g. Code Breaker's palette).
+  readonly keyHints?: KeyHint[];
   // Values worth showing while playing, e.g. pairs found and misses; none by default.
   stats?(): Stat[];
 }
@@ -62,11 +65,6 @@ export type BonusResults<G extends BonusGame> = {
   key(settings: Settings): string;
 };
 
-// Games played against the clock: a Start/Pause button (and Space), ticks only while running,
-// a pause when the page loses focus or the menu opens, options locked while running.
-export interface Realtime {
-  keyHints?: KeyHint[];
-}
 
 // What a route hands to the BonusGameView: how to build a round from the chosen options,
 // its board, and how its results are kept.
@@ -78,6 +76,8 @@ export interface BonusGameDefinition<G extends BonusGame = BonusGame, C extends 
   create(settings: Settings, random: Random): G;
   board: BonusBoard<G, C>;
   results: BonusResults<G>;
+  // Games played against the clock: a Start/Pause button (and Space), ticks only while running,
+  // a pause when the page loses focus or the menu opens, options locked while running.
   // Absent for turn-based games, which wait for the player.
-  realtime?: Realtime;
+  realtime?: true;
 }

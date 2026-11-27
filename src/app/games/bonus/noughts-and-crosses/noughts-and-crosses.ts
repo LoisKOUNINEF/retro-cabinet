@@ -1,6 +1,6 @@
 import { TicTacToeBoardComponent, type TicTacToeBoardConfig } from '../../../components/tictactoe-board/tictactoe-board.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { choiceOf, type Random, type Settings } from '../../game.js';
+import { choiceOf, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS } from '../turns.js';
 import { DIFFICULTY_OPTION, FIRST_OPTION, MARK_OPTION, TICTACTOE_OPTIONS, chooseMove, type Difficulty } from './ai.js';
@@ -18,6 +18,7 @@ export interface NoughtsCrossesOptions {
 
 // One round against the AI: the player's moves, the AI's (after AI_DELAY_MS), the keyboard cursor.
 export class NoughtsCrosses implements BonusGame {
+  readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }, { action: 'Play', codes: PICK_CODES }];
   readonly game: TicTacToe;
   // Keyboard cursor, as a cell index.
   cursor = CENTRE;

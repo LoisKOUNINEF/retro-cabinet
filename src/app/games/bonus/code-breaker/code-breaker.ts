@@ -1,7 +1,7 @@
 import { CodeBreakerBoardComponent, type CodeBreakerBoardConfig } from '../../../components/code-breaker-board/code-breaker-board.component.js';
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
-import { choiceOf, pick, shuffle, type GameOption, type Random, type Settings } from '../../game.js';
+import { choiceOf, pick, shuffle, type GameOption, type Random, type Settings, type KeyHint } from '../../game.js';
 import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
 import { EMPTY, PEGS } from './pegs.js';
 
@@ -80,6 +80,16 @@ export interface CodeBreakerOptions {
 // A round of Code Breaker: crack the AI's secret code within the tries, each guess being told how
 // many of its pegs are the right colour in the right place, and how many the right colour elsewhere.
 export class CodeBreaker implements BonusGame {
+  // The digits pick from the palette, which grows with the difficulty.
+  get keyHints(): KeyHint[] {
+    return [
+      { action: 'Peg', keys: `1 to ${this.palette.length}` },
+      { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
+      { action: 'Check', codes: ['Enter'] },
+      { action: 'Empty a hole', codes: ['Backspace', 'Delete'] },
+    ];
+  }
+
   readonly rules: Rules;
   readonly tries: number;
   readonly code: readonly number[];

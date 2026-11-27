@@ -2,6 +2,8 @@ import {
   applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, LEFT, levelFrom, levelOption, livesFrom, livesOption, onOff,
   pickFields, quarterTurn, samePoint, SAVE_VERSION, setCell,
   type GridGame, type GameDefinition, type GameOption, type Grid, type MouseButton, type Point, type Random, type Snapshot, type TouchLayout,
+  ARROW_CODES,
+  type KeyHint,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
 import {
@@ -145,6 +147,7 @@ export interface MazeChaseOptions {
 }
 
 export class MazeChase implements GridGame {
+  readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }];
   readonly kind = 'grid';
   readonly id = 'maze-chase';
   readonly title = 'Maze Chase';

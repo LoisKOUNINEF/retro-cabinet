@@ -1,3 +1,5 @@
+import type { KeyHint } from '../games/game.js';
+
 // What to show for a key code in the HUD. Games listen to physical keys (KeyboardEvent.code),
 // so the label depends on the player's layout: 'KeyZ' reads Z on QWERTY but W on AZERTY.
 // Without the layout (Firefox, Safari), the code's own letter is shown.
@@ -31,14 +33,15 @@ export async function keyLabel(code: string): Promise<string> {
   return code.replace(/^Key|^Digit/, '');
 }
 
-// "Move: ← → · Fire: ↑, Z or W", for a game's key hints.
-export async function describeKeys(hints: { action: string; codes: string[] }[]): Promise<string> {
-  const lines = await Promise.all(hints.map(async ({ action, codes }) => {
+// ["Move: ← →", "Fire: ↑, Z or W"], one line per key hint of a game.
+export async function describeKeys(hints: KeyHint[]): Promise<string[]> {
+  return Promise.all(hints.map(async (hint) => {
+    if ('keys' in hint) return `${hint.action}: ${hint.keys}`;
+    const { action, codes } = hint;
     const labels = await Promise.all(codes.map(keyLabel));
     if (codes.every((code) => code in ARROWS)) return `${action}: ${labels.join(' ')}`;
     return `${action}: ${alternatives(labels)}`;
   }));
-  return lines.join(' · ');
 }
 
 // ['↑', 'Z', 'W'] → '↑, Z or W'.
