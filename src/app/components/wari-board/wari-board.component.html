@@ -1,0 +1,14 @@
+<div class="wari">
+  ${store('ai', 'Opponent', config.stores.ai, config.turn === 'ai')}
+  <div class="wari__row wari__row--ai" role="img" aria-label="Opponent's pits: ${sidePits('ai').map((pit) => config.pits[pit]).join(', ')}">
+    <ul class="wari__pits" aria-hidden="true">
+      ${nutinFor(OPPONENT_PITS, (pit) => html`
+        <li class="wari__pit${pitClass(config, pit)}">
+          ${pixelArt(seedSprite(config.pits[pit] ?? 0), 'wari__seeds')}
+          <span class="wari__count">${config.pits[pit] ?? 0}</span>
+        </li>`)}
+    </ul>
+  </div>
+  <ul class="wari__row wari__row--player wari__pits" aria-label="Your pits" data-catalog="pits"></ul>
+  ${store('player', 'You', config.stores.player, config.turn === 'player')}
+</div>

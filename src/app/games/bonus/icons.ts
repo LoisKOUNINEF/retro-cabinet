@@ -97,6 +97,17 @@ export const SHUT_THE_BOX_ICON: Sprite = [
   '...#######..#######..',
 ];
 
+// The board from above: the two rows of pits, seeds in them, a store at each end.
+export const WARI_ICON: Sprite = [
+  '.###...#...#...#...#...#...#...###.',
+  '#...#.###.#.#.###.###.#.#.###.#.#.#',
+  '#.#.#..#...#...#...#...#...#..#...#',
+  '#...#.........................#.#.#',
+  '#.#.#..#...#...#...#...#...#..#...#',
+  '#...#.#.#.###.###.#.#.###.###.#.#.#',
+  '.###...#...#...#...#...#...#...###.',
+];
+
 // Three guesses of four pegs, each told how close it came on the right; the last one cracks the code.
 export const CODE_BREAKER_ICON: Sprite = [
   '#.#.###.###..#...#..',

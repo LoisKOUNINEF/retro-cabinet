@@ -2,7 +2,8 @@
 // header, textured stage, panel sections, buttons and the Options frame.
 // Only each game's own tweaks live here, under bonus-game--<id>.
 .bonus-game--noughts-and-crosses,
-.bonus-game--match-four {
+.bonus-game--match-four,
+.bonus-game--wari {
   // A small board: it sizes itself (see its component), so the stage hugs it a little.
   .game__stage {
     min-height: min(calc(var(--stage-height) + 2 * var(--stage-padding)), 34rem);

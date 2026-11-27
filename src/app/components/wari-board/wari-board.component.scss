@@ -1,0 +1,179 @@
+@use "mixins";
+
+// Two rows of pits between the stores: the opponent's store on the left, the player's on the
+// right, so the seeds go round anticlockwise (along the player's row, back along the opponent's).
+.wari {
+  --gap: 0.5rem;
+  --pit: min(calc((var(--stage-width, 100vw) - 9 * var(--gap) - 2rem) / 8), 5.5rem);
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-template-areas:
+    "ai-store ai player-store"
+    "ai-store player player-store";
+  align-items: center;
+  gap: var(--gap);
+  padding: 0.75rem;
+  border: 3px solid var(--border);
+  border-radius: 14px;
+  background: #000;
+}
+
+.wari__store--ai {
+  grid-area: ai-store;
+}
+
+.wari__row--ai {
+  grid-area: ai;
+}
+
+.wari__row--player {
+  grid-area: player;
+}
+
+.wari__store--player {
+  grid-area: player-store;
+}
+
+.wari__pits {
+  display: flex;
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The catalog's wrappers step aside: the buttons are the row's items.
+.wari__slot {
+  display: contents;
+}
+
+.wari__pit {
+  position: relative;
+  display: grid;
+  // The seeds take the room left above the count.
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  width: var(--pit);
+  height: var(--pit);
+  // From the pit's size: a percentage would be of the row's width.
+  padding: calc(var(--pit) * 0.2) calc(var(--pit) * 0.16) calc(var(--pit) * 0.08);
+  border: 3px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+
+  // The pit the last seed went into.
+  &--sown {
+    border-color: var(--secondary);
+  }
+
+  // About to be taken.
+  &--capturing {
+    border-color: var(--primary);
+
+    .wari__seeds {
+      fill: var(--primary);
+    }
+  }
+}
+
+.wari__seeds {
+  width: 100%;
+  height: 100%;
+  fill: var(--text);
+}
+
+.wari__count {
+  font-size: min(0.85rem, calc(var(--pit) / 4.5));
+  line-height: 1;
+}
+
+.wari__pit-button {
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  // The pits that may be sown now.
+  &:not(:disabled) {
+    border-color: var(--text-secondary);
+  }
+
+  &:not(:disabled):hover {
+    border-color: var(--text);
+  }
+
+  &.wari__pit--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: 2px;
+  }
+}
+
+.wari__key {
+  position: absolute;
+  top: 6%;
+  left: 12%;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.wari__store {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.3rem;
+  min-width: var(--pit);
+  height: calc(var(--pit) * 2 + var(--gap));
+  padding: 0 0.4rem;
+  border: 3px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+
+  // The side whose turn it is.
+  &--playing {
+    border-color: var(--secondary);
+  }
+}
+
+.wari__who {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.wari__store-count {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+// Phones: the board stands upright, the player's pits down the left (pit 1 at the top), the
+// opponent's up the right, the stores above and below: still anticlockwise.
+@include mixins.respond-to(medium) {
+  .wari {
+    --pit: min(calc((var(--stage-height, 65dvh) - 8rem - 5 * var(--gap)) / 6), calc((var(--stage-width, 100vw) - 3rem) / 2), 4.5rem);
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "ai-store ai-store"
+      "player ai"
+      "player-store player-store";
+  }
+
+  .wari__pits {
+    flex-direction: column;
+  }
+
+  .wari__store {
+    grid-auto-flow: column;
+    justify-content: center;
+    gap: 0.6rem;
+    width: auto;
+    height: auto;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .wari__store-count {
+    font-size: 1.1rem;
+  }
+}

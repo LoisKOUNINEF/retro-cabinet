@@ -24,7 +24,7 @@ One-time reward.
 - Code Breaker
 - Minefield
 - Alien Smash
-- Noughts & Crosses
+- Wari
 - Shut the Box
 
 ## Quality of life
