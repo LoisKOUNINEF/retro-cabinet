@@ -174,6 +174,125 @@ describe('Maze Chase', () => {
     expect(game.runner.direction).toEqual(UP);
   });
 
+  it('mouse: the first click picks the starting direction, left or right', () => {
+    const right = new MazeChase({ layout: COMPACT, random: () => 0 });
+    right.handleMouseDown('right');
+    expect(right.waiting).toBeFalsy();
+    expect(right.runner.direction).toEqual(RIGHT);
+    expect(right.wanted).toBe(null);
+
+    const left = new MazeChase({ layout: COMPACT, random: () => 0 });
+    left.handleMouseDown('left');
+    expect(left.waiting).toBeFalsy();
+    expect(left.runner.direction).toEqual(LEFT);
+  });
+
+  it('mouse: then turns a quarter from where the runner goes, at the next open turn', () => {
+    const game = alone();
+    // Going left, a right click (clockwise) means up: a wall at the start.
+    game.handleMouseDown('right');
+    expect(game.wanted).toEqual(UP);
+
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 8, y: 15 });
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 8, y: 14 });
+    expect(game.runner.direction).toEqual(UP);
+
+    // Going up, a left click (counter-clockwise) means left.
+    game.handleMouseDown('left');
+    expect(game.wanted).toEqual(LEFT);
+  });
+
+  it('mouse: adds up clicks from the turn still waiting, so two make a U-turn', () => {
+    const game = alone();
+
+    game.handleMouseDown('left');
+    game.handleMouseDown('left');
+    expect(game.wanted).toEqual(RIGHT);
+
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 10, y: 15 });
+    expect(game.runner.direction).toEqual(RIGHT);
+  });
+
+  it('mouse: drops a click\'s turn not taken within half a second', () => {
+    const game = alone();
+    // Up opens one tile to the left, at (8, 15).
+    game.handleMouseDown('right');
+    expect(game.wanted).toEqual(UP);
+    expect(game.wantedMs).toBe(500);
+
+    // The first tick banks 80% of a step; the second steps to (8, 15), as the half second runs out.
+    game.tick(250);
+    expect(game.runner.position).toEqual(START);
+    game.tick(250);
+    expect(game.runner.position).toEqual({ x: 8, y: 15 });
+    expect(game.wanted).toBe(null);
+    expect(game.wantedMs).toBe(null);
+
+    // Too late for the opening: it keeps going left.
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 7, y: 15 });
+    expect(game.runner.direction).toEqual(LEFT);
+  });
+
+  it('mouse: restarts the half second on each click, and lets an arrow\'s turn wait for good', () => {
+    const game = alone();
+    game.handleMouseDown('right');
+    game.tick(400);
+    game.handleMouseDown('right');
+    game.handleMouseDown('left');
+    expect(game.wantedMs).toBe(500);
+
+    // An arrow replaces the click's turn, with no time limit.
+    game.handleKey('ArrowUp');
+    expect(game.wantedMs).toBe(null);
+
+    const keys = alone();
+    keys.handleKey('ArrowUp');
+    keys.tick(1000);
+    keys.tick(1000);
+    expect(keys.runner.position).toEqual({ x: 8, y: 15 });
+    stepOnce(keys);
+    expect(keys.runner.position).toEqual({ x: 8, y: 14 });
+    expect(keys.runner.direction).toEqual(UP);
+  });
+
+  it('mouse: turns a runner stopped at a wall on the spot, facing the way it turned', () => {
+    const game = alone();
+    // In the top-left corner, facing the left wall: only right and down are open.
+    stuck(game);
+
+    // Clockwise: up, another wall. The runner stays, but faces it.
+    game.handleMouseDown('right');
+    expect(game.runner.direction).toEqual(UP);
+    expect(game.wanted).toBe(null);
+    expect(game.cells()[1][1]).toBe('runner-up');
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 1, y: 1 });
+
+    // Each click turns from the way it is drawn: left again, then down, which is open.
+    game.handleMouseDown('left');
+    expect(game.runner.direction).toEqual(LEFT);
+    game.handleMouseDown('left');
+    expect(game.runner.direction).toEqual({ x: 0, y: 1 });
+    stepOnce(game);
+    expect(game.runner.position).toEqual({ x: 1, y: 2 });
+  });
+
+  it('mouse: forgets a turn still waiting when the runner stops, turning from the way it faces', () => {
+    const game = alone();
+    stuck(game);
+    // A click while it was moving, into a wall at the corner.
+    game.wanted = UP;
+
+    // From the drawn left, not the hidden up: counter-clockwise is down.
+    game.handleMouseDown('left');
+    expect(game.runner.direction).toEqual({ x: 0, y: 1 });
+    expect(game.wanted).toBe(null);
+  });
+
   it('stops at walls', () => {
     const game = alone();
     stuck(game);

@@ -1,7 +1,7 @@
 import {
   applyFields, choiceOf, cryptoRandom, ARROW_DIRECTIONS, directionName, isOn, LEFT, levelFrom, levelOption, livesFrom, livesOption, onOff,
-  pickFields, samePoint, SAVE_VERSION, setCell,
-  type GridGame, type GameDefinition, type GameOption, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
+  pickFields, quarterTurn, samePoint, SAVE_VERSION, setCell,
+  type GridGame, type GameDefinition, type GameOption, type Grid, type MouseButton, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { chaseTarget, chooseDirection, reverse, scatterTarget } from './ghosts.js';
 import {
@@ -12,6 +12,8 @@ import {
 
 // One tick is one tile at the arcade's 100% speed (75.76 px/s, 8px tiles).
 export const TICK_MS = 106;
+// How long a click's turn waits for an opening (about 4 tiles).
+export const CLICK_TURN_MS = 500;
 const LIVES = 3;
 const EXTRA_LIFE_AT = 10_000;
 const PELLET_POINTS = 10;
@@ -129,7 +131,7 @@ export interface RunnerMover {
 
 // What a save keeps (held keys and the random source never are).
 const SAVED_FIELDS = [
-  'pellets', 'runner', 'wanted', 'ghosts', 'frightenedMs', 'prize', 'score', 'level', 'lives', 'isOver', 'waiting',
+  'pellets', 'runner', 'wanted', 'wantedMs', 'ghosts', 'frightenedMs', 'prize', 'score', 'level', 'lives', 'isOver', 'waiting',
   '_modeIndex', '_modeMs', '_ghostsEaten', '_pelletsEaten', '_idleMs', '_lostLife', '_extraLife',
 ];
 
@@ -147,6 +149,7 @@ export class MazeChase implements GridGame {
   readonly id = 'maze-chase';
   readonly title = 'Maze Chase';
   readonly touch: TouchLayout = { pad: 'stick', directions: ['up', 'down', 'left', 'right'] };
+  readonly mouseHint = 'Mouse: left click turns left, right click turns right (twice turns back)';
   readonly maze: Maze;
   readonly width: number;
   readonly height: number;
@@ -159,6 +162,8 @@ export class MazeChase implements GridGame {
   runner: RunnerMover = { position: { x: 0, y: 0 }, direction: LEFT };
   // Last arrow pressed, taken at the first open turn.
   wanted: Point | null = null;
+  // A click's turn only waits this long (ms left); an arrow's waits for good (null).
+  wantedMs: number | null = null;
   ghosts: Ghost[] = [];
   frightenedMs = 0;
   prize: Prize | null = null;
@@ -229,6 +234,7 @@ export class MazeChase implements GridGame {
     const runnerBefore = this.runner.position;
     const ghostsBefore = this.ghosts.map((ghost) => ghost.position);
     this.moveRunner();
+    this.ageWanted(dt);
     this.ghosts.forEach((ghost) => this.moveGhost(ghost));
 
     // Same tile, or the runner and a ghost swapped tiles this tick.
@@ -267,6 +273,25 @@ export class MazeChase implements GridGame {
       }
     }
     this.wanted = direction;
+    this.wantedMs = null;
+  }
+
+  // The first click picks the starting direction, as an arrow does: left click left, right
+  // click right. After that each click turns a quarter (left click counter-clockwise):
+  // - moving, the turn is taken at the next opening within CLICK_TURN_MS, and clicks add up
+  //   from the turn still waiting (two make a U-turn);
+  // - stopped against a wall, the runner turns on the spot, from the way it is drawn facing,
+  //   so a turn into another wall shows, and the next click turns from there.
+  handleMouseDown(button: MouseButton): void {
+    if (this.waiting) return this.handleKey(button === 'left' ? 'ArrowLeft' : 'ArrowRight');
+    const clockwise = button === 'right';
+    if (this.canGo(this.runner.direction)) {
+      this.wanted = quarterTurn(this.wanted ?? this.runner.direction, clockwise);
+      this.wantedMs = CLICK_TURN_MS;
+      return;
+    }
+    this.runner.direction = quarterTurn(this.runner.direction, clockwise);
+    this.forgetWanted();
   }
 
   cells(): Grid {
@@ -296,7 +321,7 @@ export class MazeChase implements GridGame {
 
   private resetPositions(): void {
     this.runner = { position: this.maze.runnerStart, direction: LEFT };
-    this.wanted = null;
+    this.forgetWanted();
     this.waiting = true;
     this.ghosts = GHOST_NAMES.map((name) => ({
       name,
@@ -349,6 +374,18 @@ export class MazeChase implements GridGame {
     ghost.direction = LEFT;
   }
 
+  // A click's turn not taken in time is dropped: the runner keeps going.
+  private ageWanted(dt: number): void {
+    if (this.wantedMs === null) return;
+    this.wantedMs -= dt;
+    if (this.wantedMs <= 0) this.forgetWanted();
+  }
+
+  private forgetWanted(): void {
+    this.wanted = null;
+    this.wantedMs = null;
+  }
+
   private canGo(direction: Point): boolean {
     return isWalkable(this.maze, stepFrom(this.maze, this.runner.position, direction));
   }
@@ -360,7 +397,7 @@ export class MazeChase implements GridGame {
       this.runner.budget -= 100;
       if (this.wanted && this.canGo(this.wanted)) {
         this.runner.direction = this.wanted;
-        this.wanted = null;
+        this.forgetWanted();
       }
       if (!this.canGo(this.runner.direction)) return;
 
@@ -492,8 +529,8 @@ const MAZE_OPTION: GameOption<keyof typeof MAZES> = {
 
 export const mazeChaseGame: GameDefinition = {
   id: 'maze-chase',
-  // Saves gained the prize field.
-  saveVersion: SAVE_VERSION + 1,
+  // Saves gained the prize field, then wantedMs.
+  saveVersion: SAVE_VERSION + 2,
   options: [MAZE_OPTION, levelOption, livesOption(LIVES), PRIZE_OPTION],
   create: (settings) => new MazeChase({
     layout: MAZES[choiceOf(settings, MAZE_OPTION)],

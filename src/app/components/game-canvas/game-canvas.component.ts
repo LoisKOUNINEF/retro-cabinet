@@ -1,9 +1,12 @@
 import { Component, html } from '../../../core/index.js';
 import type { CanvasGame } from '../../games/game.js';
+import { listenMouse, type MouseHandlers } from '../mouse.js';
 
 export interface GameCanvasConfig {
   width: number;
   height: number;
+  // Mouse controls, for games that have them.
+  mouse?: MouseHandlers;
 }
 
 const templateFn = ({ width, height }: GameCanvasConfig) =>
@@ -30,5 +33,6 @@ export class GameCanvasComponent extends Component<HTMLElement, GameCanvasConfig
     canvas?.style.setProperty('--aspect', `${this.config.width} / ${this.config.height}`);
     // null where canvas isn't supported (e.g. jsdom): paint() then draws nothing.
     this._ctx = canvas?.getContext('2d') ?? null;
+    if (canvas && this.config.mouse) listenMouse(this.eventListeners, canvas, this.config, this.config.mouse);
   }
 }

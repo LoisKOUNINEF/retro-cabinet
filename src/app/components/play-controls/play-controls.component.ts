@@ -1,6 +1,7 @@
 import { html, nutinIf } from '../../../core/index.js';
 import type { KeyHint } from '../../games/game.js';
 import { describeKeys } from '../key-labels.js';
+import { isTouchDevice } from '../touch-controls/stick.js';
 import { UpdatableComponent } from '../updatable-component.js';
 
 // What the Play section shows: the main button's label, the status line, and whether
@@ -29,11 +30,14 @@ export class PlayControlsComponent extends UpdatableComponent<PlayState> {
   // Key hints, once the keyboard layout has answered; empty until then (no paragraph).
   private _keys = '';
 
-  constructor(mountTarget: HTMLElement, state: PlayState, private readonly handlers: PlayHandlers, hints?: KeyHint[]) {
+  // mouseHint follows the key hints, except on touch devices.
+  constructor(mountTarget: HTMLElement, state: PlayState, private readonly handlers: PlayHandlers, hints?: KeyHint[], mouseHint?: string) {
     super({ templateFn: (config: PlayState) => templateFn(config, this._keys), mountTarget, config: state });
+    const mouse = mouseHint && !isTouchDevice() ? mouseHint : '';
+    this._keys = hints ? '' : mouse;
     // Labels can depend on the keyboard layout, which the browser reports asynchronously.
     if (hints) describeKeys(hints).then((text) => {
-      this._keys = text;
+      this._keys = [text, mouse].filter(Boolean).join(' · ');
       if (this.element.isConnected) this.refresh();
     });
   }

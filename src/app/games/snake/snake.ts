@@ -1,7 +1,7 @@
 import {
   applyFields, cryptoRandom, ARROW_DIRECTIONS, directionName, emptyGrid, isOn, levelFrom, levelOption, levelSpeed, onOff,
-  pickFields, randomFreeCell, RIGHT, samePoint, setCell, SAVE_VERSION,
-  type GridGame, type GameDefinition, type Grid, type Point, type Random, type Snapshot, type TouchLayout,
+  pickFields, quarterTurn, randomFreeCell, RIGHT, samePoint, setCell, SAVE_VERSION,
+  type GridGame, type GameDefinition, type Grid, type MouseButton, type Point, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 
 const SIZE = 21;
@@ -46,6 +46,7 @@ export class Snake implements GridGame {
   readonly height = SIZE;
   // The only game on the stick: steering suits it better than D-pad taps.
   readonly touch: TouchLayout = { pad: 'stick', directions: ['up', 'down', 'left', 'right'] };
+  readonly mouseHint = 'Mouse: left click turns left, right click turns right';
 
   score = 0;
   level = 1;
@@ -123,12 +124,12 @@ export class Snake implements GridGame {
 
   handleKey(code: string): void {
     const next = ARROW_DIRECTIONS[code];
-    if (!next || this._turned || this.isOver) return;
-    // Turning is only allowed onto the other axis.
-    const sameAxis = (next.x !== 0) === (this.direction.x !== 0);
-    if (sameAxis) return;
-    this.direction = next;
-    this._turned = true;
+    if (next) this.turn(next);
+  }
+
+  // Turns from where the snake is going: left click counter-clockwise, right click clockwise.
+  handleMouseDown(button: MouseButton): void {
+    this.turn(quarterTurn(this.direction, button === 'right'));
   }
 
   cells(): Grid {
@@ -142,6 +143,15 @@ export class Snake implements GridGame {
       setCell(grid, x, y, i === 0 ? `snake-head-${directionName(this.heading)}` : 'snake');
     });
     return grid;
+  }
+
+  private turn(next: Point): void {
+    if (this._turned || this.isOver) return;
+    // Turning is only allowed onto the other axis.
+    const sameAxis = (next.x !== 0) === (this.direction.x !== 0);
+    if (sameAxis) return;
+    this.direction = next;
+    this._turned = true;
   }
 
   private eat(): void {

@@ -73,6 +73,55 @@ describe('Brick Breaker', () => {
     expect(near(speedOf(ball), 140)).toBeTruthy();
   });
 
+  it('mouse: heads the paddle\'s centre for the mouse at its keyboard speed, carrying a resting ball', () => {
+    const game = new BrickBreaker();
+
+    game.handleMouseMove(150);
+    game.tick(100);
+    expect(game.paddle.x).toBe(106);
+    expect(game.balls[0].x).toBe(126);
+    game.tick(1000);
+    expect(game.paddle.x).toBe(134);
+  });
+
+  it('mouse: keeps the paddle between the walls', () => {
+    const game = new BrickBreaker();
+
+    game.handleMouseMove(0);
+    game.tick(5000);
+    expect(game.paddle.x).toBe(0);
+    game.handleMouseMove(999);
+    game.tick(5000);
+    expect(game.paddle.x).toBe(176);
+  });
+
+  it('mouse: gives way to a held arrow, without swinging back when it is let go, and forgets it on pause', () => {
+    const game = new BrickBreaker();
+    game.handleMouseMove(150);
+
+    game.handleKey('ArrowLeft');
+    game.tick(100);
+    expect(game.paddle.x).toBe(70);
+    game.handleKeyUp('ArrowLeft');
+    game.tick(100);
+    expect(game.paddle.x).toBe(70);
+
+    game.handleMouseMove(150);
+    game.releaseKeys();
+    game.tick(100);
+    expect(game.paddle.x).toBe(70);
+  });
+
+  it('mouse: launches the resting ball on a left click, not a right one', () => {
+    const game = new BrickBreaker();
+
+    game.handleMouseDown('right');
+    expect(game.balls[0].stuck).toBeTruthy();
+    game.handleMouseDown('left');
+    expect(game.balls[0].stuck).toBeFalsy();
+    expect(game.balls[0].vy).toBeLessThan(0);
+  });
+
   it('bounces off the side and top walls', () => {
     const game = setUp(new BrickBreaker(), [], { x: 205, y: 150, vx: 100 });
     game.tick(50);

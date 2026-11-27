@@ -90,6 +90,60 @@ describe('Alien Attack', () => {
     expect(game.cannonX).toBe(211);
   });
 
+  it('mouse: heads the cannon\'s centre for the mouse at its keyboard speed, within the field', () => {
+    const game = newGame();
+
+    game.handleMouseMove(150);
+    game.tick(100);
+    expect(game.cannonX).toBe(111);
+    game.tick(1000);
+    expect(game.cannonX).toBe(143.5);
+
+    game.handleMouseMove(999);
+    game.tick(5000);
+    expect(game.cannonX).toBe(211);
+  });
+
+  it('mouse: gives way to a held arrow, without swinging back when it is let go, and forgets it on pause', () => {
+    const game = newGame();
+    game.handleMouseMove(150);
+
+    game.handleKey('ArrowLeft');
+    game.tick(100);
+    expect(game.cannonX).toBe(99);
+    game.handleKeyUp('ArrowLeft');
+    game.tick(100);
+    expect(game.cannonX).toBe(99);
+
+    game.handleMouseMove(150);
+    game.releaseKeys();
+    game.tick(100);
+    expect(game.cannonX).toBe(99);
+  });
+
+  it('mouse: fires on a left click and keeps firing while it is held, as ↑ does', () => {
+    const game = newGame();
+
+    game.handleMouseDown('right');
+    expect(game.shotsFired).toBe(0);
+
+    game.handleMouseDown('left');
+    expect(game.shotsFired).toBe(1);
+    game.shot = null;
+    game.tick(16);
+    expect(game.shotsFired).toBe(2);
+
+    game.handleMouseUp('left');
+    game.shot = null;
+    game.tick(16);
+    expect(game.shotsFired).toBe(2);
+  });
+
+  it('mouse: names the button\'s job in the hint, auto-fire or not', () => {
+    expect(newGame().mouseHint).toBe('Mouse: move the cannon, click to fire');
+    expect(newGame({ autoFire: true }).mouseHint).toBe('Mouse: move the cannon, hold the button to hold fire');
+  });
+
   it('fires one shot at a time from the cannon', () => {
     const game = newGame();
     game.handleKey('ArrowUp');

@@ -1,5 +1,5 @@
 import {
-  applyFields, choiceOf, cryptoRandom, pickFields,
+  applyFields, approach, choiceOf, cryptoRandom, pickFields,
   type CanvasGame, type GameDefinition, type GameOption, type KeyHint, type Random, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { drawTableTennis } from './table-tennis.draw.js';
@@ -83,6 +83,7 @@ export class TableTennis implements CanvasGame {
   readonly height = HEIGHT;
   readonly touch: TouchLayout = { pad: 'stick', directions: ['up', 'down'] };
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ['ArrowUp', 'ArrowDown'] }];
+  readonly mouseHint = 'Mouse: move the paddle';
   readonly difficulty: Difficulty;
   // The difficulty: 1 easy, 2 medium, 3 hard. Table Tennis has no levels, so the HUD hides it.
   readonly level: number;
@@ -106,6 +107,8 @@ export class TableTennis implements CanvasGame {
   // The AI's reaction time left before it starts tracking an incoming ball.
   aiReactMs = 0;
   private _held = { up: false, down: false };
+  // Where the mouse wants the paddle (its centre), until a key takes over or the game pauses.
+  private _mouseY: number | null = null;
   private readonly random: Random;
 
   constructor(options: TableTennisOptions = {}) {
@@ -162,6 +165,12 @@ export class TableTennis implements CanvasGame {
 
   releaseKeys(): void {
     this._held = { up: false, down: false };
+    this._mouseY = null;
+  }
+
+  // The paddle heads for the mouse at its keyboard speed, so the mouse aims better but reaches no faster.
+  handleMouseMove(_x: number, y: number): void {
+    this._mouseY = y;
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
@@ -173,17 +182,21 @@ export class TableTennis implements CanvasGame {
     return { you: this.playerPoints, computer: this.aiPoints };
   }
 
+  // A held arrow wins over the mouse, and drops its target: letting go doesn't swing the paddle back.
   private movePlayer(seconds: number): void {
     const direction = Number(this._held.down) - Number(this._held.up);
+    if (direction !== 0) this._mouseY = null;
+    if (direction === 0 && this._mouseY !== null) {
+      this.playerY = approach(this.playerY, clampPaddle(this._mouseY), PLAYER_SPEED * seconds);
+      return;
+    }
     this.playerY = clampPaddle(this.playerY + direction * PLAYER_SPEED * seconds);
   }
 
   private moveAi(seconds: number): void {
     const target = aiTarget(this.difficulty, this.ball, this.aiError, this.aiReactMs === 0);
     if (target === null) return;
-    const step = DIFFICULTIES[this.difficulty].speed * seconds;
-    const gap = target - this.aiY;
-    this.aiY = clampPaddle(this.aiY + Math.sign(gap) * Math.min(Math.abs(gap), step));
+    this.aiY = clampPaddle(approach(this.aiY, target, DIFFICULTIES[this.difficulty].speed * seconds));
   }
 
   private prepareServe(): void {

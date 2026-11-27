@@ -100,4 +100,17 @@ describe('PlayControlsComponent', () => {
     controls.update(state({ label: '⏸ Pause' }));
     expect($('.game__keys').textContent).toContain('move');
   });
+
+  it('shows the mouse hint alone for a game without key hints, but not on touch devices', () => {
+    controls = new PlayControlsComponent(host, state(), handlers, undefined, 'Mouse: click to turn');
+    controls.render();
+    expect($('.game__keys').textContent).toBe('Mouse: click to turn');
+    controls.destroy();
+
+    document.documentElement.classList.add('touch');
+    controls = new PlayControlsComponent(host, state(), handlers, undefined, 'Mouse: click to turn');
+    controls.render();
+    expect($('.game__keys')).toBeFalsy();
+    document.documentElement.classList.remove('touch');
+  });
 });

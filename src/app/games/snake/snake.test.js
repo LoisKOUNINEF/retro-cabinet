@@ -42,6 +42,42 @@ describe('Snake', () => {
     expect(game.cells()[9][10]).toBe('snake-head-up');
   });
 
+  it('mouse: turns left on a left click and right on a right click, from where it is going', () => {
+    const game = newSnake();
+
+    game.handleMouseDown('left');
+    expect(game.direction).toEqual({ x: 0, y: -1 });
+    game.tick();
+    game.handleMouseDown('left');
+    expect(game.direction).toEqual({ x: -1, y: 0 });
+    game.tick();
+    game.handleMouseDown('right');
+    expect(game.direction).toEqual({ x: 0, y: -1 });
+    game.tick();
+    game.handleMouseDown('right');
+    expect(game.direction).toEqual({ x: 1, y: 0 });
+
+    expect(game.body[0]).toEqual({ x: 9, y: 8 });
+  });
+
+  it('mouse: accepts only one turn per tick, as the arrows do, so two quick clicks can\'t reverse it', () => {
+    const game = newSnake();
+
+    game.handleMouseDown('left');
+    game.handleMouseDown('left');
+    expect(game.direction).toEqual({ x: 0, y: -1 });
+    game.handleKey('ArrowDown');
+    expect(game.direction).toEqual({ x: 0, y: -1 });
+
+    game.tick();
+    game.handleMouseDown('right');
+    expect(game.direction).toEqual({ x: 1, y: 0 });
+  });
+
+  it('mouse: says which button turns which way', () => {
+    expect(newSnake().mouseHint).toBe('Mouse: left click turns left, right click turns right');
+  });
+
   it('turns the drawn head only when the snake actually turns', () => {
     const game = newSnake();
     game.handleKey('ArrowUp');

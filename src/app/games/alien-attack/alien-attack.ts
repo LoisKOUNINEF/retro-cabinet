@@ -1,6 +1,6 @@
 import {
-  applyFields, autoFireOption, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff, overlaps, pick, pickFields,
-  type CanvasGame, type GameDefinition, type KeyHint, type Random, type Rect, type Snapshot, type TouchLayout,
+  applyFields, approach, autoFireOption, cryptoRandom, isFireKey, isOn, FIRE_KEYS, levelFrom, levelOption, livesFrom, livesOption, onOff, overlaps, pick, pickFields,
+  type CanvasGame, type GameDefinition, type KeyHint, type MouseButton, type Random, type Rect, type Snapshot, type TouchLayout,
 } from '../game.js';
 import { spriteHeight, spriteWidth } from '../sprites.js';
 import { drawAlienAttack } from './alien-attack.draw.js';
@@ -76,6 +76,7 @@ export class AlienAttack implements CanvasGame {
   readonly height = HEIGHT;
   readonly touch: TouchLayout;
   readonly keyHints: KeyHint[];
+  readonly mouseHint: string;
 
   score = 0;
   // The wave: each one starts lower and marches faster.
@@ -93,6 +94,8 @@ export class AlienAttack implements CanvasGame {
   ufo: { x: number; direction: 1 | -1 } | null = null;
   shotsFired = 0;
   private _held = { left: false, right: false, fire: false };
+  // Where the mouse wants the cannon's centre, until a key takes over or the game pauses.
+  private _mouseX: number | null = null;
   private _marchMs = 0;
   private _bombMs = 0;
   private _ufoMs = 0;
@@ -111,6 +114,8 @@ export class AlienAttack implements CanvasGame {
       { action: 'Move', codes: ['ArrowLeft', 'ArrowRight'] },
       { action: options.autoFire ? 'Hold fire' : 'Fire', codes: ['ArrowUp', ...FIRE_KEYS] },
     ];
+    // With auto-fire, the GameView makes the left button a fire key: held, it holds fire.
+    this.mouseHint = options.autoFire ? 'Mouse: move the cannon, hold the button to hold fire' : 'Mouse: move the cannon, click to fire';
     this.reset();
   }
 
@@ -197,6 +202,21 @@ export class AlienAttack implements CanvasGame {
 
   releaseKeys(): void {
     this._held = { left: false, right: false, fire: false };
+    this._mouseX = null;
+  }
+
+  // The cannon heads for the mouse at its keyboard speed, so the mouse aims better but reaches no faster.
+  handleMouseMove(x: number): void {
+    this._mouseX = x;
+  }
+
+  // The left button fires, and keeps firing while held, as ↑ does.
+  handleMouseDown(button: MouseButton): void {
+    if (button === 'left') this.handleKey('ArrowUp');
+  }
+
+  handleMouseUp(button: MouseButton): void {
+    if (button === 'left') this.handleKeyUp('ArrowUp');
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
@@ -221,9 +241,14 @@ export class AlienAttack implements CanvasGame {
     this.shieldChunks = this.options.shields === false ? [] : buildShields();
   }
 
+  // A held arrow wins over the mouse, and drops its target: letting go doesn't swing the cannon back.
   private moveCannon(seconds: number): void {
     const direction = Number(this._held.right) - Number(this._held.left);
-    const x = this.cannonX + direction * CANNON_SPEED * seconds;
+    if (direction !== 0) this._mouseX = null;
+    const step = CANNON_SPEED * seconds;
+    const x = direction === 0 && this._mouseX !== null
+      ? approach(this.cannonX, this._mouseX - spriteWidth(CANNON) / 2, step)
+      : this.cannonX + direction * step;
     this.cannonX = Math.min(Math.max(x, 0), WIDTH - spriteWidth(CANNON));
   }
 

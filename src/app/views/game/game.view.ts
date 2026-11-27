@@ -10,7 +10,8 @@ import { isTouchDevice } from '../../components/touch-controls/stick.js';
 import { TouchControlsComponent } from '../../components/touch-controls/touch-controls.component.js';
 import { GameLoop } from '../../games/game-loop.js';
 import { isControlKey } from '../keyboard.js';
-import { DEFAULT_TOUCH, SAVE_VERSION, cryptoRandom, isFireKey, pick, type Game, type GameDefinition, type GameOption, type Grid, type Settings } from '../../games/game.js';
+import type { MouseHandlers } from '../../components/mouse.js';
+import { DEFAULT_TOUCH, SAVE_VERSION, cryptoRandom, isFireKey, pick, type Game, type GameDefinition, type GameOption, type Grid, type MouseButton, type Settings } from '../../games/game.js';
 import { PersistenceService, validSettings } from '../../services/persistence/persistence.service.js';
 import { GAMES, gamePath, type GameId } from '../../games/registry.js';
 import { createGamesMenu } from '../../components/games-menu/games-menu.js';
@@ -21,6 +22,8 @@ import type { DropdownElement } from 'a11y-elements/overlays/dropdown/element';
 
 const templateFn = (game: Game, hasPreview: boolean, hasOptions: boolean) => html`__TEMPLATE_PLACEHOLDER__`;
 
+// The left mouse button among the fire keys held to cease auto-fire (GameView._fireHeld).
+const MOUSE_FIRE = 'Mouse';
 const PREVENTED_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 // Phones ($breakpoints.medium in styles/base/_mixins.scss): the HUD panel moves into a drawer.
 const MOBILE_QUERY = '(max-width: 768px)';
@@ -42,7 +45,42 @@ export class GameView extends View {
   private _options: GameOptionsComponent | null = null;
   private _touch: TouchControlsComponent | null = null;
   private _playToggle: PlayToggleComponent | null = null;
-  // Auto-fire on the keyboard: the fire keys held down to cease fire.
+  // Handed to the board for games with mouse controls: the same object on every render.
+  private readonly _mouse: MouseHandlers = {
+    move: (x, y) => {
+      this._mouseAt = { x, y };
+      if (!this._loop.isRunning || !this._game.handleMouseMove) return;
+      this._game.handleMouseMove(x, y);
+      this.update();
+    },
+    down: (button, x, y) => {
+      this._mouseAt = { x, y };
+      if (!this._loop.isRunning || !this._game.handleMouseDown) return;
+      this.stopMouseRepeat();
+      // With auto-fire, the left button is one more fire key: held, it holds fire.
+      const fire = this.autoFireCode;
+      if (fire && button === 'left') {
+        this._fireHeld.add(MOUSE_FIRE);
+        return this.release(fire);
+      }
+      this._game.handleMouseDown(button, x, y);
+      this.update();
+      // A held button repeats if the game asks, as a held key does.
+      const repeat = this._game.mouseRepeat;
+      if (repeat?.button === button) this._mouseRepeat = setInterval(() => this.repeatMouse(button), repeat.ms);
+    },
+    up: (button) => {
+      this.stopMouseRepeat();
+      if (this._fireHeld.delete(MOUSE_FIRE)) return this.resumeFire();
+      if (!this._loop.isRunning) return;
+      const released: MouseButton[] = button ? [button] : ['left', 'right'];
+      released.forEach((b) => this._game.handleMouseUp?.(b));
+    },
+  };
+  // The mouse's last position on the board, and the timer repeating a held button.
+  private _mouseAt = { x: 0, y: 0 };
+  private _mouseRepeat: ReturnType<typeof setInterval> | null = null;
+  // Auto-fire on the keyboard (and mouse): the fire keys held down to cease fire.
   private readonly _fireHeld = new Set<string>();
   // Phones: the HUD drawer, created on first use, and the media query that moves the panel.
   private _drawer: DrawerElement | null = null;
@@ -70,22 +108,23 @@ export class GameView extends View {
   override registerChildren(): Nutin.ComponentConfig[] {
     const { width, height } = this._game;
     const touch = this._game.touch ?? DEFAULT_TOUCH;
+    const mouse = this._game.handleMouseMove || this._game.handleMouseDown ? this._mouse : undefined;
     const children: Nutin.ComponentConfig[] = [{
       selector: 'board',
-      // A new size (e.g. another maze) needs a new board.
-      keep: `${width}x${height}`,
+      // A new size (e.g. another maze) needs a new board, and so does a game with(out) mouse controls.
+      keep: `${width}x${height}:${mouse ? 'mouse' : ''}`,
       // Canvas games draw themselves; grid games are painted cell by cell.
       factory: (el) => this._game.kind === 'canvas'
-        ? this._canvas = new GameCanvasComponent(el, { width, height })
-        : this._board = new GameBoardComponent(el, { width, height }),
+        ? this._canvas = new GameCanvasComponent(el, { width, height, mouse })
+        : this._board = new GameBoardComponent(el, { width, height, mouse }),
     }, {
       selector: 'play',
       // New key hints (an option changed them, e.g. auto-fire) need new controls.
-      keep: JSON.stringify(this._game.keyHints ?? null),
+      keep: JSON.stringify([this._game.keyHints ?? null, this._game.mouseHint ?? null]),
       factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
         togglePlay: () => this.togglePlay(),
         newGame: () => this.startNewGame(),
-      }, this._game.keyHints),
+      }, this._game.keyHints, this._game.mouseHint),
     }, {
       selector: 'play-toggle',
       keep: 'play-toggle',
@@ -165,6 +204,7 @@ export class GameView extends View {
   }
 
   protected override onBeforeDestroy(): void {
+    this.stopMouseRepeat();
     // Overlays live in <body>: nothing removes them with the view.
     this._drawer?.remove();
     this._drawer = null;
@@ -317,6 +357,17 @@ export class GameView extends View {
     this._game.handleKeyUp?.(code);
   }
 
+  private repeatMouse(button: MouseButton): void {
+    if (!this._loop.isRunning) return this.stopMouseRepeat();
+    this._game.handleMouseDown?.(button, this._mouseAt.x, this._mouseAt.y);
+    this.update();
+  }
+
+  private stopMouseRepeat(): void {
+    if (this._mouseRepeat !== null) clearInterval(this._mouseRepeat);
+    this._mouseRepeat = null;
+  }
+
   // Window blur, hidden tab (which doesn't always blur the window) or closed page.
   private readonly _onBlur = (): void => {
     this.pause();
@@ -327,6 +378,7 @@ export class GameView extends View {
   private pause(): void {
     this._loop.pause();
     this._game.releaseKeys?.();
+    this.stopMouseRepeat();
     this._touch?.reset();
     // A key let go while the page was blurred never sends its keyup.
     this._fireHeld.clear();
@@ -354,6 +406,7 @@ export class GameView extends View {
   private startNewGame(): void {
     this._loop.pause();
     this._game.releaseKeys?.();
+    this.stopMouseRepeat();
     this._storage.deleteSave(this._definition.id);
     this._game = this._definition.create(this._settings);
     this._loop = new GameLoop(this._game, () => this.update());

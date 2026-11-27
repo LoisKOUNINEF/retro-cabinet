@@ -1,9 +1,12 @@
 import { Component, html } from '../../../core/index.js';
 import type { Grid } from '../../games/game.js';
+import { listenMouse, type MouseHandlers } from '../mouse.js';
 
 export interface GameBoardConfig {
   width: number;
   height: number;
+  // Mouse controls, for games that have them.
+  mouse?: MouseHandlers;
 }
 
 const templateFn = ({ width, height }: GameBoardConfig) =>
@@ -33,5 +36,6 @@ export class GameBoardComponent extends Component<HTMLElement, GameBoardConfig> 
     board.style.setProperty('--cols', String(this.config.width));
     board.style.setProperty('--rows', String(this.config.height));
     this._cells = Array.from(board.children) as HTMLElement[];
+    if (this.config.mouse) listenMouse(this.eventListeners, board, this.config, this.config.mouse);
   }
 }

@@ -644,6 +644,69 @@ describe('GameView', () => {
     getContext.restore();
   });
 
+  it('mouse: fires while the left button is held, until it is let go or the press is cancelled', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    const game = new AlienAttack({ random: () => 0 });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    const mouse = (type, button = 0) =>
+      $('canvas.game-canvas').dispatchEvent(new window.PointerEvent(type, { button, pointerType: 'mouse', bubbles: true, cancelable: true }));
+    press('Space');
+
+    mouse('pointerdown');
+    expect(game.shotsFired).toBe(1);
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+
+    mouse('pointerup');
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(2);
+
+    mouse('pointerdown');
+    mouse('pointercancel', -1);
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(3);
+    getContext.restore();
+  });
+
+  it('mouse: holds auto-fire while the left button is held, as a fire key does', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
+    const game = new AlienAttack({ random: () => 0, autoFire: true });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    const mouse = (type) =>
+      $('canvas.game-canvas').dispatchEvent(new window.PointerEvent(type, { button: 0, pointerType: 'mouse', bubbles: true, cancelable: true }));
+    press('Space');
+    expect(game.shotsFired).toBe(1);
+
+    mouse('pointerdown');
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(1);
+
+    // With a fire key held too, fire resumes once both are let go.
+    press('KeyZ');
+    mouse('pointerup');
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(1);
+    release('KeyZ');
+    expect(game.shotsFired).toBe(2);
+
+    // A pause forgets the held button: the resume fires again.
+    mouse('pointerdown');
+    press('Space');
+    press('Space');
+    game.shot = null;
+    advanceTimersByTime(32);
+    expect(game.shotsFired).toBe(3);
+    getContext.restore();
+  });
+
   it('does not resume keyboard auto-fire while a fire key is held', () => {
     const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(fakeCanvasContext());
     const game = new AlienAttack({ random: () => 0, autoFire: true });
@@ -752,6 +815,138 @@ describe('GameView', () => {
     expect($('.game__toggle').textContent).toBe('▶ Start');
   });
 
+  // jsdom lays nothing out: the Falling Blocks board (10 × 18) gets 10px cells.
+  const mouseOnBoard = (type, { x = 0, y = 0, button = 0, pointerType = 'mouse' } = {}) =>
+    $('.game-board').dispatchEvent(new window.PointerEvent(type, { clientX: x, clientY: y, button, pointerType, bubbles: true, cancelable: true }));
+  const fallingBlocks = () => {
+    const game = new FallingBlocks({ random: () => 0 });
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    $('.game-board').getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 180, right: 100, bottom: 180 });
+    return game;
+  };
+
+  it('mouse: moves the Falling Blocks piece under the mouse and rotates on click, only while playing', () => {
+    const game = fallingBlocks();
+
+    mouseOnBoard('pointermove', { x: 75 });
+    mouseOnBoard('pointerdown');
+    expect(game.piece.x).toBe(3);
+    expect(game.piece.shape[1]).toEqual([0, 1, 0, 0]);
+
+    press('Space');
+    // Column 7: the I's middle column (x + 1) goes there.
+    mouseOnBoard('pointermove', { x: 75 });
+    expect(game.piece.x).toBe(6);
+    expect($$('.game-board__cell')[7].classList.contains('game-board__cell--blocks-I')).toBeTruthy();
+
+    mouseOnBoard('pointerdown');
+    expect(game.piece.shape[1]).toEqual([1, 1, 1, 1]);
+
+    const y = game.piece.y;
+    mouseOnBoard('pointerdown', { button: 2 });
+    expect(game.piece.y).toBe(y + 1);
+  });
+
+  it('mouse: keeps dropping while the right button is held, as a held ↓ does', () => {
+    const game = fallingBlocks();
+    press('Space');
+
+    // Every 120ms (well before gravity's first row), until let go.
+    mouseOnBoard('pointerdown', { button: 2 });
+    advanceTimersByTime(360);
+    expect(game.piece.y).toBe(4);
+    mouseOnBoard('pointerup', { button: 2 });
+    advanceTimersByTime(360);
+    expect(game.piece.y).toBe(4);
+
+    // A held left button turns the piece once.
+    const shape = game.piece.shape;
+    mouseOnBoard('pointerdown');
+    const turned = game.piece.shape;
+    expect(turned).not.toBe(shape);
+    advanceTimersByTime(360);
+    expect(game.piece.shape).toBe(turned);
+    mouseOnBoard('pointerup');
+
+    // A pause lets go too (resuming restarts gravity: its next row is 887ms away).
+    const before = game.piece.y;
+    mouseOnBoard('pointerdown', { button: 2 });
+    press('Space');
+    press('Space');
+    advanceTimersByTime(360);
+    expect(game.piece.y).toBe(before + 1);
+  });
+
+  it('mouse: follows the mouse on a canvas game, in court units', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(new Proxy({}, { get: () => () => {} }));
+    const game = tableTennisGame.create({});
+    view = new GameView(definitionOf(game));
+    view.render();
+    view.onEnter();
+    // The 320 × 240 court drawn at half size.
+    const canvas = $('canvas.game-canvas');
+    canvas.getBoundingClientRect = () => ({ left: 10, top: 20, width: 160, height: 120, right: 170, bottom: 140 });
+    const move = () => canvas.dispatchEvent(new window.PointerEvent('pointermove', { clientX: 15, clientY: 110, pointerType: 'mouse', bubbles: true }));
+
+    move();
+    game.tick(1000);
+    expect(game.playerY).toBe(120);
+
+    press('Space');
+    move();
+    game.tick(1000);
+    expect(game.playerY).toBe(180);
+    getContext.restore();
+  });
+
+  it('mouse: ignores touch on the board, and the middle button', () => {
+    const game = fallingBlocks();
+    press('Space');
+
+    mouseOnBoard('pointermove', { x: 75, pointerType: 'touch' });
+    mouseOnBoard('pointerdown', { pointerType: 'touch' });
+    mouseOnBoard('pointerdown', { button: 1 });
+
+    expect(game.piece.x).toBe(3);
+    expect(game.piece.shape[1]).toEqual([0, 1, 0, 0]);
+  });
+
+  it('mouse: keeps the context menu off the board of a mouse game only', () => {
+    fallingBlocks();
+    const menu = new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    $('.game-board').dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBeTruthy();
+    view.onExit();
+    view.destroy();
+
+    // Space Rocks draws paths: a context taking any call.
+    const anyContext = new Proxy({}, { get: () => () => {} });
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(anyContext);
+    view = new GameView(spaceRocksGame);
+    view.render();
+    const rocksMenu = new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    $('canvas.game-canvas').dispatchEvent(rocksMenu);
+    expect(rocksMenu.defaultPrevented).toBeFalsy();
+    getContext.restore();
+  });
+
+  it('mouse: mentions the mouse after the keys, except on touch devices', async () => {
+    resetKeyLabels();
+    fallingBlocks();
+    await flushPromises();
+    expect($('.game__keys').textContent).toBe('Move: ← → ↓ · Cycle: ↑, Z or W · Mouse: move, left click to rotate, right click to drop');
+    view.onExit();
+    view.destroy();
+
+    document.documentElement.classList.add('touch');
+    fallingBlocks();
+    await flushPromises();
+    expect($('.game__keys').textContent).toBe('Move: ← → ↓ · Cycle: ↑, Z or W');
+    document.documentElement.classList.remove('touch');
+  });
+
   it('talks about tapping on touch devices', () => {
     document.documentElement.classList.add('touch');
     view = new GameView(definitionOf(new Snake({ random: () => 0 })));
@@ -795,16 +990,18 @@ describe('GameView', () => {
     view.render();
     await flushPromises();
 
-    expect($('.game__keys').textContent).toBe('Move: ← → · Launch: ↑, W or Z');
+    expect($('.game__keys').textContent).toBe('Move: ← → · Launch: ↑, W or Z · Mouse: move the paddle, click to launch');
     delete navigator.keyboard;
     resetKeyLabels();
     getContext.restore();
   });
 
-  it('shows no key line for games without key hints', () => {
-    view = new GameView(definitionOf(new Snake({ random: () => 0 })));
+  it('shows no key line for games without key or mouse hints', () => {
+    const getContext = spyOn(window.HTMLCanvasElement.prototype, 'getContext').andReturn(new Proxy({}, { get: () => () => {} }));
+    view = new GameView(frogCrossingGame);
     view.render();
     expect($('.game__keys')).toBeFalsy();
+    getContext.restore();
   });
 
   it('lowers the Falling Blocks curtain before announcing the game over', () => {
