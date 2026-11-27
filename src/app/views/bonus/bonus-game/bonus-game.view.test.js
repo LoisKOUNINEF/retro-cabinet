@@ -23,7 +23,8 @@ const navigations = (fn) => {
   stop();
   return paths;
 };
-const controlLines = () => $$('.controls-popover__list li').map((li) => li.textContent);
+const controlLines = () => $$('[id^="game-controls-"] li').map((li) => li.textContent);
+const ruleLines = () => $$('[id^="game-rules-"] li').map((li) => li.textContent);
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 
 // Wari dealt one move from the player's win: pit 6 (1 seed) makes 2 in the AI's pit 7.
@@ -108,7 +109,15 @@ describe('BonusGameView', () => {
   it('lists the round\'s keys under Controls', async () => {
     open();
     await flushPromises();
-    expect(controlLines()).toEqual(['Aim: ← →', 'Sow: Enter or Space', 'Sow a pit: 1 to 6']);
+    expect(controlLines()).toEqual(['Aim: ← →', 'Sow: Enter or Space', 'Sow a pit: 1 to 6', 'Or click one of your pits.']);
+  });
+
+  it('says tap instead of click on touch devices', async () => {
+    document.documentElement.classList.add('touch');
+    open();
+    await flushPromises();
+    expect(controlLines().at(-1)).toBe('Or tap one of your pits.');
+    document.documentElement.classList.remove('touch');
   });
 
   it('rebuilds the Controls when an option changes the keys', async () => {
@@ -116,13 +125,15 @@ describe('BonusGameView', () => {
     open(codeBreakerGame);
     await flushPromises();
     expect(controlLines()[0]).toBe('Peg: 1 to 6');
+    expect(ruleLines()[0]).toBe('Goal: find the secret code of 4 pegs in 10 tries.');
 
     const select = $('select[data-option="difficulty"]');
     select.value = 'hard';
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
     await flushPromises();
     expect(controlLines()[0]).toBe('Peg: 1 to 9');
-    expect($$('a11y-popover').length).toBe(1);
+    expect(ruleLines()[0]).toBe('Goal: find the secret code of 5 pegs in 10 tries.');
+    expect($$('a11y-popover').length).toBe(2);
   });
 
   it('records the result in the tally for the difficulty', () => {

@@ -69,6 +69,16 @@ const SAVED_FIELDS = [
 ];
 
 export class AlienAttack implements CanvasGame {
+  get rules(): string[] {
+    return [
+      'Goal: shoot every alien before they land.',
+      'Aliens score 10 to 30, the UFO up to 300.',
+      'A bomb costs a life; aliens reaching your cannon end the game.',
+      ...(this.options.shields === false ? [] : ['Shields stop shots and bombs, and wear away.']),
+      ...(this.options.autoFire ? ['Your cannon fires by itself: hold fire to stop.'] : []),
+    ];
+  }
+
   readonly kind = 'canvas';
   readonly id = 'alien-attack';
   readonly title = 'Alien Attack';

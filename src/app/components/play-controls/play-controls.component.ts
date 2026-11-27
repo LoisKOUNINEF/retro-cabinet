@@ -3,8 +3,7 @@ import type { KeyHint } from '../../games/game.js';
 import { describeKeys } from '../key-labels.js';
 import { isTouchDevice } from '../touch-controls/stick.js';
 import { UpdatableComponent } from '../updatable-component.js';
-import { createControlsPopover, setControlsLines } from '../controls-popover/controls-popover.js';
-import type { PopoverElement } from 'a11y-elements/overlays/popover/element';
+import { ListPopover } from '../list-popover/list-popover.js';
 
 // What the Play section shows: the main button's label, the status line, and whether
 // there is a game New game would drop.
@@ -23,67 +22,73 @@ export interface PlayHandlers {
   newGame?(): void;
 }
 
-// The Controls button: shown once there are controls to list, and the popover it opens.
-interface ControlsButton {
+// What the Rules and Controls buttons list: the game's rules, its keys and its mouse controls.
+export interface PlayInfo {
+  rules?: string[];
+  keyHints?: KeyHint[];
+  // Follows the key hints, except on touch devices.
+  mouseHint?: string;
+  // Follow the key hints on every device (the caller picks the mouse or touch wording).
+  clickHints?: string[];
+}
+
+// A Rules or Controls button: shown when there are lines to list, and the popover it opens.
+interface InfoButton {
   shown: boolean;
   id: string;
   open: boolean;
 }
 
-const templateFn = (state: PlayState, controls: ControlsButton) => html`__TEMPLATE_PLACEHOLDER__`;
+const templateFn = (state: PlayState, info: { rules: InfoButton; controls: InfoButton }) => html`__TEMPLATE_PLACEHOLDER__`;
 
-// Each instance's popover gets its own id: a recreated component never clashes with the old one's.
+// Each instance's popovers get their own ids: a recreated component never clashes with the old one's.
 let popoverCount = 0;
 
-// The play/pause and New game buttons, the Controls button (key and mouse hints) and the status.
+const infoButton = (popover: ListPopover): InfoButton => ({ shown: popover.lines.length > 0, id: popover.id, open: popover.open });
+
+// The play/pause and New game buttons, the Rules and Controls buttons and the status.
 // The game ticks many times a second: re-rendering only on change keeps the buttons
 // under the pointer, as WebKit drops a click whose pressed node is gone.
 export class PlayControlsComponent extends UpdatableComponent<PlayState> {
-  // Key hints, once the keyboard layout has answered; empty until then (no Controls button).
-  private _lines: string[] = [];
   // In <body>, as every overlay: removed in onBeforeDestroy.
-  private readonly _popover: PopoverElement = createControlsPopover(`game-controls-${++popoverCount}`);
-  // Escape or a click outside closes the popover too: the button follows.
-  private readonly _onPopoverToggle = (): void => {
-    this.controlsButton()?.setAttribute('aria-expanded', String(this._popover.open));
-  };
+  private readonly _rules: ListPopover;
+  // Key hints, once the keyboard layout has answered; empty until then (no Controls button).
+  private readonly _controls: ListPopover;
 
-  // mouseHint follows the key hints, except on touch devices.
-  constructor(mountTarget: HTMLElement, state: PlayState, private readonly handlers: PlayHandlers, hints?: KeyHint[], mouseHint?: string) {
+  constructor(mountTarget: HTMLElement, state: PlayState, private readonly handlers: PlayHandlers, { rules = [], keyHints, mouseHint, clickHints = [] }: PlayInfo = {}) {
     super({
-      templateFn: (config: PlayState) => templateFn(config, { shown: this._lines.length > 0, id: this._popover.id, open: this._popover.open }),
+      templateFn: (config: PlayState) => templateFn(config, { rules: infoButton(this._rules), controls: infoButton(this._controls) }),
       mountTarget,
       config: state,
     });
-    this._popover.addEventListener('a11y-overlay-open', this._onPopoverToggle);
-    this._popover.addEventListener('a11y-overlay-close', this._onPopoverToggle);
-    const mouse = mouseHint && !isTouchDevice() ? [mouseHint] : [];
-    this.setLines(hints ? [] : mouse);
+    const n = ++popoverCount;
+    this._rules = new ListPopover(`game-rules-${n}`, 'Rules', () => this.button('.game__rules'));
+    this._controls = new ListPopover(`game-controls-${n}`, 'Controls', () => this.button('.game__controls'));
+    this._rules.lines = rules;
+    const pointer = [...(mouseHint && !isTouchDevice() ? [mouseHint] : []), ...clickHints];
+    this._controls.lines = keyHints ? [] : pointer;
     // Labels can depend on the keyboard layout, which the browser reports asynchronously.
-    if (hints) describeKeys(hints).then((lines) => {
+    if (keyHints) describeKeys(keyHints).then((lines) => {
       if (this.isDestroyed) return;
-      this.setLines([...lines, ...mouse]);
+      this._controls.lines = [...lines, ...pointer];
       if (this.element.isConnected) this.refresh();
     });
   }
 
   protected override onAfterRender(): void {
     super.onAfterRender();
-    // A new render has a new button: the popover follows it.
-    this._popover.anchorElement = this.controlsButton();
+    // A new render has new buttons: the popovers follow them.
+    this._rules.anchor();
+    this._controls.anchor();
   }
 
   protected override onBeforeDestroy(): void {
-    this._popover.remove();
+    this._rules.remove();
+    this._controls.remove();
   }
 
-  private setLines(lines: string[]): void {
-    this._lines = lines;
-    setControlsLines(this._popover, lines);
-  }
-
-  private controlsButton(): HTMLElement | null {
-    return this.element.querySelector<HTMLElement>('.game__controls');
+  private button(selector: string): HTMLElement | null {
+    return this.element.querySelector<HTMLElement>(selector);
   }
 
   // New game just went away: back to the main button.
@@ -99,8 +104,14 @@ export class PlayControlsComponent extends UpdatableComponent<PlayState> {
     this.handlers.newGame?.();
   }
 
+  // One popover at a time: opening one closes the other.
+  protected _toggleRules(): void {
+    this._controls.close();
+    this._rules.toggle();
+  }
+
   protected _toggleControls(): void {
-    this._popover.open = !this._popover.open;
-    this._onPopoverToggle();
+    this._rules.close();
+    this._controls.toggle();
   }
 }

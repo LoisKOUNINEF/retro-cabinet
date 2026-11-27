@@ -65,13 +65,15 @@ describe('Key labels', () => {
     expect(await describeKeys([{ action: 'Drop in a column', keys: '1 to 7' }])).toEqual(['Drop in a column: 1 to 7']);
   });
 
-  it('lists every game\'s controls in characters the font draws', async () => {
+  it('gives every game rules, and lists its rules and controls in characters the font draws', async () => {
     const lines = [];
     for (const { load } of [...GAMES, ...BONUS_GAMES]) {
       const definition = await load();
       for (const settings of everySettings(definition.options)) {
         const game = definition.create(settings, () => 0);
-        lines.push(...await describeKeys(game.keyHints ?? []), ...(game.mouseHint ? [game.mouseHint] : []));
+        expect(game.rules.length).toBeGreaterThan(0);
+        const clicks = game.clickHints ? [...game.clickHints.mouse, ...game.clickHints.touch] : [];
+        lines.push(...game.rules, ...await describeKeys(game.keyHints ?? []), ...(game.mouseHint ? [game.mouseHint] : []), ...clicks);
       }
     }
     expect(lines.length).toBeGreaterThan(0);

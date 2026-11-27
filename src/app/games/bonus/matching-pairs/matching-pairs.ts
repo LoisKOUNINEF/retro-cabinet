@@ -2,7 +2,7 @@ import { MatchingPairsBoardComponent, type MatchingPairsBoardConfig } from '../.
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
 import { choiceOf, shuffle, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { clickHint, type BonusGame, type BonusGameDefinition } from '../bonus-game.js';
 import { FACES } from './faces.js';
 
 export const CARDS_OPTION: GameOption<'12' | '16' | '20' | '24'> = {
@@ -65,6 +65,15 @@ export interface MatchingPairsOptions {
 // A round of Matching Pairs: turn two cards, keep them if they match, find every pair before
 // running out of tries.
 export class MatchingPairs implements BonusGame {
+  readonly clickHints = clickHint('a card.');
+  get rules(): string[] {
+    return [
+      `Goal: find all ${this.pairs} pairs.`,
+      'Turn over two cards: a pair stays face up.',
+      ...(this.tries === null ? [] : [`${this.tries} misses allowed.`]),
+    ];
+  }
+
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }, { action: 'Turn over', codes: PICK_CODES }];
   readonly cards: MatchingPairsCard[];
   readonly columns: number;

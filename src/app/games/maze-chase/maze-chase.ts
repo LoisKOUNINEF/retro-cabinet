@@ -147,6 +147,16 @@ export interface MazeChaseOptions {
 }
 
 export class MazeChase implements GridGame {
+  get rules(): string[] {
+    return [
+      'Goal: eat every pellet without being caught.',
+      'A power pellet makes the ghosts edible for a while: 200, 400, 800, then 1600.',
+      'A ghost catches you: you lose a life. Extra life at 10,000.',
+      ...(this.prizes ? ['A prize appears twice per maze, for bonus points.'] : []),
+      'A cleared maze raises the level.',
+    ];
+  }
+
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }];
   readonly kind = 'grid';
   readonly id = 'maze-chase';

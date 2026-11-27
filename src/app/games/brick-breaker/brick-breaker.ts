@@ -51,6 +51,15 @@ export interface BrickBreakerOptions {
 const SAVED_FIELDS = ['paddle', 'balls', 'bricks', 'capsule', 'effect', 'score', 'level', 'lives', 'isOver', '_stuckMs'];
 
 export class BrickBreaker implements CanvasGame {
+  get rules(): string[] {
+    return [
+      'Goal: break every brick without losing the ball.',
+      'Silver bricks take several hits; gold ones never break.',
+      'Missing the ball costs a life.',
+      ...(this.options.powerUps ? ['Catch capsules: E wider paddle, S slower ball, D three balls, C catch, P extra life.'] : []),
+    ];
+  }
+
   readonly kind = 'canvas';
   readonly id = 'brick-breaker';
   readonly title = 'Brick Breaker';

@@ -41,6 +41,16 @@ export interface SnakeOptions {
 }
 
 export class Snake implements GridGame {
+  get rules(): string[] {
+    return [
+      'Goal: eat apples and grow as long as you can.',
+      'Apples score 10 x level.',
+      'Hitting a wall or yourself ends the game.',
+      ...(this.bonuses ? ['Golden apples score 50 x level; berries cut 3 off your tail. Both vanish after a while.'] : []),
+      'The level rises with the score: the snake speeds up.',
+    ];
+  }
+
   readonly keyHints: KeyHint[] = [{ action: 'Turn', codes: ARROW_CODES }];
   readonly kind = 'grid';
   readonly id = 'snake';

@@ -3,6 +3,9 @@
     <button type="button" class="game__button game__toggle" data-focus-key="toggle" data-event="click:_togglePlay">${state.label}</button>
     <button type="button" class="game__button game__new" data-focus-key="new" data-event="click:_newGame" ${state.canStartOver ? '' : 'hidden'} ${state.running ? 'disabled' : ''}>New game</button>
   </div>
-  ${nutinIf(controls.shown, () => html`<button type="button" class="game__button game__controls" data-focus-key="controls" aria-controls="${controls.id}" aria-expanded="${String(controls.open)}" data-event="click:_toggleControls">Controls</button>`)}
+  ${nutinIf(info.rules.shown || info.controls.shown, () => html`<div class="game__actions">
+    ${nutinIf(info.rules.shown, () => html`<button type="button" class="game__button game__info-button game__rules" data-focus-key="rules" aria-controls="${info.rules.id}" aria-expanded="${String(info.rules.open)}" data-event="click:_toggleRules">Rules</button>`)}
+    ${nutinIf(info.controls.shown, () => html`<button type="button" class="game__button game__info-button game__controls" data-focus-key="controls" aria-controls="${info.controls.id}" aria-expanded="${String(info.controls.open)}" data-event="click:_toggleControls">Controls</button>`)}
+  </div>`)}
   <p class="game__status${state.over ? ' game__status--over' : ''}" role="status">${state.status}</p>
 </div>

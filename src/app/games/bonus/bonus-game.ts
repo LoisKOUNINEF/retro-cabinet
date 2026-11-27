@@ -28,12 +28,27 @@ export interface BonusGame {
   // A key pressed during the round (Enter/Space on a finished round start a new one,
   // in the view); true when the game used it, so its default is prevented.
   handleKey(code: string): boolean;
+  // How to play, listed by the Play section's Rules button: the goal first, then a few short lines.
+  // A getter in games whose rules depend on their options. Only characters Manaspace draws (see KeyHint).
+  readonly rules: string[];
+  // What a click (or a tap) does, listed after the keys: "Or click a column.".
+  readonly clickHints: ClickHints;
   // The round's keys, listed by the Play section's Controls button. A getter for keys that
   // depend on the options (e.g. Code Breaker's palette).
   readonly keyHints?: KeyHint[];
   // Values worth showing while playing, e.g. pairs found and misses; none by default.
   stats?(): Stat[];
 }
+
+// The Controls' lines for the mouse and for touch screens, which may differ (a right-click is
+// a long press, the mouse wheel has no touch equivalent). Only characters Manaspace draws (see KeyHint).
+export interface ClickHints {
+  mouse: string[];
+  touch: string[];
+}
+
+// One line, the same on both but for the verb: "Or click a column." / "Or tap a column.".
+export const clickHint = (what: string): ClickHints => ({ mouse: [`Or click ${what}`], touch: [`Or tap ${what}`] });
 
 // The board: a component (e.g. an UpdatableComponent) its parent refreshes with a config read from the game.
 export type BoardComponent<C> = Component & { update(config: C): void };

@@ -45,6 +45,16 @@ const SAVED_FIELDS = [
 const REPEAT_MS = 120;
 
 export class JewelDrop implements GridGame {
+  get rules(): string[] {
+    return [
+      'Goal: line up 3 or more jewels of a colour (across, down or diagonally) to clear them.',
+      'Cascades multiply the points.',
+      'Every 35 jewels raise the level.',
+      'The game ends when the well overflows.',
+      ...(this.options.magic ? ['A rare magic column clears every jewel of the colour it lands on.'] : []),
+    ];
+  }
+
   readonly kind = 'grid';
   readonly id = 'jewel-drop';
   readonly title = 'Jewel Drop';

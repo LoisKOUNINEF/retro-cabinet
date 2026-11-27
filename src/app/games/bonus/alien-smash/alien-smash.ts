@@ -2,7 +2,7 @@ import { AlienSmashBoardComponent, type AlienSmashBoardConfig } from '../../../c
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import { ARROW_DIRECTIONS, choiceOf, levelSpeed, pick, type GameOption, type Random, type Settings, ARROW_CODES, type KeyHint } from '../../game.js';
 import type { AlienType } from '../../alien-attack/sprites.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { clickHint, type BonusGame, type BonusGameDefinition } from '../bonus-game.js';
 
 export const TIME_OPTION: GameOption<'15' | '30' | '60'> = {
   key: 'time',
@@ -74,6 +74,15 @@ export const HOLE_KEYS = [7, 8, 9, 4, 5, 6, 1, 2, 3];
 // A round of Alien Smash: aliens pop out of 9 holes, smash as many as you can
 // before the time runs out. Every HITS_PER_LEVEL hits, a level: they stay up for less time.
 export class AlienSmash implements BonusGame {
+  readonly clickHints = clickHint('an alien.');
+  get rules(): string[] {
+    return [
+      `Goal: smash as many aliens as you can in ${this.options.seconds} seconds.`,
+      'Aliens score 10 to 30, the UFO up to 150.',
+      'Every 10 hits the level rises: aliens hide sooner.',
+    ];
+  }
+
   // The digits follow a numeric keypad: 7 8 9 on the top row.
   readonly keyHints: KeyHint[] = [{ action: 'Aim', codes: ARROW_CODES }, { action: 'Smash', codes: ['Enter'] }, { action: 'Smash a hole', keys: '1 to 9' }];
   readonly holes: Hole[] = Array.from({ length: HOLES }, emptyHole);

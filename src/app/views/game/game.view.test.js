@@ -19,7 +19,8 @@ const snakeDefinition = { id: 'snake', create: () => new Snake({ random: () => 0
 const SNAKE_SAVE = 'retro-cabinet:save:snake';
 
 // The Controls popover's lines (in <body>: the previous one is removed with its component).
-const controlLines = () => $$('.controls-popover__list li').map((li) => li.textContent);
+const controlLines = () => $$('[id^="game-controls-"] li').map((li) => li.textContent);
+const ruleLines = () => $$('[id^="game-rules-"] li').map((li) => li.textContent);
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 const release = (code) => document.dispatchEvent(new KeyboardEvent('keyup', { code }));
 
@@ -758,7 +759,7 @@ describe('GameView', () => {
     select.dispatchEvent(new window.Event('change', { bubbles: true }));
     await flushPromises();
     expect(controlLines().join('\n')).toContain('Hold fire');
-    expect($$('a11y-popover').length).toBe(1);
+    expect($$('a11y-popover').length).toBe(2);
     getContext.restore();
   });
 
@@ -939,15 +940,29 @@ describe('GameView', () => {
     resetKeyLabels();
     fallingBlocks();
     await flushPromises();
-    expect(controlLines()).toEqual(['Move: ← → ↓', 'Cycle: ↑, Z or W', 'Mouse: move, left click to rotate, right click to drop']);
+    expect(controlLines()).toEqual(['Move: ← → ↓', 'Rotate: ↑ or E', 'Rotate back: Q', 'Mouse: move, left click to rotate, right click to drop']);
     view.onExit();
     view.destroy();
 
     document.documentElement.classList.add('touch');
     fallingBlocks();
     await flushPromises();
-    expect(controlLines()).toEqual(['Move: ← → ↓', 'Cycle: ↑, Z or W']);
+    expect(controlLines()).toEqual(['Move: ← → ↓', 'Rotate: ↑ or E', 'Rotate back: Q']);
     document.documentElement.classList.remove('touch');
+  });
+
+  it('lists the rules, following the options', () => {
+    view = new GameView(frogCrossingGame);
+    view.render();
+    view.onEnter();
+    expect(ruleLines()[0]).toBe('Goal: bring a frog home to each of the 5 bays.');
+    expect(ruleLines().join('\n')).not.toContain('60 seconds');
+
+    const select = $('select[data-option="time"]');
+    select.value = 'on';
+    select.dispatchEvent(new window.Event('change', { bubbles: true }));
+    expect(ruleLines().join('\n')).toContain('60 seconds');
+    expect($$('[id^="game-rules-"]').length).toBe(1);
   });
 
   it('talks about tapping on touch devices', () => {

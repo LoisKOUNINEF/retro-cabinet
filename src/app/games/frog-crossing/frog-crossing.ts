@@ -86,6 +86,17 @@ const SAVED_FIELDS = [
 ];
 
 export class FrogCrossing implements CanvasGame {
+  get rules(): string[] {
+    return [
+      'Goal: bring a frog home to each of the 5 bays.',
+      'Dodge the cars, ride logs and turtles across the river: the water drowns.',
+      'A fly or the lady frog brought home gives 200 more.',
+      'Full bays raise the level, with new dangers.',
+      ...(this.options.timeLimit ? ['Each frog has 60 seconds; time left scores 10 a second.'] : []),
+      ...(this.options.divingTurtles ? ['Some turtles dive: get off in time.'] : []),
+    ];
+  }
+
   readonly keyHints: KeyHint[] = [{ action: 'Hop', codes: ARROW_CODES }];
   readonly kind = 'canvas';
   readonly id = 'frog-crossing';

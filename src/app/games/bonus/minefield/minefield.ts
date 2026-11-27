@@ -2,7 +2,7 @@ import { MinefieldBoardComponent, type MinefieldBoardConfig, type MinefieldView 
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
 import { ARROW_DIRECTIONS, choiceOf, shuffle, type GameOption, type Random, type Settings, ARROW_CODES, PICK_CODES, type KeyHint } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import type { BonusGame, BonusGameDefinition, ClickHints } from '../bonus-game.js';
 
 export const SIZE_OPTION: GameOption<'easy' | 'medium' | 'hard'> = {
   key: 'size',
@@ -50,6 +50,19 @@ export interface MinefieldOptions extends Field {
 // A round of Minefield: dig every cell without a mine. A number tells how many of the 8 cells
 // around hide one; flags mark the mines found. The first dig is always safe, and opens an area.
 export class Minefield implements BonusGame {
+  readonly clickHints: ClickHints = {
+    mouse: ['Or click a cell to dig it, right-click to flag it.', 'Dig and Flag above the field change what a click does.'],
+    touch: ['Or tap a cell to dig it, long-press to flag it.', 'Dig and Flag above the field change what a tap does.'],
+  };
+  get rules(): string[] {
+    return [
+      `Goal: open every cell without a mine (${this.mines} mines).`,
+      'A number tells how many mines touch the cell.',
+      'Flag the cells you think are mined.',
+      'The first dig is always safe.',
+    ];
+  }
+
   readonly keyHints: KeyHint[] = [{ action: 'Move', codes: ARROW_CODES }, { action: 'Dig', codes: PICK_CODES }, { action: 'Flag', codes: ['KeyF'] }];
   readonly rows: number;
   readonly columns: number;

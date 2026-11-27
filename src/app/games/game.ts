@@ -118,6 +118,9 @@ interface BaseGame {
 
   // Touch layout, when it differs from DEFAULT_TOUCH (4-way D-pad, no button).
   readonly touch?: TouchLayout;
+  // How to play, listed by the Play section's Rules button: the goal first, then a few short lines.
+  // A getter in games whose rules depend on their options. Only characters Manaspace draws (see KeyHint).
+  readonly rules: string[];
   // The game's keys, listed by the Play section's Controls button (Space, play/pause, is in the status).
   readonly keyHints?: KeyHint[];
 

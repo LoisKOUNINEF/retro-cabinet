@@ -76,6 +76,14 @@ export interface TableTennisOptions {
 }
 
 export class TableTennis implements CanvasGame {
+  get rules(): string[] {
+    return [
+      'Goal: first to 11 points wins.',
+      'Where the ball hits your paddle sets its angle; it speeds up with each hit.',
+      `Each point scores 100; winning adds ${WIN_BONUS[this.difficulty]}.`,
+    ];
+  }
+
   readonly kind = 'canvas';
   readonly id = 'table-tennis';
   readonly title = 'Table Tennis';

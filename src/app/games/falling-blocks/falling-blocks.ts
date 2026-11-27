@@ -1,5 +1,5 @@
 import {
-  applyFields, cryptoRandom, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell, FIRE_KEYS,
+  applyFields, cryptoRandom, cellAt, emptyGrid, levelFrom, levelOption, pick, pickFields, setCell,
   type GridGame, type GameDefinition, type Grid, type MouseButton, type Random, type Snapshot, type TouchLayout, type KeyHint,
 } from '../game.js';
 import { KINDS, TETROMINOES, type Shape, type TetrominoKind } from './tetrominoes.js';
@@ -43,6 +43,11 @@ export interface FallingBlocksOptions {
 const REPEAT_MS = 120;
 
 export class FallingBlocks implements GridGame {
+  readonly rules = [
+    'Goal: complete rows to clear them, before the pile reaches the top.',
+    '1 to 4 rows at once score 40, 100, 300 or 1200, times the level.',
+    'Every 10 rows raise the level: blocks fall faster.',
+  ];
   readonly kind = 'grid';
   readonly id = 'falling-blocks';
   readonly title = 'Falling Blocks';
@@ -56,7 +61,8 @@ export class FallingBlocks implements GridGame {
   };
   readonly keyHints: KeyHint[] = [
     { action: 'Move', codes: ['ArrowLeft', 'ArrowRight', 'ArrowDown'] },
-    { action: 'Cycle', codes: ['ArrowUp', ...FIRE_KEYS] },
+    { action: 'Rotate', codes: ['ArrowUp', 'KeyE'] },
+    { action: 'Rotate back', codes: ['KeyQ'] },
   ];
   readonly mouseHint = 'Mouse: move, left click to rotate, right click to drop';
   // Held, the right button keeps dropping, as ↓ does.

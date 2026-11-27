@@ -361,13 +361,12 @@
   }
 }
 
-.game__controls {
-  width: 100%;
+.game__info-button {
   border-color: var(--secondary);
   color: var(--secondary);
 }
 
-// The Controls popover (PlayControlsComponent): in <body>, out of .game.
+// The Rules and Controls popovers (PlayControlsComponent): in <body>, out of .game.
 :root {
   --a11y-popover-color-background: var(--surface-elevated);
   --a11y-popover-color-text: var(--text);
@@ -379,7 +378,7 @@
   --a11y-popover-shadow-fade: 40%;
 }
 
-.controls-popover__list {
+.list-popover__list {
   display: grid;
   gap: 0.4rem;
   margin: 0;

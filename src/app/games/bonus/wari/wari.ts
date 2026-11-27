@@ -2,7 +2,7 @@ import { WariBoardComponent, type WariBoardConfig } from '../../../components/wa
 import type { Stat } from '../../../components/stats/stat/stat.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
 import { choiceOf, type Random, type Settings, PICK_CODES, type KeyHint } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { clickHint, type BonusGame, type BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS, DIFFICULTY_OPTION, FIRST_OPTION, type Difficulty } from '../turns.js';
 import { WARI_OPTIONS, choosePit } from './ai.js';
 import { NO_CAPTURE_LIMIT, PITS_PER_SIDE, initialState, legalMoves, play, resultOf, seedsOn, sideOf, type WariMove, type WariState } from './rules.js';
@@ -24,6 +24,13 @@ export interface WariOptions {
 // One round against the AI. Moves are worked out at once (rules.ts) but shown step by step:
 // each seed sown on its own tick, then the capture, then the other side's turn.
 export class WariRound implements BonusGame {
+  readonly clickHints = clickHint('one of your pits.');
+  readonly rules = [
+    'Goal: capture 25 seeds or more.',
+    "Your pit's seeds are sown one per pit, anticlockwise.",
+    "Ending in an opponent's pit that then holds 2 or 3 captures it, and the 2s and 3s just before it.",
+    'An opponent with no seeds must be fed.',
+  ];
   readonly keyHints: KeyHint[] = [{ action: 'Aim', codes: ['ArrowLeft', 'ArrowRight'] }, { action: 'Sow', codes: PICK_CODES }, { action: 'Sow a pit', keys: '1 to 6' }];
   // The position before the move being shown, or the current one.
   state: WariState;

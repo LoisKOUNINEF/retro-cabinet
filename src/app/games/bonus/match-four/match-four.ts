@@ -1,7 +1,7 @@
 import { MatchFourBoardComponent, type MatchFourBoardConfig } from '../../../components/match-four-board/match-four-board.component.js';
 import type { TallyResult } from '../../../services/persistence/persistence.service.js';
 import { choiceOf, type Random, type Settings, PICK_CODES, type KeyHint } from '../../game.js';
-import type { BonusGame, BonusGameDefinition } from '../bonus-game.js';
+import { clickHint, type BonusGame, type BonusGameDefinition } from '../bonus-game.js';
 import { AI_DELAY_MS, DIFFICULTY_OPTION, FIRST_OPTION, type Difficulty } from '../turns.js';
 import { COLOUR_OPTION, MATCH_FOUR_OPTIONS, chooseColumn } from './ai.js';
 import { COLUMNS, MatchFour, other, type Disc } from './rules.js';
@@ -18,6 +18,12 @@ export interface MatchFourOptions {
 
 // One round against the AI: the player's drops, the AI's (after AI_DELAY_MS), the keyboard cursor.
 export class MatchFourRound implements BonusGame {
+  readonly clickHints = clickHint('a column.');
+  readonly rules = [
+    'Goal: line up 4 of your discs across, down or diagonally.',
+    'Discs drop to the lowest free spot.',
+    'A full board without a line is a draw.',
+  ];
   readonly keyHints: KeyHint[] = [{ action: 'Aim', codes: ['ArrowLeft', 'ArrowRight'] }, { action: 'Drop', codes: PICK_CODES }, { action: 'Drop in a column', keys: '1 to 7' }];
   readonly game: MatchFour;
   // Keyboard cursor, as a column.

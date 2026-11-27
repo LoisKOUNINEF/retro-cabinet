@@ -119,12 +119,12 @@ export class GameView extends View {
         : this._board = new GameBoardComponent(el, { width, height, mouse }),
     }, {
       selector: 'play',
-      // New key hints (an option changed them, e.g. auto-fire) need new controls.
-      keep: JSON.stringify([this._game.keyHints ?? null, this._game.mouseHint ?? null]),
+      // New rules or key hints (an option changed them, e.g. auto-fire) need new controls.
+      keep: JSON.stringify([this._game.rules, this._game.keyHints ?? null, this._game.mouseHint ?? null]),
       factory: (el) => this._play = new PlayControlsComponent(el, this.playState(), {
         togglePlay: () => this.togglePlay(),
         newGame: () => this.startNewGame(),
-      }, this._game.keyHints, this._game.mouseHint),
+      }, { rules: this._game.rules, keyHints: this._game.keyHints, mouseHint: this._game.mouseHint }),
     }, {
       selector: 'play-toggle',
       keep: 'play-toggle',
