@@ -1,0 +1,270 @@
+@use "mixins";
+
+.shut-the-box {
+  --tiles: 9;
+  --gap: 0.35rem;
+  // The tiles fill one row of the stage.
+  --tile: min(calc((var(--stage-width, 100vw) - (var(--tiles) + 1) * var(--gap)) / var(--tiles)), 4rem);
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+
+  @each $n in 9, 10, 12 {
+    &--tiles-#{$n} {
+      --tiles: #{$n};
+    }
+  }
+}
+
+.shut-the-box__box {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border: 3px solid var(--border);
+  border-radius: 10px;
+  background: #000;
+
+  // The box whose turn it is.
+  &--playing {
+    border-color: var(--secondary);
+  }
+}
+
+.shut-the-box__who {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+// "Opponent", shortened on phones, where it would widen its column.
+.shut-the-box__who-short {
+  display: none;
+}
+
+.shut-the-box__tiles {
+  display: flex;
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The catalog's wrappers step aside: the buttons are the row's items.
+.shut-the-box__slot {
+  display: contents;
+}
+
+.shut-the-box__tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tile);
+  height: calc(var(--tile) * 1.5);
+  padding: 0;
+  border: 3px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: min(1.4rem, calc(var(--tile) / 2.2));
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+
+  // Flipped down: flattened against the bottom of the box.
+  &--shut {
+    transform: scaleY(0.35);
+    transform-origin: bottom;
+    opacity: 0.35;
+  }
+
+  &--selected {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  // The opponent's box: smaller, for show.
+  &--small {
+    width: min(calc(var(--tile) * 0.6), 2rem);
+    height: min(calc(var(--tile) * 0.9), 3rem);
+    font-size: min(0.85rem, calc(var(--tile) / 3));
+  }
+}
+
+.shut-the-box__tile-button {
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  &:disabled:not(.shut-the-box__tile--shut) {
+    opacity: 0.6;
+  }
+
+  &:not(:disabled):hover {
+    border-color: var(--text-secondary);
+  }
+
+  &.shut-the-box__tile--cursor {
+    outline: 3px solid var(--secondary);
+    outline-offset: 2px;
+  }
+}
+
+// The dice, the total to shut and the roll buttons.
+.shut-the-box__table {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+}
+
+.shut-the-box__dice {
+  display: flex;
+  gap: 1rem;
+}
+
+.shut-the-box__die {
+  width: 3.5rem;
+  height: 3.5rem;
+  fill: var(--text);
+
+  &--unknown,
+  &--rolling {
+    fill: var(--text-secondary);
+  }
+
+  &--rolling {
+    animation: shut-the-box-roll 0.3s ease-in-out infinite;
+  }
+}
+
+.shut-the-box__total {
+  min-height: 1.5em;
+  margin: 0;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.shut-the-box__rolls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.shut-the-box__roll {
+  padding: 0.5rem 1rem;
+  border: 3px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:not(:disabled):hover {
+    border-color: var(--text-secondary);
+  }
+}
+
+.shut-the-box__key {
+  margin-left: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+// Phones: the boxes stand up, tile 1 at the top, with the dice in a column on their right.
+// Against the AI, your box comes first, then the opponent's.
+@include mixins.respond-to(medium) {
+  .shut-the-box {
+    // Each tile's height: the stage's, less the box's label and padding, shared by the tiles.
+    --tile-height: min(calc((var(--stage-height, 65dvh) - 3.5rem - (var(--tiles) - 1) * var(--gap)) / var(--tiles)), 3rem);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .shut-the-box__box--opponent {
+    order: 1;
+  }
+
+  .shut-the-box__who-long {
+    display: none;
+  }
+
+  .shut-the-box__who-short {
+    display: inline;
+  }
+
+  .shut-the-box__table {
+    order: 2;
+    align-self: center;
+  }
+
+  .shut-the-box__tiles {
+    flex-direction: column;
+  }
+
+  .shut-the-box__tile {
+    width: calc(var(--tile-height) * 1.8);
+    height: var(--tile-height);
+    font-size: min(1.2rem, calc(var(--tile-height) / 1.6));
+
+    // Flipped down: flattened against the left of the box.
+    &--shut {
+      transform: scaleX(0.35);
+      transform-origin: left;
+    }
+
+    &--small {
+      width: calc(var(--tile-height) * 1.1);
+      height: var(--tile-height);
+      font-size: min(0.85rem, calc(var(--tile-height) / 2));
+    }
+  }
+
+  .shut-the-box__dice {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  // One under the other, both as wide as the wider one.
+  .shut-the-box__rolls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .shut-the-box__die {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+@keyframes shut-the-box-roll {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  25% {
+    transform: rotate(-15deg);
+  }
+
+  75% {
+    transform: rotate(15deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shut-the-box__tile {
+    transition: none;
+  }
+
+  .shut-the-box__die--rolling {
+    animation: none;
+  }
+}

@@ -17,7 +17,7 @@ const navigations = (fn) => {
 };
 const press = (code) => document.dispatchEvent(new KeyboardEvent('keydown', { code, cancelable: true }));
 
-describe('BonusGameView (Noughts & Crosses)', () => {
+describe('BonusGameView', () => {
   let view;
 
   const open = (random = () => 0) => {
@@ -119,7 +119,7 @@ describe('BonusGameView (Noughts & Crosses)', () => {
   it('has a games menu: the bonus hub, each bonus game (this one current) and Random', () => {
     open();
     expect($('.game__back').textContent).toBe('Games');
-    expect(menuItems().map((el) => el.textContent)).toEqual(['All bonus games', 'Match Four', 'Dots and Boxes', 'Naval Battle', 'Matching Pairs', 'Code Breaker', 'Minefield', 'Alien Smash', 'Noughts & Crosses', 'RPSLS', 'Random']);
+    expect(menuItems().map((el) => el.textContent)).toEqual(['All bonus games', 'Match Four', 'Dots and Boxes', 'Naval Battle', 'Matching Pairs', 'Code Breaker', 'Minefield', 'Alien Smash', 'Shut the Box', 'Noughts & Crosses', 'Random']);
     expect(item('Noughts & Crosses').getAttribute('aria-current')).toBe('page');
 
     // No way back to the main cabinet's games from here.

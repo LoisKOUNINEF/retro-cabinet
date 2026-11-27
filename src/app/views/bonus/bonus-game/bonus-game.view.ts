@@ -246,7 +246,7 @@ export class BonusGameView extends View {
     const { outcome } = this._game;
     if (!outcome) return;
     this._storage.recordResult(this.storageId, this.resultKey, outcome);
-    if (results.best && outcome === 'wins') this._storage.recordBest(this.storageId, this.resultKey, results.best.score(this._game));
+    if (results.best && (outcome === 'wins' || results.best.everyRound)) this._storage.recordBest(this.storageId, this.resultKey, results.best.score(this._game));
   }
 
   // One function for the options box, so its config stays the same between moves.
@@ -302,11 +302,12 @@ export class BonusGameView extends View {
     return isTouchDevice() ? 'Tap ▶ to start' : 'Press Space to start';
   }
 
-  // The results under the current key, and the best won round if kept.
+  // The results under the current key, and the best round if kept.
   private tallyConfig(): StatsConfig {
     const { results } = this._definition;
     if (results.kind !== 'tally') return { items: [] };
-    const { draws: hasDraws = true, best, labels = { wins: 'Wins', losses: 'Losses' } } = results;
+    const { draws: showsDraws = true, best, labels = { wins: 'Wins', losses: 'Losses' } } = results;
+    const hasDraws = typeof showsDraws === 'function' ? showsDraws(this._settings) : showsDraws;
     const { wins, draws, losses } = this._storage.tally(this.storageId, this.resultKey);
     return {
       items: [

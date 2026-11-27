@@ -25,7 +25,7 @@ One-time reward.
 - Minefield
 - Alien Smash
 - Noughts & Crosses
-- RPSLS
+- Shut the Box
 
 ## Quality of life
 

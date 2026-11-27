@@ -49,11 +49,14 @@ export type BonusResults<G extends BonusGame> = {
   kind: 'tally';
   key(settings: Settings): string;
   // False for games that can't end in a draw (e.g. Matching Pairs): the tally leaves draws out.
-  draws?: boolean;
+  // A function for games where it depends on the options (e.g. Shut the Box, played solo or not).
+  draws?: boolean | ((settings: Settings) => boolean);
   // Names for the wins and losses rows, when the game names its two sides (e.g. "Me" / "Evil Me").
   labels?: { wins: string; losses: string };
   // A won round's score, lower being better (e.g. misses): the best is kept per key.
-  best?: { label: string; score(game: G): number };
+  // everyRound: lost and drawn rounds count too, for games whose score is kept whatever the
+  // outcome (e.g. Shut the Box's tiles left open, 0 on every win).
+  best?: { label: string; score(game: G): number; everyRound?: boolean };
 } | {
   kind: 'scores';
   key(settings: Settings): string;

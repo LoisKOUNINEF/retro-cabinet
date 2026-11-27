@@ -1,0 +1,10 @@
+<button
+  type="button"
+  class="shut-the-box__tile shut-the-box__tile-button shut-the-box__tile--${tile.state}${tile.cursor ? ' shut-the-box__tile--cursor' : ''}"
+  data-index="${tile.index}"
+  data-focus-key="tile-${tile.index}"
+  data-event="click:_select"
+  aria-label="${tileLabel(tile)}"
+  aria-pressed="${tile.state === 'selected' ? 'true' : 'false'}"
+  ${tile.disabled ? 'disabled' : ''}
+>${tile.number}</button>

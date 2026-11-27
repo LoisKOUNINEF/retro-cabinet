@@ -1,5 +1,5 @@
 import type { Sprite } from '../sprites.js';
-import { CODE_BREAKER_ICON, DOTS_AND_BOXES_ICON, MINEFIELD_ICON, NAVAL_BATTLE_ICON, MATCH_FOUR_ICON, MATCHING_PAIRS_ICON, NOUGHTS_CROSSES_ICON, RPSLS_ICON, ALIEN_SMASH_ICON } from './icons.js';
+import { CODE_BREAKER_ICON, DOTS_AND_BOXES_ICON, MINEFIELD_ICON, NAVAL_BATTLE_ICON, MATCH_FOUR_ICON, MATCHING_PAIRS_ICON, NOUGHTS_CROSSES_ICON, SHUT_THE_BOX_ICON, ALIEN_SMASH_ICON } from './icons.js';
 import type { BonusGameDefinition } from './bonus-game.js';
 
 // The bonus cabinet's games, in hub order: the one list its routes, cards and menu are built from.
@@ -51,20 +51,18 @@ export const BONUS_GAMES = [
     load: () => import('./alien-smash/alien-smash.js').then((m) => m.alienSmashGame),
   },
   {
+    id: 'shut-the-box',
+    title: 'Shut the Box',
+    icon: SHUT_THE_BOX_ICON,
+    load: () => import('./shut-the-box/shut-the-box.js').then((m) => m.shutTheBoxGame),
+  },
+  {
     id: 'noughts-and-crosses',
     title: 'Noughts & Crosses',
     // The card's title fits ~8 characters a line: "Noughts &" would take a third one.
     cardTitle: 'Noughts Crosses',
     icon: NOUGHTS_CROSSES_ICON,
     load: () => import('./noughts-and-crosses/noughts-and-crosses.js').then((m) => m.noughtsCrossesGame),
-  },
-  {
-    id: 'rpsls',
-    title: 'RPSLS',
-    // The card's title fits ~8 characters a line, on two lines.
-    cardTitle: 'RPSLS',
-    icon: RPSLS_ICON,
-    load: () => import('./rpsls/rpsls.js').then((m) => m.rpslsGame),
   },
 ] as const satisfies readonly { id: string; title: string; cardTitle?: string; icon: Sprite; load: () => Promise<BonusGameDefinition> }[];
 

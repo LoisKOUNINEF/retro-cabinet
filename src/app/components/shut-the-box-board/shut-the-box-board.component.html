@@ -1,0 +1,31 @@
+<div class="shut-the-box shut-the-box--tiles-${config.tiles.length}">
+  ${nutinIf(config.opponent !== null, () => opponentBox(config.opponent ?? [], config.turn === 'ai'))}
+  <div class="shut-the-box__box${config.turn === 'player' ? ' shut-the-box__box--playing' : ''}">
+    ${nutinIf(config.opponent !== null, html`<p class="shut-the-box__who">You</p>`)}
+    <ul class="shut-the-box__tiles" aria-label="Your tiles" data-catalog="tiles"></ul>
+  </div>
+  <div class="shut-the-box__table">
+    ${nutinIf(config.dice.length > 0, () => html`
+      <div class="shut-the-box__dice" role="img" aria-label="${diceLabel(config.dice)}">
+        ${nutinFor(config.dice, (value) => die(value))}
+      </div>`).nutinElse(html`<div class="shut-the-box__dice shut-the-box__dice--empty" aria-hidden="true">${unknownDice()}</div>`)}
+    <p class="shut-the-box__total" aria-hidden="true">${nutinIf(config.total !== null, () => html`${config.selectedSum} / ${config.total}`)}</p>
+    <div class="shut-the-box__rolls">
+      <button
+        type="button"
+        class="shut-the-box__roll"
+        data-focus-key="roll"
+        data-event="click:_roll:2"
+        ${config.canRoll ? '' : 'disabled'}
+      >Roll <span class="shut-the-box__key" aria-hidden="true">R</span></button>
+      ${nutinIf(config.canRollOne !== null, () => html`
+        <button
+          type="button"
+          class="shut-the-box__roll"
+          data-focus-key="roll-one"
+          data-event="click:_roll:1"
+          ${config.canRollOne ? '' : 'disabled'}
+        >One die <span class="shut-the-box__key" aria-hidden="true">O</span></button>`)}
+    </div>
+  </div>
+</div>
