@@ -19,12 +19,12 @@ One-time reward.
 
 - Match Four
 - Dots & Boxes
-- Naval Battle
-- Matching Pairs
-- Code Breaker
-- Minefield
-- Alien Smash
 - Wari
+- Minefield
+- Code Breaker
+- Matching Pairs
+- Naval Battle
+- Alien Smash
 - Shut the Box
 
 ## Quality of life
