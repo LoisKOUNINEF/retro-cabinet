@@ -1,4 +1,4 @@
-import { Component, html } from '../../../../core/index.js';
+import { Component, html, nutinFor } from '../../../../core/index.js';
 import { keyArt, pegArt } from '../peg-art.js';
 
 export interface CodeBreakerRow {

@@ -1,1 +1,1 @@
-<div class="alien-smash-board" role="group" aria-label="Alien holes">${holePlaceholders()}</div>
+<div class="alien-smash-board" role="group" aria-label="Alien holes">${nutinFor(HOLE_KEYS, (_, index) => html`<div data-component="hole" data-hole="${index}"></div>`)}</div>

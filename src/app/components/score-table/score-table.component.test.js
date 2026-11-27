@@ -61,16 +61,23 @@ describe('ScoreTableComponent', () => {
     expect($('.score-table__row--new .score-table__score').textContent).toBe('150');
   });
 
-  it('keeps the rows a new score leaves in place, and rebuilds the ones it moves', () => {
+  it('numbers the rows again after a new score moves them', () => {
     table = new ScoreTableComponent(host, { entries: [entry(300, 4), entry(120, 2)], highlight: null });
     table.render();
-    const [first, second] = $$('.score-table__row');
 
     table.update({ entries: [entry(300, 4), entry(200, 3), entry(120, 2)], highlight: 1 });
 
     const rows = $$('.score-table__row');
-    expect(rows[0]).toBe(first);
-    expect(rows[2]).not.toBe(second);
     expect(rows.map((row) => row.querySelector('.score-table__rank').textContent)).toEqual(['1.', '2.', '3.']);
+    expect(rows.map((row) => row.querySelector('.score-table__score').textContent)).toEqual(['300', '200', '120']);
+  });
+
+  it('puts the rows and the empty message straight in the list', () => {
+    table = new ScoreTableComponent(host, { entries: [entry(300, 4)], highlight: null });
+    table.render();
+    expect($('.score-table__list > li.score-table__row')).toBeTruthy();
+
+    table.update({ entries: [], highlight: null });
+    expect($('.score-table__list > li.score-table__empty').textContent).toBe('No scores yet');
   });
 });

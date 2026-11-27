@@ -26,7 +26,7 @@ export class RpslsHandComponent extends Component<HTMLElement, IndexedHand> {
     super({ templateFn, mountTarget, config: hand, props: { className: 'rpsls-board__slot' } });
   }
 
-  private _select(): void {
+  protected _select(): void {
     this.config.onSelect(this.config.index);
   }
 }

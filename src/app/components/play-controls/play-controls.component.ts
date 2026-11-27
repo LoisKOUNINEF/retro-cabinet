@@ -1,4 +1,4 @@
-import { html } from '../../../core/index.js';
+import { html, nutinIf } from '../../../core/index.js';
 import type { KeyHint } from '../../games/game.js';
 import { describeKeys } from '../key-labels.js';
 import { UpdatableComponent } from '../updatable-component.js';
@@ -43,11 +43,11 @@ export class PlayControlsComponent extends UpdatableComponent<PlayState> {
     return this.element.querySelector<HTMLElement>('.game__toggle');
   }
 
-  private _togglePlay(): void {
+  protected _togglePlay(): void {
     this.handlers.togglePlay();
   }
 
-  private _newGame(): void {
+  protected _newGame(): void {
     this.handlers.newGame?.();
   }
 }

@@ -18,7 +18,7 @@ export class PlayToggleComponent extends UpdatableComponent<PlayToggleState> {
     return this.element.querySelector<HTMLElement>('.play-toggle');
   }
 
-  private _toggle(): void {
+  protected _toggle(): void {
     this.onToggle();
   }
 }

@@ -1,4 +1,4 @@
-import { View, html } from '../../../../core/index.js';
+import { View, html, nutinIf } from '../../../../core/index.js';
 import { GameOptionsComponent, type GameOptionsConfig } from '../../../components/game-options/game-options.component.js';
 import { createGamesMenu } from '../../../components/games-menu/games-menu.js';
 import { discoverBonus } from '../../../components/reward-notices/reward-notices.js';

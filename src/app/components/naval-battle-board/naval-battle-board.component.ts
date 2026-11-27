@@ -1,4 +1,4 @@
-import { html } from '../../../core/index.js';
+import { html, nutinIf, nutinFor } from '../../../core/index.js';
 import { FLEET, GRID, shipType, type Ship, type Shot } from '../../games/bonus/naval-battle/fleet.js';
 import type { Phase, Side } from '../../games/bonus/naval-battle/naval-battle.js';
 import { UpdatableComponent } from '../updatable-component.js';
@@ -49,7 +49,7 @@ function shipList(config: NavalBattleBoardConfig, side: Side) {
   const ships = side === 'player' ? config.ownShips : config.enemyShips;
   const shots = side === 'player' ? config.ownShots : config.enemyShots;
   const nextId = FLEET.find(({ id }) => !config.ownShips.some((ship) => ship.id === id))?.id;
-  return FLEET.map(({ id, name, size }) => {
+  return nutinFor(FLEET, ({ id, name, size }) => {
     const ship = ships.find((s) => s.id === id);
     const state = config.phase === 'placing'
       ? (ship ? 'placed' : id === nextId ? 'next' : 'waiting')
@@ -59,8 +59,8 @@ function shipList(config: NavalBattleBoardConfig, side: Side) {
 }
 
 // Letters down the side, numbers along the top: decoration (each cell names itself).
-const columnLabels = () => COLUMNS.map((n) => html`<span>${n}</span>`);
-const rowLabels = () => ROWS.map((letter) => html`<span>${letter}</span>`);
+const columnLabels = () => nutinFor(COLUMNS, (n) => html`<span>${n}</span>`);
+const rowLabels = () => nutinFor(ROWS, (letter) => html`<span>${letter}</span>`);
 
 const templateFn = (config: NavalBattleBoardConfig) => html`__TEMPLATE_PLACEHOLDER__`;
 
@@ -149,7 +149,7 @@ export class NavalBattleBoardComponent extends UpdatableComponent<NavalBattleBoa
     this.eventListeners.push([grid, 'wheel', onWheel]);
   }
 
-  private _action(action: string): void {
+  protected _action(action: string): void {
     this.onSelect(0, action);
   }
 }

@@ -81,7 +81,7 @@ export class MinefieldBoardComponent extends UpdatableComponent<BoardState> {
   private readonly _dig = (index: number): void => this.onSelect(index, this._mode);
   private readonly _flag = (index: number): void => this.onSelect(index, 'flag');
 
-  private _setMode(mode: string): void {
+  protected _setMode(mode: string): void {
     this._mode = mode === 'flag' ? 'flag' : 'dig';
     this.update(this.config);
   }

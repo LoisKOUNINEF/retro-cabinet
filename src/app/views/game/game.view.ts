@@ -1,4 +1,4 @@
-import { View, html } from '../../../core/index.js';
+import { View, html, nutinIf } from '../../../core/index.js';
 import { GameBoardComponent } from '../../components/game-board/game-board.component.js';
 import { GameCanvasComponent } from '../../components/game-canvas/game-canvas.component.js';
 import { GameOptionsComponent, type GameOptionsConfig } from '../../components/game-options/game-options.component.js';
@@ -234,7 +234,7 @@ export class GameView extends View {
   }
 
   // The drawer covers the board: the game pauses first.
-  private _openHud(): void {
+  protected _openHud(): void {
     this.pause();
     this.update();
     this.drawer().open = true;

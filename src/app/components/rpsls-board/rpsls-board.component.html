@@ -6,6 +6,6 @@
   </div>
   <ul class="rpsls-board__hands" aria-label="Your hand" data-catalog="hands"></ul>
   <ul class="rpsls-board__rules" aria-label="Rules">
-    ${RULES.map((rule) => html`<li>${rule}</li>`)}
+    ${nutinFor(RULES, (rule) => html`<li>${rule}</li>`)}
   </ul>
 </div>

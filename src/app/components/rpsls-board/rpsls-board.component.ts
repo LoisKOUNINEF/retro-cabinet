@@ -1,4 +1,4 @@
-import { html } from '../../../core/index.js';
+import { html, nutinFor } from '../../../core/index.js';
 import { ICONS } from '../../games/icons.js';
 import { BEATS, HANDS, HAND_NAMES, HAND_SPRITES, type Hand } from '../../games/bonus/rpsls/hands.js';
 import type { Phase, Side } from '../../games/bonus/rpsls/rpsls.js';

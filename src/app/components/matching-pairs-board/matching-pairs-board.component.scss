@@ -52,7 +52,7 @@
   }
 
   // A card turning over: it shrinks to its edge and opens on its other side.
-  // Only on the render it turns, so a rebuilt or re-inserted card doesn't play it again.
+  // Only on the render it turns, so a card rebuilt for another change doesn't play it again.
   &--turning {
     animation: matching-pairs-turn 0.25s ease-out;
   }

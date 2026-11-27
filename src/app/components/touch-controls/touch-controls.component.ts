@@ -1,4 +1,4 @@
-import { Component, html } from '../../../core/index.js';
+import { Component, html, nutinIf } from '../../../core/index.js';
 import type { StickDirection, TouchLayout } from '../../games/game.js';
 import { CrossButtonComponent, type CrossButton } from './cross-button/cross-button.component.js';
 import { DIRECTION_CODES, STICK_RADIUS, capture, listenPointer, stickDirection } from './stick.js';

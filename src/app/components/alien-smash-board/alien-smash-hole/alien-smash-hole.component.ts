@@ -53,7 +53,7 @@ export class AlienSmashHoleComponent extends UpdatableComponent<AlienSmashHole> 
 
   // Mouse, touch and pen smashes are taken on the press, by the board (detail > 0 on their click);
   // this click is the keyboard's or an assistive technology's (detail 0).
-  private _select(event: MouseEvent): void {
+  protected _select(event: MouseEvent): void {
     if (event.detail > 0) return;
     this.config.onSelect(this.config.index);
   }

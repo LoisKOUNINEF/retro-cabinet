@@ -1,18 +1,24 @@
 import { Component } from '../../core/index.js';
 
-// Same value, or arrays holding the same values (shallow-compared items, e.g. catalog rows).
-function sameValue(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) return true;
-  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
-  return a.every((item, i) => Object.is(item, b[i]) || shallowEqual(item, b[i]));
+// Plain data: arrays and object literals. Anything else (class instances, Maps…) is compared by reference.
+function isPlainData(value: unknown): value is Record<string, unknown> {
+  if (Array.isArray(value)) return true;
+  if (!value || typeof value !== 'object') return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 
-function shallowEqual(a: unknown, b: unknown): boolean {
-  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return Object.is(a, b);
-  const aRecord = a as Record<string, unknown>;
-  const bRecord = b as Record<string, unknown>;
-  const keys = Object.keys(aRecord);
-  return keys.length === Object.keys(bRecord).length && keys.every((key) => sameValue(aRecord[key], bRecord[key]));
+// Equal configs, whatever their depth. Parents rebuild their children's configs on every update
+// (e.g. board.config(game) on each tick), so nested arrays and objects are new each time: comparing
+// them by reference, as core's catalogs do for one level, would re-render on every update.
+// Each level follows core's shallowEqual (children.helper.ts, not exported): an array only equals
+// an array, the same own keys, and Object.is for everything else (callbacks by reference).
+function sameValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (!isPlainData(a) || !isPlainData(b) || Array.isArray(a) !== Array.isArray(b)) return false;
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length
+    && keys.every((key) => Object.prototype.hasOwnProperty.call(b, key) && sameValue(a[key], b[key]));
 }
 
 // A component its parent refreshes through update(), e.g. on every game tick.
@@ -22,7 +28,7 @@ function shallowEqual(a: unknown, b: unknown): boolean {
 // focusable elements with data-focus-key.
 export abstract class UpdatableComponent<T extends object> extends Component<HTMLElement, T> {
   update(config: T): void {
-    if (shallowEqual(this.config, config)) return;
+    if (sameValue(this.config, config)) return;
     this.config = config;
     this.refresh();
   }
